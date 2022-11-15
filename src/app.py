@@ -21,7 +21,7 @@ blueprint = flask.Blueprint(
     static_folder=st._FLASK_STATIC_PATH,
 )
 
-
+print("This is a Test")
 @blueprint.route("/main")
 def string_main():
     """Route to STRING Main panel"""
