@@ -7,6 +7,7 @@ from PIL import Image
 
 import GlobalData as GD
 import uploader
+import util
 
 from . import settings as st
 from . import workflows as wf
@@ -24,17 +25,14 @@ blueprint = flask.Blueprint(
 @blueprint.route("/main")
 def string_main():
     """Route to STRING Main panel"""
-    username = flask.request.args.get("usr")
-    if username is None:
-        username = str(random.randint(1001, 9998))
-    else:
-        username = username + str(random.randint(1001, 9998))
-        print(username)
+    username = util.generate_username()
     project = flask.request.args.get("project")
 
-    if project is None or project == "none":
-        project = uploader.listProjects()[0]
-    print(project)
+    if project is None:
+        project = "none"
+    else:
+        print(project)
+
     if flask.request.method == "GET":
 
         room = 1
@@ -42,18 +40,19 @@ def string_main():
         flask.session["username"] = username
         flask.session["room"] = room
         # prolist = listProjects()
-        folder = "static/projects/" + project + "/"
+        if project != "none":
+            folder = "static/projects/" + project + "/"
+            with open(folder + "pfile.json", "r") as json_file:
+                GD.pfile = json.load(json_file)
+                print(GD.pfile)
+            json_file.close()
 
-        # Update global pfile and global names variables
-        with open(folder + "pfile.json", "r") as json_file:
-            GD.pfile = json.load(json_file)
-
-        with open(folder + "names.json", "r") as json_file:
-            GD.names = json.load(json_file)
-
+            with open(folder + "names.json", "r") as json_file:
+                GD.names = json.load(json_file)
+                # print(names)
+            json_file.close()
         return flask.render_template(
-            # "/mainpanel/string_main.html",
-            "/string_main.html",
+            "string_main.html",
             session=flask.session,
             sessionData=json.dumps(GD.sessionData),
             pfile=json.dumps(GD.pfile),
@@ -201,7 +200,7 @@ def string_upload():
 
 
 @blueprint.route("/uploadfiles", methods=["GET", "POST"])
-def string_ex_upload():
+def string_ex_upload_files():
     """Route to execute the upload of a VRNetz using the STRING Uploader."""
     return wf.VRNetzer_upload_workflow(flask.request)
 

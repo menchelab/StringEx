@@ -113,7 +113,7 @@
         </div>
         <div class="twelve columns">
             <h3> Information</h3>
-            <p align="left">
+            <p>
                 This panel is used to switch between the different association evidences that come with a STRING
                 network.
             </p>
@@ -130,7 +130,8 @@
         document.getElementById("chbLrgb").checked = false; // turn off link layout change
 
         // Add evidence tab to the tab bar
-        var list_objects = document.getElementsByTagName("li");
+        var tabs = document.getElementById("tabs");
+        var list_objects = tabs.getElementsByTagName("li");
         for(var i = 0; i < list_objects.length; i++){
             var link = list_objects[i].getElementsByTagName("a")[0];
             console.log(link.href);
