@@ -56,12 +56,10 @@ Scrollable Side Panel
 .sidenav {
     height: 100%;
     width: 15%;
-    position: fixed;
-    z-index: 1;
+    position: absolute;
+    z-index: 2;
     top: 0;
     right: 0;
-    background-color: #000000c4;
-    color: white;
     overflow-x: hidden;
     transition: 0.5s;
     padding-top: 10px;
