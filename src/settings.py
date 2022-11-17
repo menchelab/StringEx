@@ -47,6 +47,7 @@ HELP_TEXT = (
     + "possible algorithms:\n"
     + "spring, kamada_kawai, cg_local_tsne, cg_local_umap, cg_global_tsne, cg_global_umap, cg_importance_tsne, cg_importance_umap"
 )
+_MAPPING_ARBITARY_COLOR = [255,255,255,50]
 logger = logging.getLogger("StringEx")
 logger.setLevel(logging.DEBUG)
 # create console handler and set level to debug
@@ -145,7 +146,6 @@ class LayoutAlgroithms:
             f"{cartoGRAPH}_{cartoGRAPH_importance}_{cartoGRAPH_tsne}",
             f"{cartoGRAPH}_{cartoGRAPH_importance}_{cartoGRAPH_umap}",
         ]
-
 
 class Evidences:
     any = "any"

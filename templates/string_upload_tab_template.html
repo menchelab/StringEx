@@ -1,0 +1,153 @@
+<!-- String Style -->
+<link href="{{ url_for('StringEx.static', filename='css/StringStyle.css') }}" rel="stylesheet" />
+<!-- StringEx scripts -->
+<script src="{{ url_for('StringEx.static', filename='js/stringUI_Elements.js') }}">
+</script>
+<script src="{{ url_for('StringEx.static', filename='js/string_upload.js') }}" type="text/javascript">
+</script>
+<div id="tab_to_add"  style="display: none;">
+    <form id="string_upload_form" method=post enctype=multipart/form-data>
+        <div class="twelve columns">
+            <div class="eight columns">
+                <h2 class="lineglowslow" style="margin-top:30px">
+                    STRING
+                    <br />
+                    <br />
+                    VRNetzer
+                </h2>
+            </div>
+            <div class="four columns">
+                <div class="swagLogo">
+                    <br />
+                </div>
+            </div>
+        </div>
+        <div>
+            Check out the new webGL preview!
+        </div>
+        <div>
+            <input onclick="followLink('/StringEx/preview')" style="height: 50px; width: 250px;min-width: fit-content;" type="button" value="webGL PREVIEW">
+        </div>
+        <div class="twelve columns">
+            <h3>
+                <span>
+                    UPLOAD NEW DATA
+                </span>
+            </h3>
+            <p>
+                This uploader is used to Upload VRNetz files exported by the VRNetzer Cytoscape app.
+            </p>
+        </div>
+        <div class="twelve columns">
+            <div class="six columns">
+                <div class="frameBox">
+                    <div class="two columns">
+                        <input type="radio" name="string_namespace" id="string_radio_new_namespace" value="New">
+                    </div>
+                    <h6>CREATE NEW PROJECT</h6>
+                    <br>
+
+                    <input type="text" id="string_new_namespace_name" name="string_new_name" class="swagBox" placeholder="New Project">
+                    <p id="string_submit_warnings" style="display:inline"></p>
+                </div>
+            </div>
+            <div class="six columns">
+                <div id="string_framebox_exisiting" class="frameBox">
+                    <div class="two columns">
+                        <input id="string_radio_existing" type="radio" name="string_namespace" value="existing" checked><br>
+                    </div>
+                    <h6> UPDATE PROJECT</h6>
+
+                    <!--<h3 class="lineglowslow"><span>PROJECT</span></h3>-->
+                    <br>
+                    <div class="cornerBox">
+                        <select name="string_namespaces" id="string_upload_namespaces">
+                            {% for namespace in namespaces %}
+                            print(namespace);
+                            <option value="{{namespace}}">{{namespace}}</option>
+                            {% endfor %}
+                        </select>
+                        <br>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="twelve columns">
+            <div class="frameBox">
+                <div class="twelve columns">
+                    <h4 class="nine columns">
+                        VRNetz
+                    </h4>
+                    <input multiple="" name="vrnetz" type="file" value="placeholder" />
+                </div>
+            </div>
+        </div>
+        <!--
+        <label>N O D E S</label><br>
+        <input type=file name=nodes multiple><br><br>
+        -->
+        <div class="twelve columns">
+            <div class="six columns">
+                <div class="frameBox">
+                    <div class="six columns">
+                        <div class="two columns">
+                            <input checked="" id="string_calc_lay" name="string_calc_lay" type="checkbox" value="string_alc_lay" />
+                        </div>
+                        <h4>
+                            LAYOUT
+                            <br />
+                            ALGORITHM
+                        </h4>
+                        <br/>
+                        <div class="cornerBox">
+                            <select id="string_algo" name="string_algo">
+                            </select>
+                            <br/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="six columns">
+                <div class="frameBox">
+                    <div class="two columns">
+                        <input checked="" name="stringify" type="checkbox" value="stringify" />
+                    </div>
+                    <label for="stringify">
+                        <h6>
+                            STRING NETWORK
+                        </h6>
+                    </label>
+                    <br />
+                    <div class="two columns">
+                        <input name="write" type="checkbox" unchecked="" value="write" />
+                    </div>
+                    <label for="write">
+                        <h6>
+                            SAVE NETWORK WITH COORDS
+                        </h6>
+                    </label>
+                    <br />
+                </div>
+            </div>
+        </div>
+        <!--
+        <label>A T T R I B U T E S (optional) </label><br>
+        <input type=file name=attributes multiple><br><br>
+        
+        <label>L A B E L S (optional) </label><br>
+        <input type=file name=labels multiple><br><br>
+        -->
+        <div class="frameBox">
+            <div class="twelve columns">
+                <div class="two columns">
+                    <input class="swagSubmit" id="string_upload_button" type="submit" value="Upload" />
+                </div>
+                <div class="nine columns" id="string_upload_message">
+                </div>
+                <br>
+            </div>
+        </div>
+    </form>
+</div>

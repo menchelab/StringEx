@@ -1,6 +1,10 @@
 import networkx as nx
+from bs4 import BeautifulSoup as bs
 from PIL import ImageColor
 
+import GlobalData as GD
+
+from . import settings as st
 from .settings import LayoutTags as LT
 from .settings import NodeTags as NT
 from .settings import logger
@@ -100,6 +104,35 @@ def clean_filename(name: str) -> str:
     name = name.replace("#", "_")
     return name
 
+def pepare_uploader():
+    GD.sessionData["layoutAlgos"] = st.LayoutAlgroithms.all_algos
+    GD.sessionData["actAlgo"] = st.LayoutAlgroithms.spring
+    GD.sessionData["organisms"] = st.Organisms.all_organisms
+
+    with open("extensions/StringEx/templates/string_upload_tab_template.html", "r") as f:
+        soup = bs(f, "html.parser")
+
+    # Add layout options to the layout dropdown menu
+    selector = soup.find("select", {"id": "string_algo"})
+    for algo in GD.sessionData["layoutAlgos"]:
+        selector.append(
+            bs(f"""<option value="{algo}">{algo}</option>""", "html.parser")
+        )
+    
+    with open("extensions/StringEx/templates/string_upload_tab.html", "w") as f:
+        f.write(str(soup.prettify()))
+
+    # Add organism options to the organism dropdown menu
+    with open("extensions/StringEx/templates/string_map_tab_template.html", "r") as f:
+        soup = bs(f, "html.parser")
+    selector = soup.find("select", {"id": "string_organism"})
+
+    for algo in GD.sessionData["organisms"]:
+        selector.append(
+            bs(f"""<option value="{algo}">{algo}</option>""", "html.parser")
+        )
+    with open("extensions/StringEx/templates/string_map_tab.html", "w") as f:
+        f.write(str(soup.prettify()))
 
 if __name__ == "__main__":
     G = nx.Graph()

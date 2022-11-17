@@ -10,6 +10,7 @@ import uploader
 import util
 
 from . import settings as st
+from . import util as string_util
 from . import workflows as wf
 
 url_prefix = "/StringEx"
@@ -22,6 +23,9 @@ blueprint = flask.Blueprint(
     static_folder=st._FLASK_STATIC_PATH,
 )
 
+main_tabs = ["string_main_tab.html"]
+upload_tabs = ["string_upload_tab.html","string_map_tab.html"]
+before_first_request =[string_util.pepare_uploader]
 @blueprint.route("/main")
 def string_main():
     """Route to STRING Main panel"""

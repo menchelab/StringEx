@@ -11,7 +11,7 @@ from PIL import Image
 
 import GlobalData as GD
 
-from .settings import _PROJECTS_PATH
+from .settings import _MAPPING_ARBITARY_COLOR, _PROJECTS_PATH
 from .settings import AttrTags as AT
 from .settings import Evidences as EV
 from .settings import LayoutTags as LT
@@ -44,6 +44,7 @@ class Uploader:
         self.stringify = (
             stringify  # boolean that indicates whether a network should be stringified
         )
+        self.p_path = os_join(_PROJECTS_PATH, self.p_name)
 
     def makeProjectFolders(self) -> None:
         self.p_path = os_join(_PROJECTS_PATH, self.p_name)
@@ -475,3 +476,28 @@ class Uploader:
         GD.sessionData["proj"] = self.listProjects(self.pf_path)
 
         return state
+
+    def color_nodes(self,target_project):
+        with open(os.path.join(target_project,"pfile.json")) as f:
+            pfile = json.load(f)
+        layouts = pfile["layoutsRGB"]
+        arbitrary_color = _MAPPING_ARBITARY_COLOR
+        for l,layout in enumerate(layouts):
+            pathRGB = os_join(target_project, "layoutsRGB", f"{layout}.png")
+            img = Image.open(pathRGB)
+            i = 0
+            all_nodes_done=False
+            for x in range(img.height):
+                for y in range(img.width):
+                    if i>= len(self.network["nodes"]):
+                        all_nodes_done = True
+                        break
+                    node = self.network["nodes"][i]
+                    if node[NT.node_color] == arbitrary_color:
+                        img.putpixel((y,x),tuple(arbitrary_color))
+                    # print(x,y,img.getpixel((x,y)))
+                    i+=1
+                if all_nodes_done:
+                    break
+                
+            img.save(os_join(self.p_path, "layoutsRGB", f"{layout}.png"))

@@ -1,12 +1,15 @@
 import json
 import os
+import shutil
 
-from .settings import _NETWORKS_PATH
+from .settings import _MAPPING_ARBITARY_COLOR, _NETWORKS_PATH, _PROJECTS_PATH
 from .settings import Evidences as EV
 from .settings import LayoutTags as LT
+from .settings import LinkTags as LiT
 from .settings import NodeTags as NT
 from .settings import StringTags as ST
 from .settings import VRNetzElements as VRNE
+from .uploader import Uploader
 
 # def process_edge(source, sink, target_edge, source_edges):
 #     edge_found = False
@@ -29,11 +32,15 @@ from .settings import VRNetzElements as VRNE
 #     return target_edge
 
 
-def add_link_evidences(source_link: dict, target_net: dict) -> dict:
+def map_links(idx, t_link: dict, all_links: dict, target_net: dict) -> dict:
     """Add the link evidences from the string network to the ppi network"""
-    for link in source_link:
-        target_net[VRNE.links].append(link)
-    return target_net[VRNE.links]
+    link = t_link[LiT.start], t_link[LiT.end]
+    if link in all_links:
+        for k, v in all_links[link].items():
+            if k not in t_link:
+                t_link[k] = v
+        target_net[VRNE.links][idx] = t_link
+    return target_net
 
 
 def gen_name_suid_map(source_net: dict) -> tuple[dict, dict]:
@@ -46,52 +53,52 @@ def gen_name_suid_map(source_net: dict) -> tuple[dict, dict]:
     return all_dis_names, all_canoncial_names
 
 
-def map_values(
-    source_node: dict, target_node: dict, highlight_color: list = [255, 0, 0]
-) -> dict:
-    """Adds the values from the String Network onto the node in the PPI"""
-    for k, v in source_node.items():
-        if (
-            k not in target_node
-        ):  # Add all keys which are not yet in the node informations
-            target_node[k] = v
-    for l, _ in enumerate(target_node[NT.layouts]):
-        target_node[NT.layouts][l][LT.color] = highlight_color
-    return target_node
+def gen_links_map(source_net: dict) -> dict:
+    all_links = {}
+    for s_link in source_net[VRNE.links]:
+        all_links[s_link[LiT.start], s_link[LiT.end]] = s_link
+    return all_links
 
+
+def map_values(idx, t_node, all_dis_names, all_canoncial_names, target) -> dict:
+    """Adds the values from the String Network onto the node in the PPI"""
+    arbitrary_color = _MAPPING_ARBITARY_COLOR
+    t_node[NT.node_color] = arbitrary_color
+    node_identifiers = t_node[NT.name].split(",")
+    for identifier in node_identifiers:
+        if identifier != "NA":
+            s_node = None
+            if identifier in all_dis_names:
+                s_node = all_dis_names[identifier]
+
+            elif identifier in all_canoncial_names:
+                s_node = all_canoncial_names[identifier]
+            if s_node:
+                t_node[NT.node_color] = s_node[NT.layouts][0][LT.color]
+                for k, v in s_node.items():
+                    if (
+                        k not in t_node
+                    ):  # Add all keys which are not yet in the node informations
+                        t_node[k] = v
+
+    target[VRNE.nodes][idx] = t_node
+    return target
 
 def map_source_to_target(
-    source: str, target: str, output_name: str = "PPI_out.VRNetz"
+    source: str | dict, target: str | dict,target_project, project_name: str = "PPI_out.VRNetz",
 ) -> None:
     """Map the smaller network onto the larger network"""
-    arbitrary_color = [255, 255, 255, 255]
-    with open(source, "r") as f:
-        source_net = json.load(f)
 
-    with open(target, "r") as f:
-        target_net = json.load(f)
-
-    all_dis_names, all_canoncial_names = gen_name_suid_map(source_net)
+    all_dis_names, all_canoncial_names = gen_name_suid_map(source)
+    all_links = gen_links_map(source)
     # ppi_to_suid = {}
-    for idx, t_node in enumerate(target_net[VRNE.nodes]):
-        t_node[NT.node_color] = arbitrary_color
-        id = t_node[NT.id]
-        node_identifiers = t_node[NT.name].split(",")
-        for identifier in node_identifiers:
-            if identifier != "NA":
-                if identifier in all_dis_names:
-                    s_node = all_dis_names[identifier]
-                    target_net[VRNE.nodes][idx] = map_values(s_node, t_node)
-                elif identifier in all_canoncial_names:
-                    s_node = all_canoncial_names[identifier]
-                    target_net[VRNE.nodes][idx] = map_values(s_node, t_node)
-    target_net[VRNE.links] = add_link_evidences(source_net[VRNE.links], target_net)
-    for ev in EV.get_default_scheme().keys():
-        target_net[VRNE.link_layouts].append(ev)
-    if not output_name.endswith(".VRNetz"):
-        output_name = f"{output_name}.VRNetz"
-    with open(os.path.join(_NETWORKS_PATH, output_name), "w+") as f:
-        json.dump(target_net, f)
+    for idx, t_node in enumerate(target[VRNE.nodes]):
+        target = map_values(idx, t_node, all_dis_names, all_canoncial_names, target)
+    for idx, t_link in enumerate(target[VRNE.links]):
+        target = map_links(idx, t_link, all_links, target)
+
+    uploader = Uploader(target,project_name)
+    uploader.color_nodes(target_project)
 
 
 if __name__ == "__main__":

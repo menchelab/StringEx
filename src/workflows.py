@@ -1,15 +1,18 @@
 import json
 import logging
 import os
+import shutil
 import time
+import traceback
+
+import flask
 
 from .converter import VRNetzConverter
-
 # from .cytoscape_parser import CytoscapeParser
 from .layouter import Layouter
 from .map_small_on_large import map_source_to_target
-from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, Organisms, logger
-
+from .settings import (_NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, Organisms,
+                       logger)
 # from .settings import VRNetzElements as VRNE
 # from .string_commands import (StringCompoundQuery, StringDiseaseQuery,
 #                               StringProteinQuery, StringPubMedQuery)
@@ -26,15 +29,16 @@ def VRNetzer_upload_workflow(request):
     logger.info("Starting upload of VRNetz...")
     stringify, write_VRNetz, gen_layout, algo = False, False, False, None
     form = request.form.to_dict()
-    network = request.files.getlist("vrnetz")[0].read().decode("utf-8")
+    network_file = request.files.getlist("vrnetz")[0]
+    network=network_file.read().decode("utf-8")
     network = json.loads(network)
     start = time.time()
     logger.debug(f"Network loaded in {time.time()-start} seconds.")
 
     project_name = ""
 
-    if form["namespace"] == "New":
-        project_name = form["new_name"]
+    if form["string_namespace"] == "New":
+        project_name = form["string_new_name"]
 
     else:
         project_name = form["existing_namespace"]
@@ -42,17 +46,16 @@ def VRNetzer_upload_workflow(request):
     if not project_name:
         return "namespace fail"
 
-    if algo in form:
-        algo = form["algo"]
+    algo = form.get("algo")
 
-    tags = {"stringify": stringify, "write": write_VRNetz, "calc_lay": gen_layout}
+    tags = {"stringify": stringify, "write": write_VRNetz, "string_calc_lay": gen_layout}
     for key, _ in tags.items():
         if key in form:
             tags[key] = True
     stringify, write_VRNetz, gen_layout = (
         tags["stringify"],
         tags["write"],
-        tags["calc_lay"],
+        tags["string_calc_lay"],
     )
     # create layout
     s1 = time.time()
@@ -77,7 +80,8 @@ def VRNetzer_upload_workflow(request):
         logger.debug("Layouts of project has been stringified.")
     logger.debug(f"Total process took {time.time()-s1} seconds.")
     logger.info("Project has been uploaded!")
-    return state
+    html = f'<a style="color:green;" href="/preview?project={project_name}">SUCCESS: Network {network_file.filename} saved as project {project_name} </a><br>'+state
+    return html
 
 
 def VRNetzer_map_workflow(request):
@@ -90,34 +94,31 @@ def VRNetzer_map_workflow(request):
     src_network = f_src_network.read().decode("utf-8")
     src_network = json.loads(src_network)
 
-    organ = form.get("organism")
+    organ = form.get("string_organism")
     f_organ = Organisms.get_file_name(organ)
     f_organ = os.path.join(_PROJECTS_PATH, f_organ)
-    nodes_files = os.path.join(f_organ, "nodes.json")
-    trg_network = json.loads(nodes_files)
+
+    nodes_file = os.path.join(f_organ, "nodes.json")
+    links_file = os.path.join(f_organ, "links.json")
+    print(nodes_file)
+    with open(nodes_file, "r") as json_file:
+        trg_network = json.load(json_file)
+    with open(links_file, "r") as json_file:
+        trg_network["links"] = json.load(json_file)["links"]
 
     project_name = form.get("project_name")
     if project_name is None or project_name == "":
         src_name = os.path.split(f_src_network.filename)[1].split(".")[0]
         trg_name = organ.replace(".", "_")
         project_name = f"{src_name}_on_{trg_name}"
-
-    destination = os.path.join(_PROJECTS_PATH, project_name)
     try:
-        map_source_to_target(src_network, trg_network, destination)
-        html = (
-            f'<a style="color:green;">SUCCESS: network {f_src_network.filename} mapped on {organ} saved as project {project_name} </a>'
-            f"<br>"
-            + f'<input type="submit" value="Preview" id="upload_preview" style="height: 50px; width: 150px;">'
-            + "<script>"
-            + "$('#reload').on('click', function() {"
-            + f"var url = window.location.href.split('&')[0] + '&project={project_name}'"
-            + f"window.location.href = url;"
-            + "});"
-            f"</script>'"
-        )
+        shutil.copytree(f_organ,os.path.join(_PROJECTS_PATH,project_name),dirs_exist_ok=True)
+        map_source_to_target(src_network, trg_network,f_organ, project_name)
+        html = f'<a style="color:green;" href="/preview?project={project_name}">SUCCESS: network {f_src_network.filename} mapped on {organ} saved as project {project_name} </a>'
     except Exception as e:
-        html = f'<a style="color:red;">ERROR: {e}</a>'
+        error = traceback.format_exc()
+        logger.error(error)
+        html = f'<a style="color:red;">ERROR </a>: {error}', 500
     return html
 
 
@@ -135,7 +136,6 @@ def apply_layout_workflow(
         links = layouter.network["links"]
         layouter.gen_graph(nodes, links)
     else:
-
         layouter.read_from_vrnetz(network)
         logger.info(f"Network extracted from: {network}")
 
