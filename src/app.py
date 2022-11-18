@@ -26,43 +26,44 @@ blueprint = flask.Blueprint(
 main_tabs = ["string_main_tab.html"]
 upload_tabs = ["string_upload_tab.html","string_map_tab.html"]
 before_first_request =[string_util.pepare_uploader]
-@blueprint.route("/main")
-def string_main():
-    """Route to STRING Main panel"""
-    username = util.generate_username()
-    project = flask.request.args.get("project")
 
-    if project is None:
-        project = "none"
-    else:
-        print(project)
+# @blueprint.route("/main")
+# def string_main():
+#     """Route to STRING Main panel"""
+#     username = util.generate_username()
+#     project = flask.request.args.get("project")
 
-    if flask.request.method == "GET":
+#     if project is None:
+#         project = "none"
+#     else:
+#         print(project)
 
-        room = 1
-        # Store the data in session
-        flask.session["username"] = username
-        flask.session["room"] = room
-        # prolist = listProjects()
-        if project != "none":
-            folder = "static/projects/" + project + "/"
-            with open(folder + "pfile.json", "r") as json_file:
-                GD.pfile = json.load(json_file)
-                print(GD.pfile)
-            json_file.close()
+#     if flask.request.method == "GET":
 
-            with open(folder + "names.json", "r") as json_file:
-                GD.names = json.load(json_file)
-                # print(names)
-            json_file.close()
-        return flask.render_template(
-            "string_main.html",
-            session=flask.session,
-            sessionData=json.dumps(GD.sessionData),
-            pfile=json.dumps(GD.pfile),
-        )
-    else:
-        return "error"
+#         room = 1
+#         # Store the data in session
+#         flask.session["username"] = username
+#         flask.session["room"] = room
+#         # prolist = listProjects()
+#         if project != "none":
+#             folder = "static/projects/" + project + "/"
+#             with open(folder + "pfile.json", "r") as json_file:
+#                 GD.pfile = json.load(json_file)
+#                 print(GD.pfile)
+#             json_file.close()
+
+#             with open(folder + "names.json", "r") as json_file:
+#                 GD.names = json.load(json_file)
+#                 # print(names)
+#             json_file.close()
+#         return flask.render_template(
+#             "string_main.html",
+#             session=flask.session,
+#             sessionData=json.dumps(GD.sessionData),
+#             pfile=json.dumps(GD.pfile),
+#         )
+#     else:
+#         return "error"
 
 
 @blueprint.route("/preview", methods=["GET"])
@@ -186,8 +187,8 @@ def string_preview():
     )
 
 
-@blueprint.route("/upload", methods=["GET"])
-def string_upload():
+# @blueprint.route("/upload", methods=["GET"])
+# def string_upload():
     """Rout to upload a new .VRNetz file to create a new project. This function is based on the upload function of base VRNetzer app.py."""
     GD.sessionData["layoutAlgos"] = st.LayoutAlgroithms.all_algos
     GD.sessionData["actAlgo"] = st.LayoutAlgroithms.spring
@@ -214,12 +215,3 @@ def string_ex_map():
     """Route to Map a small String network to a genome scale network."""
     return wf.VRNetzer_map_workflow(flask.request)
 
-
-def prepare_session_data():
-    """This will setup the username in the flask.session."""
-    username = flask.request.args.get("usr")
-    if username is None:
-        username = str(random.randint(1001, 9998))
-    else:
-        username = username + str(random.randint(1001, 9998))
-    flask.session["username"] = username
