@@ -36,7 +36,6 @@ def VRNetzer_upload_workflow(request):
     logger.debug(f"Network loaded in {time.time()-start} seconds.")
 
     project_name = ""
-
     if form["string_namespace"] == "New":
         project_name = form["string_new_name"]
 
@@ -106,11 +105,14 @@ def VRNetzer_map_workflow(request):
     with open(links_file, "r") as json_file:
         trg_network["links"] = json.load(json_file)["links"]
 
-    project_name = form.get("project_name")
+    project_name = form.get("string_map_project_name")
     if project_name is None or project_name == "":
         src_name = os.path.split(f_src_network.filename)[1].split(".")[0]
         trg_name = organ.replace(".", "_")
         project_name = f"{src_name}_on_{trg_name}"
+    if "ppi" not in project_name.lower():
+        # Add ppi to project name to activate the right node panel
+        project_name = f"{project_name}_ppi"
     try:
         shutil.copytree(f_organ,os.path.join(_PROJECTS_PATH,project_name),dirs_exist_ok=True)
         map_source_to_target(src_network, trg_network,f_organ, project_name)
