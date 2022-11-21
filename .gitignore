@@ -1,3 +1,6 @@
 **__pycache__**
 *.pyc
 templates/string_upload_tab.html
+templates/string_main.html
+templates/string_map_tab.html
+templates/string_upload_tab.html
