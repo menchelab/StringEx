@@ -77,10 +77,10 @@ $(document).ready(function() {
   $("#string_upload_form").submit(function(event) {
     console.log("Submitting")
 
-    $("#string_upload_message").html("Uploading...");
     // document.getElementById("upload_button").style.backgroundImage = "{{ url_for('static', filename = 'img/active_gears.png') }}";
     document.getElementById("string_upload_button").value = '...';
     document.getElementById("string_upload_button").disabled = true;
+    document.getElementById("string_upload_processing").style.display = "block";
 
     event.preventDefault();
 
@@ -115,12 +115,14 @@ $(document).ready(function() {
         $("#string_upload_message").html("Upload successful: " + data);
         document.getElementById("string_upload_button").value = "Upload"; 
         document.getElementById("string_upload_button").disabled = false;
+        document.getElementById("string_upload_processing").style.display = "none";
       },
       error: function (err) {
         console.log("Uploaded failed!");
         $("#string_upload_message").html("Upload failed");
         document.getElementById("string_upload_button").value = "Upload"; 
         document.getElementById("string_upload_button").disabled = false;
+        document.getElementById("string_upload_processing").style.display = "none";
       },
     });
   });
