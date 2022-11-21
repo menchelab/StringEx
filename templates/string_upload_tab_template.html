@@ -169,10 +169,14 @@
                 <div class="two columns">
                     <input class="swagSubmit" id="string_upload_button" type="submit" value="Upload" />
                 </div>
-                <div class="nine columns" id="string_upload_message">
+                <div class="six columns">
+                    <img id="string_upload_processing" src="{{ url_for('static', filename='img/processing.gif') }}"style="display:none;">
+                    <div id="string_upload_message">
                 </div>
                 <br>
             </div>
         </div>
     </form>
 </div>
+<img id="tab_img" src="{{ url_for('StringEx.static', filename='img/string_logo_2015_340_340.png') }}"
+    style="display: none;">
