@@ -16,6 +16,22 @@ $(document).ready(function() {
   $(function () {
     $("#string_algo").selectmenu();
   });
+
+  $("#string_algo").on("selectmenuselect", function() {
+    var name = $("#string_algo").find(":selected").text();
+    console.log("22: name: " + name);
+    if (name.includes("tsne")) {
+      document.getElementById("string_cg_tsne").style.display = "block";
+      document.getElementById("string_cg_umap").style.display = "none";
+    } else if (name.includes("umap")) {
+      document.getElementById("string_cg_umap").style.display = "block";
+      document.getElementById("string_cg_tsne").style.display = "none";
+    } else {
+      document.getElementById("string_cg_umap").style.display = "none";
+      document.getElementById("string_cg_tsne").style.display = "none";
+    };
+  });
+
   $(function() {
     const checkbox = document.getElementById('string_calc_lay')
 

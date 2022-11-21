@@ -30,7 +30,7 @@ def VRNetzer_upload_workflow(request):
     stringify, write_VRNetz, gen_layout, algo = False, False, False, None
     form = request.form.to_dict()
     network_file = request.files.getlist("vrnetz")[0]
-    network=network_file.read().decode("utf-8")
+    network = network_file.read().decode("utf-8")
     network = json.loads(network)
     start = time.time()
     logger.debug(f"Network loaded in {time.time()-start} seconds.")
@@ -45,21 +45,38 @@ def VRNetzer_upload_workflow(request):
     if not project_name:
         return "namespace fail"
 
-    algo = form.get("algo")
+    algo = form.get("string_algo")
 
-    tags = {"stringify": stringify, "write": write_VRNetz, "string_calc_lay": gen_layout}
+    tags = {
+        "stringify": stringify,
+        "string_write": write_VRNetz,
+        "string_calc_lay": gen_layout,
+    }
     for key, _ in tags.items():
         if key in form:
             tags[key] = True
     stringify, write_VRNetz, gen_layout = (
         tags["stringify"],
-        tags["write"],
+        tags["string_write"],
         tags["string_calc_lay"],
     )
+    cg_variables = {
+        "prplxty": form.get("string_cg_prplxty", 50),
+        "density": form.get("string_cg_density", 0.5),
+        "l_rate": form.get("string_cg_l_rate", 200),
+        "steps": form.get("string_cg_steps", 1000),
+        "n_neighbors": form.get("string_cg_n_neighbors", 15),
+        "spread": form.get("string_cg_spread", 1.0),
+        "min_dist": form.get("string_cg_min_dist", 0.0),
+    }
     # create layout
     s1 = time.time()
     layouter = apply_layout_workflow(
-        network, layout_algo=algo, stringify=stringify, gen_layout=gen_layout
+        network,
+        layout_algo=algo,
+        stringify=stringify,
+        gen_layout=gen_layout,
+        cg_variables=cg_variables,
     )
     logger.debug(f"Applying layout algorithm in {time.time()-s1} seconds.")
     network = layouter.network
@@ -79,7 +96,10 @@ def VRNetzer_upload_workflow(request):
         logger.debug("Layouts of project has been stringified.")
     logger.debug(f"Total process took {time.time()-s1} seconds.")
     logger.info("Project has been uploaded!")
-    html = f'<a style="color:green;" href="/preview?project={project_name}">SUCCESS: Network {network_file.filename} saved as project {project_name} </a><br>'+state
+    html = (
+        f'<a style="color:green;" href="/StringEx/preview?project={project_name}">SUCCESS: Network {network_file.filename} saved as project {project_name} </a><br>'
+        + state
+    )
     return html
 
 
@@ -114,8 +134,10 @@ def VRNetzer_map_workflow(request):
         # Add ppi to project name to activate the right node panel
         project_name = f"{project_name}_ppi"
     try:
-        shutil.copytree(f_organ,os.path.join(_PROJECTS_PATH,project_name),dirs_exist_ok=True)
-        map_source_to_target(src_network, trg_network,f_organ, project_name)
+        shutil.copytree(
+            f_organ, os.path.join(_PROJECTS_PATH, project_name), dirs_exist_ok=True
+        )
+        map_source_to_target(src_network, trg_network, f_organ, project_name)
         html = f'<a style="color:green;" href="/preview?project={project_name}">SUCCESS: network {f_src_network.filename} mapped on {organ} saved as project {project_name} </a>'
     except Exception as e:
         error = traceback.format_exc()
@@ -130,6 +152,7 @@ def apply_layout_workflow(
     layout_algo: str = None,
     cy_layout: bool = True,
     stringify: bool = True,
+    cg_variables: dict = {},
 ) -> Layouter:
     layouter = Layouter()
     if type(network) is dict:
@@ -142,7 +165,7 @@ def apply_layout_workflow(
         logger.info(f"Network extracted from: {network}")
 
     if gen_layout:
-        layouter.apply_layout(layout_algo)
+        layouter.apply_layout(layout_algo, cg_variables)
         if layout_algo is None:
             layout_algo = "spring"
         logger.info(f"Layout algorithm {layout_algo} applied!")

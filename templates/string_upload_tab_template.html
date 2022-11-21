@@ -93,7 +93,7 @@
                 <div class="frameBox">
                     <div class="six columns">
                         <div class="two columns">
-                            <input checked="" id="string_calc_lay" name="string_calc_lay" type="checkbox" value="string_alc_lay" />
+                            <input checked="" id="string_calc_lay" name="string_calc_lay" type="checkbox" value="string_calc_lay" />
                         </div>
                         <h4>
                             LAYOUT
@@ -121,7 +121,7 @@
                     </label>
                     <br />
                     <div class="two columns">
-                        <input name="write" type="checkbox" unchecked="" value="write" />
+                        <input name="string_write" type="checkbox" unchecked="" value="write" />
                     </div>
                     <label for="write">
                         <h6>
@@ -132,7 +132,32 @@
                 </div>
             </div>
         </div>
+        <div class="twelve columns">
+            <div class="six columns">
+                <div class="frameBox" id="string_cg_tsne" style="display:none">
+                    <h6>prplxty</h6>
+                    <input type="number" id="string_cg_prplxty" name="string_new_name" class="swagBox" value="50" min="1">
+                    <h6>DENSITY</h6>
+                    <input type="number" id="string_cg_density" name="string_new_name" class="swagBox" value="12" min="1">
+                    <h6>l_rate</h6>
+                    <input type="number" id="string_cg_l_rate" name="string_new_name" class="swagBox" value="200" min="1">
+                    <h6>STEPS</h6>
+                    <input type="number" id="string_cg_steps" name="string_new_name" class="swagBox" value="250" min="1">
+                </div>
+            </div>
+            <div class="six columns">
+                <div class="frameBox" id="string_cg_umap" style="display:none">
+                    <h6>NUMBER OF NEIGHBORS</h6>
+                    <input type="number" id="string_cg_n_neighbors" name="string_new_name" class="swagBox" value="8" min="1">
+                    <h6>SPREAD</h6>
+                    <input type="number" id="string_cg_spread" name="string_new_name" class="swagBox" value="1" step="0.1">
+                    <h6>MINIMAL DISTANCE</h6>
+                    <input type="number" id="string_cg_min_dist" name="string_new_name" class="swagBox" value="0" min="0" max="1" step="0.1">
+                </div>
+            </div>
+        </div>
         <!--
+            
         <label>A T T R I B U T E S (optional) </label><br>
         <input type=file name=attributes multiple><br><br>
         
