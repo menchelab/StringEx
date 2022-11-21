@@ -85,7 +85,7 @@ def map_values(idx, t_node, all_dis_names, all_canoncial_names, target) -> dict:
     return target
 
 def map_source_to_target(
-    source: str | dict, target: str | dict,target_project, project_name: str = "PPI_out.VRNetz",
+    source: str or dict, target: str or dict,target_project, project_name: str = "PPI_out.VRNetz",
 ) -> None:
     """Map the smaller network onto the larger network"""
 
