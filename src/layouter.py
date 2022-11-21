@@ -166,7 +166,6 @@ class Layouter:
                 random.randint(0, 255),
                 random.randint(0, 255),
                 random.randint(0, 255),
-                255,
             ]
             size = 1
             # find the correct layout
@@ -178,6 +177,7 @@ class Layouter:
                 # extract color and (size) information
                 size = cy_layout[LT.size]
                 color = cy_layout[LT.color]
+                node[NT.layouts][layout_id][LT.color]=color
 
             if VRNE.node_layouts not in self.network:
                 self.network[VRNE.node_layouts] = []

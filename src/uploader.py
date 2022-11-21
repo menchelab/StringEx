@@ -6,10 +6,9 @@ from .settings import _WORKING_DIR
 
 sys.path.append(os.path.join(_WORKING_DIR, "..", ".."))
 
+import GlobalData as GD
 from flask import jsonify
 from PIL import Image
-
-import GlobalData as GD
 
 from .settings import _MAPPING_ARBITARY_COLOR, _PROJECTS_PATH
 from .settings import AttrTags as AT
@@ -158,6 +157,8 @@ class Uploader:
                 if LT.color in lay:
                     if isinstance(lay[LT.color], list):
                         color = lay[LT.color]
+                        if len(color)==3:
+                            color.append(255//2)
 
                 for d, _ in enumerate(position):
                     coords[d] = int(float(position[d]) * 65280)

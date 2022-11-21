@@ -1,2 +1,3 @@
 **__pycache__**
 *.pyc
+templates/string_upload_tab.html

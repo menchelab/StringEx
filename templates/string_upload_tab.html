@@ -98,7 +98,7 @@
     <div class="frameBox">
      <div class="six columns">
       <div class="two columns">
-       <input checked="" id="string_calc_lay" name="string_calc_lay" type="checkbox" value="string_alc_lay">
+       <input checked="" id="string_calc_lay" name="string_calc_lay" type="checkbox" value="string_calc_lay">
        </input>
       </div>
       <h4>
@@ -155,7 +155,7 @@
      </label>
      <br>
       <div class="two columns">
-       <input name="write" type="checkbox" unchecked="" value="write">
+       <input name="string_write" type="checkbox" unchecked="" value="write">
        </input>
       </div>
       <label for="write">
@@ -168,7 +168,46 @@
     </div>
    </div>
   </div>
+  <div class="twelve columns">
+   <div class="six columns">
+    <div class="frameBox" id="string_cg_tsne" style="display:none">
+     <h6>
+      prplxty
+     </h6>
+     <input class="swagBox" id="string_cg_prplxty" min="1" name="string_new_name" type="number" value="50"/>
+     <h6>
+      DENSITY
+     </h6>
+     <input class="swagBox" id="string_cg_density" min="1" name="string_new_name" type="number" value="12"/>
+     <h6>
+      l_rate
+     </h6>
+     <input class="swagBox" id="string_cg_l_rate" min="1" name="string_new_name" type="number" value="200"/>
+     <h6>
+      STEPS
+     </h6>
+     <input class="swagBox" id="string_cg_steps" min="1" name="string_new_name" type="number" value="250"/>
+    </div>
+   </div>
+   <div class="six columns">
+    <div class="frameBox" id="string_cg_umap" style="display:none">
+     <h6>
+      NUMBER OF NEIGHBORS
+     </h6>
+     <input class="swagBox" id="string_cg_n_neighbors" min="1" name="string_new_name" type="number" value="8"/>
+     <h6>
+      SPREAD
+     </h6>
+     <input class="swagBox" id="string_cg_spread" name="string_new_name" step="0.1" type="number" value="1"/>
+     <h6>
+      MINIMAL DISTANCE
+     </h6>
+     <input class="swagBox" id="string_cg_min_dist" max="1" min="0" name="string_new_name" step="0.1" type="number" value="0"/>
+    </div>
+   </div>
+  </div>
   <!--
+            
         <label>A T T R I B U T E S (optional) </label><br>
         <input type=file name=attributes multiple><br><br>
         
@@ -178,7 +217,8 @@
   <div class="frameBox">
    <div class="twelve columns">
     <div class="two columns">
-     <input class="swagSubmit" id="string_upload_button" type="submit" value="Upload"/>
+     <input class="swagSubmit" id="string_upload_button" type="submit" value="Upload">
+     </input>
     </div>
     <div class="nine columns" id="string_upload_message">
     </div>
