@@ -180,7 +180,7 @@ class Uploader:
             if uniprot:
                 uniprot = uniprot[0]
             else:
-                elem.get(NT.name)
+                uniprot = elem.get(NT.name)
         if uniprot:
             name = [uniprot]
             if "names" not in self.names:
@@ -196,8 +196,8 @@ class Uploader:
         tex = None
         if LiT.layouts in elem.keys():
             elem_lays = {lay[LT.name]: idx for idx, lay in enumerate(elem[LiT.layouts])}
-            start = elem[LiT.start]
-            end = elem[LiT.end]
+            start = int(elem[LiT.start])
+            end = int(elem[LiT.end])
 
             sx = start % 128
             syl = start // 128 % 128
@@ -404,19 +404,21 @@ class Uploader:
         }
         return nodes_data, edges_data
 
-    def stringify_project(self):
+    def stringify_project(self, links=True,nodes=True):
         """Only adds the evidences to pfile layouts."""
         ev = EV.get_default_scheme().keys()
         ev_xyz = [f"{ev}XYZ" for ev in ev]
         ev_rgb = [f"{ev}RGB" for ev in ev]
-        self.pfile[PT.links] = ev_xyz  # [ev_xyz[0], ev_xyz[0]] + ev_xyz
-        self.pfile[PT.links_rgb] = ev_rgb  # [ev_rgb[0], ev_rgb[0]] + ev_rgb
-        if f"{LT.cy_layout}XYZ" not in self.pfile[PT.layouts]:
-            self.pfile[PT.layouts] = [f"{LT.string_3d_no_z}XYZ", f"{LT.string_3d}XYZ"]
-            self.pfile[PT.layouts_rgb] = [
-                f"{LT.string_3d_no_z}RGB",
-                f"{LT.string_3d}RGB",
-            ]
+        if links:
+            self.pfile[PT.links] = ev_xyz  # [ev_xyz[0], ev_xyz[0]] + ev_xyz
+            self.pfile[PT.links_rgb] = ev_rgb  # [ev_rgb[0], ev_rgb[0]] + ev_rgb
+        if nodes:
+            if f"{LT.cy_layout}XYZ" not in self.pfile[PT.layouts]:
+                self.pfile[PT.layouts] = [f"{LT.string_3d_no_z}XYZ", f"{LT.string_3d}XYZ"]
+                self.pfile[PT.layouts_rgb] = [
+                    f"{LT.string_3d_no_z}RGB",
+                    f"{LT.string_3d}RGB",
+                ]
         # if f"{LT.cy_layout}XYZ" in self.pfile[PT.layouts]:
         #     self.pfile[PT.layouts] = [
         #         f"{LT.cy_layout}XYZ",
@@ -479,9 +481,23 @@ class Uploader:
         return state
 
     def color_nodes(self,target_project):
-        with open(os.path.join(target_project,"pfile.json")) as f:
-            pfile = json.load(f)
-        layouts = pfile["layoutsRGB"]
+        self.pfile_file =os.path.join(self.p_path,"pfile.json")
+        with open(self.pfile_file,"r") as f:
+            self.pfile = json.load(f)
+
+
+        layouts = self.pfile["layoutsRGB"]
+        links = self.pfile["linksRGB"]
+
+        self.links = {"links": []}
+
+        nodes = self.network.get(VRNE.nodes)
+        links = self.network.get(VRNE.links)
+        l_lay = [ev for ev in EV.get_default_scheme().keys()]
+
+        self.makeLinkTex(links, nodes, l_lay)
+        self.stringify_project(nodes=False)
+            
         arbitrary_color = _MAPPING_ARBITARY_COLOR
         for l,layout in enumerate(layouts):
             pathRGB = os_join(target_project, "layoutsRGB", f"{layout}.png")

@@ -267,7 +267,6 @@ class Layouter:
             evidences = Evidences.get_default_scheme()
         logger.debug(f"Evidence colors: {evidences}")
         links = self.network[VRNE.links]
-        print(type(links))
         logger.debug(f"links loaded.")
         if VRNE.link_layouts not in self.network:
             self.network[VRNE.link_layouts] = []

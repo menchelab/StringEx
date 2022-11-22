@@ -126,6 +126,10 @@ def VRNetzer_map_workflow(request):
         trg_network["links"] = json.load(json_file)["links"]
 
     project_name = form.get("string_map_project_name")
+    layouter = Layouter()
+    layouter.network = src_network
+    layouter.gen_evidence_layouts()
+    src_network = layouter.network
     if project_name is None or project_name == "":
         src_name = os.path.split(f_src_network.filename)[1].split(".")[0]
         trg_name = organ.replace(".", "_")
@@ -137,8 +141,15 @@ def VRNetzer_map_workflow(request):
         shutil.copytree(
             f_organ, os.path.join(_PROJECTS_PATH, project_name), dirs_exist_ok=True
         )
+        with open(os.path.join(f_organ,"pfile.json"), "r") as json_file:
+            pfile = json.load(json_file)
+            pfile["name"] = project_name
+            pfile["network"] = "string"
+        with open(os.path.join(os.path.join(_PROJECTS_PATH, project_name),"pfile.json"), "w") as json_file:
+            json.dump(pfile, json_file)
+        
         map_source_to_target(src_network, trg_network, f_organ, project_name)
-        html = f'<a style="color:green;" href="/preview?project={project_name}">SUCCESS: network {f_src_network.filename} mapped on {organ} saved as project {project_name} </a>'
+        html = f'<a style="color:green;" href="/StringEx/preview?project={project_name}">SUCCESS: network {f_src_network.filename} mapped on {organ} saved as project {project_name} </a>'
     except Exception as e:
         error = traceback.format_exc()
         logger.error(error)
