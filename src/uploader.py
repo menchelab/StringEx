@@ -498,7 +498,6 @@ class Uploader:
         self.makeLinkTex(links, nodes, l_lay)
         self.stringify_project(nodes=False)
             
-        arbitrary_color = _MAPPING_ARBITARY_COLOR
         for l,layout in enumerate(layouts):
             pathRGB = os_join(target_project, "layoutsRGB", f"{layout}.png")
             img = Image.open(pathRGB)
@@ -510,9 +509,11 @@ class Uploader:
                         all_nodes_done = True
                         break
                     node = self.network["nodes"][i]
-                    if node[NT.node_color] == arbitrary_color:
-                        img.putpixel((y,x),tuple(arbitrary_color))
-                    # print(x,y,img.getpixel((x,y)))
+                    if node[NT.node_color] == _MAPPING_ARBITARY_COLOR:
+                        color = node[NT.node_color]+[50]
+                    else:
+                        color = node[NT.node_color]+[255//2]       
+                    img.putpixel((y, x), tuple(color))
                     i+=1
                 if all_nodes_done:
                     break

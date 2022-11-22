@@ -62,8 +62,7 @@ def gen_links_map(source_net: dict) -> dict:
 
 def map_values(idx, t_node, all_dis_names, all_canoncial_names, target) -> dict:
     """Adds the values from the String Network onto the node in the PPI"""
-    arbitrary_color = _MAPPING_ARBITARY_COLOR
-    t_node[NT.node_color] = arbitrary_color
+    t_node[NT.node_color] = _MAPPING_ARBITARY_COLOR
     node_identifiers = t_node[NT.name].split(",")
     for identifier in node_identifiers:
         if identifier != "NA":
@@ -75,12 +74,12 @@ def map_values(idx, t_node, all_dis_names, all_canoncial_names, target) -> dict:
                 s_node = all_canoncial_names[identifier]
             if s_node:
                 t_node[NT.node_color] = s_node[NT.layouts][0][LT.color]
+
                 for k, v in s_node.items():
                     if (
                         k not in t_node
                     ):  # Add all keys which are not yet in the node informations
                         t_node[k] = v
-
     target[VRNE.nodes][idx] = t_node
     return target, s_node
 
@@ -105,6 +104,7 @@ def map_source_to_target(
         target,s_node = map_values(idx, t_node, all_dis_names, all_canoncial_names, target)
         if s_node:
             updated_nodes[s_node[NT.id]] = t_node
+
     old_links = all_links.copy()
     for link in old_links:
         if link[0] in updated_nodes or link[1] in updated_nodes:
@@ -116,7 +116,7 @@ def map_source_to_target(
                 link = tuple((link[0],updated_nodes[link[1]][NT.id]))
 
         all_links[link] = data
-    print(all_links.keys())
+
     for idx, t_link in enumerate(target[VRNE.links]):
         target = map_links(idx, t_link, all_links, target)
     
