@@ -48,7 +48,7 @@ Do the first six steps as mentioned [above](#upload-string-network).
 
 7. Uncheck the checkbox `STRING NETWORK`
 
-<img src="https://raw.githubusercontent.com/menchelab/STRING-VRNetzer/main/pictures/non_string.png?token=GHSAT0AAAAAABY6FADRI3WTTC3QQC5H57IWY356GIA" alt="Picture that visualizes the where the checkbox can be found">
+<img src="https://raw.githubusercontent.com/menchelab/STRING-VRNetzer/main/pictures/non_string.png?token=GHSAT0AAAAAABY6FADRLDGI7NWYYVV4YRTOY356L4Q" alt="Picture that visualizes the where the checkbox can be found">
 
 1. Click on the "Upload" button to upload the network to the VRNetzer platform.
 2. If the upload was successful, you'll be prompted with a success message and a link to preview the project in the designated WebGL previewer.
