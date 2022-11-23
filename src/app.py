@@ -27,50 +27,11 @@ main_tabs = ["string_main_tab.html"]
 upload_tabs = ["string_upload_tab.html","string_map_tab.html"]
 before_first_request =[string_util.pepare_uploader]
 
-# @blueprint.route("/main")
-# def string_main():
-#     """Route to STRING Main panel"""
-#     username = util.generate_username()
-#     project = flask.request.args.get("project")
-
-#     if project is None:
-#         project = "none"
-#     else:
-#         print(project)
-
-#     if flask.request.method == "GET":
-
-#         room = 1
-#         # Store the data in session
-#         flask.session["username"] = username
-#         flask.session["room"] = room
-#         # prolist = listProjects()
-#         if project != "none":
-#             folder = "static/projects/" + project + "/"
-#             with open(folder + "pfile.json", "r") as json_file:
-#                 GD.pfile = json.load(json_file)
-#                 print(GD.pfile)
-#             json_file.close()
-
-#             with open(folder + "names.json", "r") as json_file:
-#                 GD.names = json.load(json_file)
-#                 # print(names)
-#             json_file.close()
-#         return flask.render_template(
-#             "string_main.html",
-#             session=flask.session,
-#             sessionData=json.dumps(GD.sessionData),
-#             pfile=json.dumps(GD.pfile),
-#         )
-#     else:
-#         return "error"
-
 
 @blueprint.route("/preview", methods=["GET"])
 def string_preview():
     """Route to STRING WEBGL Preview. If No project is selected, redirect to the project selection page of the StringEx WEBGL preview. this function is based on the preview function of base VRNetzer app.py."""
     data = {}
-
     if flask.request.args.get("project") is None:
 
         print("project Argument not provided - redirecting to menu page")
@@ -186,22 +147,6 @@ def string_preview():
         sessionData=json.dumps(GD.sessionData),
     )
 
-
-# @blueprint.route("/upload", methods=["GET"])
-# def string_upload():
-    """Rout to upload a new .VRNetz file to create a new project. This function is based on the upload function of base VRNetzer app.py."""
-    GD.sessionData["layoutAlgos"] = st.LayoutAlgroithms.all_algos
-    GD.sessionData["actAlgo"] = st.LayoutAlgroithms.spring
-    GD.sessionData["organisms"] = st.Organisms.all_organisms
-    """Route to STRING upload."""
-    prolist = uploader.listProjects()
-    html_page = "string_upload.html"
-    return flask.render_template(
-        html_page,
-        namespaces=prolist,
-        algorithms=GD.sessionData["layoutAlgos"],
-        organisms=GD.sessionData["organisms"],
-    )
 
 
 @blueprint.route("/uploadfiles", methods=["GET", "POST"])
