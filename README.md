@@ -41,7 +41,7 @@ Furthermore, in combination with the [VRNetzerApp](https://github.com/menchelab/
 6. If you are using a cartoGRAPHs layout algorithm, you can also define the respective variables.
 7. Click on the "Upload" button to upload the network to the VRNetzer platform.
 8. If the upload was successful, you'll be prompted with a success message and a link to preview the project in the designated WebGL previewer.
-
+---
 ### Upload some other network from Cytoscape
 
 Do the first six steps as mentioned [above](#upload-string-network).
@@ -52,7 +52,7 @@ Do the first six steps as mentioned [above](#upload-string-network).
 
 1. Click on the "Upload" button to upload the network to the VRNetzer platform.
 2. If the upload was successful, you'll be prompted with a success message and a link to preview the project in the designated WebGL previewer.
-
+---
 ### Map an exported network on a preprocessed PPI
 
 Do the first three steps as mentioned [above](#upload-string-network).
