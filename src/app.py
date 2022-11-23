@@ -3,9 +3,9 @@ import os
 import random
 
 import flask
+import GlobalData as GD
 from PIL import Image
 
-import GlobalData as GD
 import uploader
 import util
 

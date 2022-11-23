@@ -44,15 +44,8 @@ class Uploader:
             stringify  # boolean that indicates whether a network should be stringified
         )
         self.p_path = os_join(_PROJECTS_PATH, self.p_name)
-
-    def makeProjectFolders(self) -> None:
-        self.p_path = os_join(_PROJECTS_PATH, self.p_name)
-        self.pfile_file = os_join(self.p_path, "pfile.json")
-        self.names_file = os_join(self.p_path, "names.json")
-        self.nodes_file = os_join(self.p_path, "nodes.json")
-        self.links_file = os_join(self.p_path, "links.json")
-
         pfile = {"network": "NA"}
+        pfile={"network_type":"ppi"}
         if self.stringify:
             pfile["network"] = "string"
 
@@ -66,6 +59,13 @@ class Uploader:
         self.pfile = pfile
         self.nodes = {"nodes": []}
         self.links = {"links": []}
+
+    def makeProjectFolders(self) -> None:
+        self.p_path = os_join(_PROJECTS_PATH, self.p_name)
+        self.pfile_file = os_join(self.p_path, "pfile.json")
+        self.names_file = os_join(self.p_path, "names.json")
+        self.nodes_file = os_join(self.p_path, "nodes.json")
+        self.links_file = os_join(self.p_path, "links.json")
 
         path = self.p_path
 
