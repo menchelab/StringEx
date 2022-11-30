@@ -174,21 +174,15 @@ class Uploader:
 
     def extract_node_label(self, elem, idx):
         """Extracts the node labels and add them to the names dictionary."""
-        uniprot = elem.get(ST.stringdb_canoncial_name)
-        if uniprot is None:
-            uniprot = elem.get(NT.uniprot)
-            if uniprot:
-                uniprot = uniprot[0]
-            else:
-                uniprot = elem.get(NT.name)
+        uniprot = elem.get(NT.name)
         if uniprot:
             name = [uniprot]
             if "names" not in self.names:
                 self.names["names"] = []
-            labels = self.names["names"]
-            if idx < len(labels):
-                if name == labels[idx]:
-                    return
+            # labels = self.names["names"]
+            # if idx < len(labels):
+            #     if name == labels[idx]:
+            #         return
             self.names["names"].append(name)
 
     @staticmethod
