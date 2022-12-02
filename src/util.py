@@ -124,7 +124,7 @@ def pepare_uploader():
         )
 
     with open(
-        os.path.join(st._FLASK_TEMPLATE_PATH, "/string_upload_tab.html"), "w"
+        os.path.join(st._FLASK_TEMPLATE_PATH, "string_upload_tab.html"), "w"
     ) as f:
         f.write(str(soup.prettify()))
 
@@ -139,7 +139,7 @@ def pepare_uploader():
         selector.append(
             bs(f"""<option value="{algo}">{algo}</option>""", "html.parser")
         )
-    with open(os.path.join(st._FLASK_TEMPLATE_PATH, "/string_map_tab.html"), "w") as f:
+    with open(os.path.join(st._FLASK_TEMPLATE_PATH, "string_map_tab.html"), "w") as f:
         f.write(str(soup.prettify()))
 
 
