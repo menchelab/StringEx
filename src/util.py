@@ -1,8 +1,9 @@
+import os
+
+import GlobalData as GD
 import networkx as nx
 from bs4 import BeautifulSoup as bs
 from PIL import ImageColor
-
-import GlobalData as GD
 
 from . import settings as st
 from .settings import LayoutTags as LT
@@ -104,12 +105,15 @@ def clean_filename(name: str) -> str:
     name = name.replace("#", "_")
     return name
 
+
 def pepare_uploader():
     GD.sessionData["layoutAlgos"] = st.LayoutAlgroithms.all_algos
     GD.sessionData["actAlgo"] = st.LayoutAlgroithms.spring
     GD.sessionData["organisms"] = st.Organisms.all_organisms
 
-    with open("extensions/StringEx/templates/string_upload_tab_template.html", "r") as f:
+    with open(
+        os.path.join(st._FLASK_TEMPLATE_PATH, "string_upload_tab_template.html"), "r"
+    ) as f:
         soup = bs(f, "html.parser")
 
     # Add layout options to the layout dropdown menu
@@ -118,12 +122,16 @@ def pepare_uploader():
         selector.append(
             bs(f"""<option value="{algo}">{algo}</option>""", "html.parser")
         )
-    
-    with open("extensions/StringEx/templates/string_upload_tab.html", "w") as f:
+
+    with open(
+        os.path.join(st._FLASK_TEMPLATE_PATH, "/string_upload_tab.html"), "w"
+    ) as f:
         f.write(str(soup.prettify()))
 
     # Add organism options to the organism dropdown menu
-    with open("extensions/StringEx/templates/string_map_tab_template.html", "r") as f:
+    with open(
+        os.path.join(st._FLASK_TEMPLATE_PATH, "string_map_tab_template.html"), "r"
+    ) as f:
         soup = bs(f, "html.parser")
     selector = soup.find("select", {"id": "string_organism"})
 
@@ -131,8 +139,9 @@ def pepare_uploader():
         selector.append(
             bs(f"""<option value="{algo}">{algo}</option>""", "html.parser")
         )
-    with open("extensions/StringEx/templates/string_map_tab.html", "w") as f:
+    with open(os.path.join(st._FLASK_TEMPLATE_PATH, "/string_map_tab.html"), "w") as f:
         f.write(str(soup.prettify()))
+
 
 if __name__ == "__main__":
     G = nx.Graph()
