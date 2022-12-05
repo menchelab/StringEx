@@ -198,17 +198,19 @@ def string_ex_map_files():
     return wf.VRNetzer_map_workflow(organism, project_name, src_filename)
 
 
-@blueprint.route("/upload", methods=["GET", "POST"])
-def string_ex_upload():
-    """Route to the STRING Uploader."""
-    return flask.render_template(
-        "string_upload_tab.html",
-        namespaces=uploader.listProjects(),
-        algorithms=st.LayoutAlgroithms.all_algos,
-    )
+# @blueprint.route("/upload", methods=["GET", "POST"])
+# def string_ex_upload():
+#     """Route to the STRING Uploader."""
+#     return flask.render_template(
+#         "string_upload_tab.html",
+#         namespaces=uploader.listProjects(),
+#         sessionData=json.dumps(GD.sessionData),
+#     )
 
 
-@blueprint.route("/map", methods=["GET", "POST"])
-def string_ex_map():
-    """Route to the STRING Uploader."""
-    return flask.render_template("string_map_tab.html")
+# @blueprint.route("/map", methods=["GET", "POST"])
+# def string_ex_map():
+#     """Route to the STRING Uploader."""
+#     return flask.render_template(
+#         "string_map_tab.html", sessionData=json.dumps(GD.sessionData)
+#     )
