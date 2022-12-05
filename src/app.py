@@ -24,8 +24,9 @@ blueprint = flask.Blueprint(
 )
 
 main_tabs = ["string_main_tab.html"]
-upload_tabs = ["string_upload_tab.html","string_map_tab.html"]
-before_first_request =[string_util.pepare_uploader]
+upload_tabs = ["string_upload_tab.html", "string_map_tab.html"]
+images = []
+before_first_request = [string_util.pepare_uploader]
 
 
 @blueprint.route("/preview", methods=["GET"])
@@ -148,7 +149,6 @@ def string_preview():
     )
 
 
-
 @blueprint.route("/uploadfiles", methods=["GET", "POST"])
 def string_ex_upload_files():
     """Route to execute the upload of a VRNetz using the STRING Uploader."""
@@ -156,7 +156,22 @@ def string_ex_upload_files():
 
 
 @blueprint.route("/mapfiles", methods=["GET", "POST"])
-def string_ex_map():
+def string_ex_map_files():
     """Route to Map a small String network to a genome scale network."""
     return wf.VRNetzer_map_workflow(flask.request)
 
+
+@blueprint.route("/upload", methods=["GET", "POST"])
+def string_ex_upload():
+    """Route to the STRING Uploader."""
+    return flask.render_template(
+        "string_upload_tab.html",
+        namespaces=uploader.listProjects(),
+        algorithms=st.LayoutAlgroithms.all_algos,
+    )
+
+
+@blueprint.route("/map", methods=["GET", "POST"])
+def string_ex_map():
+    """Route to the STRING Uploader."""
+    return flask.render_template("string_map_tab.html")
