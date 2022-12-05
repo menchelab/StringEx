@@ -6,7 +6,10 @@ from .settings import _WORKING_DIR
 
 sys.path.append(os.path.join(_WORKING_DIR, "..", ".."))
 
-import GlobalData as GD
+try:
+    import GlobalData as GD
+except ModuleNotFoundError:
+    pass
 from flask import jsonify
 from PIL import Image
 
@@ -34,8 +37,11 @@ class Uploader:
         p_name: str,
         skip_exists: bool = False,
         stringify: bool = True,
-        p_path: str = _PROJECTS_PATH,
+        p_path: str = None,
     ) -> None:
+        if p_path is None:
+            p_path = _PROJECTS_PATH
+
         self.network = network
         self.p_name = p_name  # Name of the project
         self.pf_path = p_path  # Path to the directory that contains all projects
@@ -45,7 +51,7 @@ class Uploader:
         )
         self.p_path = os_join(_PROJECTS_PATH, self.p_name)
         pfile = {"network": "NA"}
-        pfile={"network_type":"ppi"}
+        pfile = {"network_type": "ppi"}
         if self.stringify:
             pfile["network"] = "string"
 
@@ -85,6 +91,7 @@ class Uploader:
         rel_path = path.find("static")
         rel_path = path[rel_path:]
         logger.debug(f"Successfully created directories in {rel_path}")
+        logger.debug(f"Full Path {path}")
 
     def loadProjectInfo(self) -> dict or str:
         self.folder = os_join(self.p_path)
@@ -157,8 +164,8 @@ class Uploader:
                 if LT.color in lay:
                     if isinstance(lay[LT.color], list):
                         color = lay[LT.color]
-                        if len(color)==3:
-                            color.append(255//2)
+                        if len(color) == 3:
+                            color.append(255 // 2)
 
                 for d, _ in enumerate(position):
                     coords[d] = int(float(position[d]) * 65280)
@@ -398,7 +405,7 @@ class Uploader:
         }
         return nodes_data, edges_data
 
-    def stringify_project(self, links=True,nodes=True):
+    def stringify_project(self, links=True, nodes=True):
         """Only adds the evidences to pfile layouts."""
         ev = EV.get_default_scheme().keys()
         ev_xyz = [f"{ev}XYZ" for ev in ev]
@@ -408,7 +415,10 @@ class Uploader:
             self.pfile[PT.links_rgb] = ev_rgb  # [ev_rgb[0], ev_rgb[0]] + ev_rgb
         if nodes:
             if f"{LT.cy_layout}XYZ" not in self.pfile[PT.layouts]:
-                self.pfile[PT.layouts] = [f"{LT.string_3d_no_z}XYZ", f"{LT.string_3d}XYZ"]
+                self.pfile[PT.layouts] = [
+                    f"{LT.string_3d_no_z}XYZ",
+                    f"{LT.string_3d}XYZ",
+                ]
                 self.pfile[PT.layouts_rgb] = [
                     f"{LT.string_3d_no_z}RGB",
                     f"{LT.string_3d}RGB",
@@ -470,15 +480,17 @@ class Uploader:
 
         self.write_json_files()
 
-        GD.sessionData["proj"] = self.listProjects(self.pf_path)
+        try:
+            GD.sessionData["proj"] = self.listProjects(self.pf_path)
+        except NameError:
+            pass
 
         return state
 
-    def color_nodes(self,target_project):
-        self.pfile_file =os.path.join(self.p_path,"pfile.json")
-        with open(self.pfile_file,"r") as f:
+    def color_nodes(self, target_project):
+        self.pfile_file = os.path.join(self.p_path, "pfile.json")
+        with open(self.pfile_file, "r") as f:
             self.pfile = json.load(f)
-
 
         layouts = self.pfile["layoutsRGB"]
         links = self.pfile["linksRGB"]
@@ -491,25 +503,25 @@ class Uploader:
 
         self.makeLinkTex(links, nodes, l_lay)
         self.stringify_project(nodes=False)
-            
-        for l,layout in enumerate(layouts):
+
+        for l, layout in enumerate(layouts):
             pathRGB = os_join(target_project, "layoutsRGB", f"{layout}.png")
             img = Image.open(pathRGB)
             i = 0
-            all_nodes_done=False
+            all_nodes_done = False
             for x in range(img.height):
                 for y in range(img.width):
-                    if i>= len(self.network["nodes"]):
+                    if i >= len(self.network["nodes"]):
                         all_nodes_done = True
                         break
                     node = self.network["nodes"][i]
                     if node[NT.node_color] == _MAPPING_ARBITARY_COLOR:
-                        color = node[NT.node_color]+[50]
+                        color = node[NT.node_color] + [50]
                     else:
-                        color = node[NT.node_color]+[255//2]       
+                        color = node[NT.node_color] + [255 // 2]
                     img.putpixel((y, x), tuple(color))
-                    i+=1
+                    i += 1
                 if all_nodes_done:
                     break
-                
+
             img.save(os_join(self.p_path, "layoutsRGB", f"{layout}.png"))

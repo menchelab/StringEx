@@ -4,10 +4,9 @@ import random
 
 import flask
 import GlobalData as GD
-from PIL import Image
-
 import uploader
 import util
+from PIL import Image
 
 from . import settings as st
 from . import util as string_util
@@ -24,8 +23,8 @@ blueprint = flask.Blueprint(
 )
 
 main_tabs = ["string_main_tab.html"]
-upload_tabs = ["string_upload_tab.html","string_map_tab.html"]
-before_first_request =[string_util.pepare_uploader]
+upload_tabs = ["string_upload_tab.html", "string_map_tab.html"]
+before_first_request = [string_util.pepare_uploader]
 
 
 @blueprint.route("/preview", methods=["GET"])
@@ -148,15 +147,52 @@ def string_preview():
     )
 
 
-
 @blueprint.route("/uploadfiles", methods=["GET", "POST"])
 def string_ex_upload_files():
     """Route to execute the upload of a VRNetz using the STRING Uploader."""
-    return wf.VRNetzer_upload_workflow(flask.request)
+
+    form = flask.request.form.to_dict()
+    network_file = flask.request.files.getlist("vrnetz")[0]
+    network = network_file.read().decode("utf-8")
+    network = json.loads(network)
+    project_name = ""
+    if form["string_namespace"] == "New":
+        project_name = form["string_new_name"]
+
+    else:
+        project_name = form["existing_namespace"]
+    algo = form.get("string_algo")
+    tags = {
+        "stringify": False,
+        "string_write": False,
+        "string_calc_lay": False,
+    }
+    for key, _ in tags.items():
+        if key in form:
+            tags[key] = True
+
+    cg_variables = {
+        "prplxty": form.get("string_cg_prplxty", 50),
+        "density": form.get("string_cg_density", 0.5),
+        "l_rate": form.get("string_cg_l_rate", 200),
+        "steps": form.get("string_cg_steps", 1000),
+        "n_neighbors": form.get("string_cg_n_neighbors", 15),
+        "spread": form.get("string_cg_spread", 1.0),
+        "min_dist": form.get("string_cg_min_dist", 0.0),
+    }
+    return wf.VRNetzer_upload_workflow(
+        network, network_file.filename, project_name, algo, tags, cg_variables
+    )
 
 
 @blueprint.route("/mapfiles", methods=["GET", "POST"])
 def string_ex_map():
     """Route to Map a small String network to a genome scale network."""
-    return wf.VRNetzer_map_workflow(flask.request)
-
+    form = flask.request.form.to_dict()
+    f_src_network = flask.request.files.getlist("vrnetz")[0]
+    src_network = f_src_network.read().decode("utf-8")
+    src_network = json.loads(src_network)
+    organism = form.get("string_organism")
+    project_name = form.get("string_map_project_name")
+    src_filename = f_src_network.filename
+    return wf.VRNetzer_map_workflow(organism, project_name, src_filename)

@@ -1,6 +1,9 @@
 import os
 
-import GlobalData as GD
+try:
+    import GlobalData as GD
+except ModuleNotFoundError:
+    pass
 import networkx as nx
 from bs4 import BeautifulSoup as bs
 from PIL import ImageColor
