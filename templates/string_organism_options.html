@@ -1,0 +1,7 @@
+<script>
+    var sessiondata = JSON.parse({{ sessionData| tojson}});
+    var organisms = sessiondata.organisms;
+    for (var i = 0; i < organisms.length; i++) {
+        document.write("<option value=" + organisms[i] + ">" + organisms[i] + "</option>");
+    };
+</script>
