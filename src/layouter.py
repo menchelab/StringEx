@@ -53,10 +53,12 @@ class Layouter:
     def create_kamada_kawai_layout(self) -> dict:
         return nx.kamada_kawai_layout(self.graph, dim=3)
 
-    def create_cartoGRAPH_layout(self, layout_algo:str, cg_variables:dict=None) -> dict:
+    def create_cartoGRAPH_layout(
+        self, layout_algo: str, cg_variables: dict = None
+    ) -> dict:
         """Will pick the correct cartoGRAPH layout algorithm and apply it to the graph. If cartoGRAPH is not installed, it will ask the user whether to use networkx spring algorithm instead."""
         try:
-            return self.pick_cg_layout_algorithm(layout_algo,cg_variables)
+            return self.pick_cg_layout_algorithm(layout_algo, cg_variables)
         except ImportError:
             logger.warning("cartoGRAPHs is not installed.")
             use_spring = input("Use spring layout instead? [y/n]: ")
@@ -65,81 +67,113 @@ class Layouter:
             else:
                 exit()
 
-    def pick_cg_layout_algorithm(self, layout_algo,cg_variables:dict={}) -> dict:
+    def pick_cg_layout_algorithm(self, layout_algo, cg_variables: dict = {}) -> dict:
         """Will pick the correct cartoGRAPH layout algorithm and apply it to the graph and return positions"""
         print(cg_variables)
         import cartoGRAPHs as cg
+
         dim = 3
 
         if "tsne" in layout_algo:
-            prplxty = cg_variables.get("prplxty",50)
-            density = cg_variables.get("density",0.5)
-            l_rate = cg_variables.get("l_rate",200)
-            steps = cg_variables.get("steps",1000)
+            prplxty = cg_variables.get("prplxty", 50)
+            density = cg_variables.get("density", 0.5)
+            l_rate = cg_variables.get("l_rate", 200)
+            steps = cg_variables.get("steps", 1000)
             if "local" in layout_algo:
-                return cg.layout_local_tsne(self.graph,dim,prplxty,density,l_rate,steps)
+                return cg.layout_local_tsne(
+                    self.graph, dim, prplxty, density, l_rate, steps
+                )
             elif "global" in layout_algo:
-                return cg.layout_global_tsne(self.graph,dim,prplxty,density,l_rate,steps)
+                return cg.layout_global_tsne(
+                    self.graph, dim, prplxty, density, l_rate, steps
+                )
             elif "importance" in layout_algo:
-                return cg.layout_importance_tsne(self.graph,dim,prplxty,density,l_rate,steps)
+                return cg.layout_importance_tsne(
+                    self.graph, dim, prplxty, density, l_rate, steps
+                )
             elif "functional" in layout_algo:
-                return cg.layout_functional_tsne(self.graph,dim,prplxty,density,l_rate,steps)
+                return cg.layout_functional_tsne(
+                    self.graph, dim, prplxty, density, l_rate, steps
+                )
         if "umap" in layout_algo:
-            n_neighbors = cg_variables.get("n_neighbors",15)
-            spread=cg_variables.get("spread",1.0)
-            min_dist=cg_variables.get("min_dist",0.0)
+            n_neighbors = cg_variables.get("n_neighbors", 15)
+            spread = cg_variables.get("spread", 1.0)
+            min_dist = cg_variables.get("min_dist", 0.0)
             if "local" in layout_algo:
-                return cg.layout_local_umap(self.graph,dim,n_neighbors,spread,min_dist)
+                return cg.layout_local_umap(
+                    self.graph, dim, n_neighbors, spread, min_dist
+                )
             elif "global" in layout_algo:
-                return cg.layout_global_umap(self.graph,dim,n_neighbors,spread,min_dist)
+                return cg.layout_global_umap(
+                    self.graph, dim, n_neighbors, spread, min_dist
+                )
             elif "importance" in layout_algo:
-                return cg.layout_importance_umap(self.graph,dim,n_neighbors,spread,min_dist)
+                return cg.layout_importance_umap(
+                    self.graph, dim, n_neighbors, spread, min_dist
+                )
             elif "functional" in layout_algo:
+                "TODO: Implement functional Functional"
                 MATRIX = cg.get_functional_matrix(self.graph)
                 rows = len(list(G.nodes()))
-                feat_one = [(val) if i%3 else (scale) for i in range(rows)]
-                feat_two = [(val) if i%2 or feat_one[i]==scale in feat_one else (scale) for i in range(rows)]
-                feat_three = [(scale) if feat_one[i]==val and feat_two[i]==val and i not in feat_one and i not in feat_two else val for i in range(rows)]
+                feat_one = [(val) if i % 3 else (scale) for i in range(rows)]
+                feat_two = [
+                    (val) if i % 2 or feat_one[i] == scale in feat_one else (scale)
+                    for i in range(rows)
+                ]
+                feat_three = [
+                    (scale)
+                    if feat_one[i] == val
+                    and feat_two[i] == val
+                    and i not in feat_one
+                    and i not in feat_two
+                    else val
+                    for i in range(rows)
+                ]
 
-                feat_matrix = np.vstack((feat_one,feat_two,feat_three))
+                feat_matrix = np.vstack((feat_one, feat_two, feat_three))
                 FM = pd.DataFrame(feat_matrix)
-                FM.index = ['100','101','102']
-                FM=FM.T
+                FM.index = ["100", "101", "102"]
+                FM = FM.T
                 FM.index = list(G.nodes())
-                'Please specify a functional matrix of choice with N x rows with G.nodes and M x feature columns.'
-                return cg.layout_functional_umap(self.graph,dim,n_neighbors,spread,min_dist)
+                "Please specify a functional matrix of choice with N x rows with G.nodes and M x feature columns."
+                return cg.layout_functional_umap(
+                    self.graph, dim, n_neighbors, spread, min_dist
+                )
         elif "topographic" in layout_algo:
             # d_z = a dictionary with keys=G.nodes and values=any int/float assigned to a node
             posG2D = nx.Graph()
             z_list = [np.random.random() for i in range(0, len(list(posG2D.nodes())))]
-            d_z = dict(zip(list(posG2D.nodes()),z_list))
-            return cg.layout_topographic(posG2D,d_z)
+            d_z = dict(zip(list(posG2D.nodes()), z_list))
+            return cg.layout_topographic(posG2D, d_z)
 
         elif "geodesic" in layout_algo:
             d_radius = 1
-            n_neighbors =8
-            spraed=1.0
-            min_dist=0.0
-            DM=None
-            #radius_list_norm = preprocessing.minmax_scale((list(d_radius.values())), feature_range=(0, 1.0), axis=0, copy=True)
-            #d_radius_norm = dict(zip(list(G.nodes()), radius_list_norm))
-            return cg.layout_geodesic(self.graph,d_radius,n_neighbors,spread,min_dist,DM)
-        
-            
+            n_neighbors = 8
+            spraed = 1.0
+            min_dist = 0.0
+            DM = None
+            # radius_list_norm = preprocessing.minmax_scale((list(d_radius.values())), feature_range=(0, 1.0), axis=0, copy=True)
+            # d_radius_norm = dict(zip(list(G.nodes()), radius_list_norm))
+            return cg.layout_geodesic(
+                self.graph, d_radius, n_neighbors, spread, min_dist, DM
+            )
 
-    def apply_layout(self, layout_algo: str = None,cg_variables:dict = {}) -> nx.layout:
+    def apply_layout(
+        self, layout_algo: str = None, cg_variables: dict = {}
+    ) -> nx.layout:
         """Applies a layout algorithm and adds the node positions to nodes in the self.network[VRNE.nodes] list."""
         if layout_algo is None:
             """Select default layout algorithm"""
             layout_algo = LA.spring
 
         if LA.cartoGRAPH in layout_algo:
-            layout = self.create_cartoGRAPH_layout(layout_algo,cg_variables)
+            layout = self.create_cartoGRAPH_layout(layout_algo, cg_variables)
         else:
             layouts = {
                 LA.spring: self.create_spring_layout,
                 LA.kamada_kawai: self.create_kamada_kawai_layout,
             }
+            logger.debug(f"Applying layout: {layout_algo}")
             layout = layouts[layout_algo]()  # Will use the desired layout algorithm
 
         points = np.array(list(layout.values()))
@@ -177,7 +211,7 @@ class Layouter:
                 # extract color and (size) information
                 size = cy_layout[LT.size]
                 color = cy_layout[LT.color]
-                node[NT.layouts][layout_id][LT.color]=color
+                node[NT.layouts][layout_id][LT.color] = color
 
             if VRNE.node_layouts not in self.network:
                 self.network[VRNE.node_layouts] = []

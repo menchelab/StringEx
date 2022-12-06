@@ -196,6 +196,7 @@ def apply_layout_workflow(
         logger.info(f"Network extracted from: {network}")
 
     if gen_layout:
+        logger.info(f"Applying algorithm {layout_algo} ...")
         layouter.apply_layout(layout_algo, cg_variables)
         if layout_algo is None:
             layout_algo = "spring"
