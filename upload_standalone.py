@@ -42,10 +42,9 @@ def upload_from_VRNetz(
     """
     with open(vrnetz_file, "r") as f:
         network = json.load(f)
-    print(type(network))
-    wf.VRNetzer_upload_workflow(
-        network, vrnetz_file, project_name, algo, tags, cg_variables
-    )
+    # wf.VRNetzer_upload_workflow(
+    #     network, vrnetz_file, project_name, algo, tags, cg_variables
+    # )
 
 
 def main():

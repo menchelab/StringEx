@@ -261,7 +261,6 @@ class Uploader:
         ]
 
         for idx, elem in enumerate(nodes):
-            # rename stringdb attributes to universal attributes to present them in nodepanel
             for u_att, s_attr in zip(universal_attributes, string_attributes):
                 if s_attr in elem:
                     elem[u_att] = elem[s_attr]
