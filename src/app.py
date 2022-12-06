@@ -186,7 +186,7 @@ def string_ex_upload_files():
 
 
 @blueprint.route("/mapfiles", methods=["GET", "POST"])
-def string_ex_map():
+def string_ex_map_files():
     """Route to Map a small String network to a genome scale network."""
     form = flask.request.form.to_dict()
     f_src_network = flask.request.files.getlist("vrnetz")[0]
@@ -196,3 +196,21 @@ def string_ex_map():
     project_name = form.get("string_map_project_name")
     src_filename = f_src_network.filename
     return wf.VRNetzer_map_workflow(organism, project_name, src_filename)
+
+
+# @blueprint.route("/upload", methods=["GET", "POST"])
+# def string_ex_upload():
+#     """Route to the STRING Uploader."""
+#     return flask.render_template(
+#         "string_upload_tab.html",
+#         namespaces=uploader.listProjects(),
+#         sessionData=json.dumps(GD.sessionData),
+#     )
+
+
+# @blueprint.route("/map", methods=["GET", "POST"])
+# def string_ex_map():
+#     """Route to the STRING Uploader."""
+#     return flask.render_template(
+#         "string_map_tab.html", sessionData=json.dumps(GD.sessionData)
+#     )

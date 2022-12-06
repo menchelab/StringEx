@@ -113,37 +113,36 @@ def pepare_uploader():
     GD.sessionData["layoutAlgos"] = st.LayoutAlgroithms.all_algos
     GD.sessionData["actAlgo"] = st.LayoutAlgroithms.spring
     GD.sessionData["organisms"] = st.Organisms.all_organisms
+    # with open(
+    #     os.path.join(st._FLASK_TEMPLATE_PATH, "string_upload_tab_template.html"), "r"
+    # ) as f:
+    #     soup = bs(f, "html.parser")
 
-    with open(
-        os.path.join(st._FLASK_TEMPLATE_PATH, "string_upload_tab_template.html"), "r"
-    ) as f:
-        soup = bs(f, "html.parser")
+    # # Add layout options to the layout dropdown menu
+    # selector = soup.find("select", {"id": "string_algo"})
+    # for algo in GD.sessionData["layoutAlgos"]:
+    #     selector.append(
+    #         bs(f"""<option value="{algo}">{algo}</option>""", "html.parser")
+    #     )
 
-    # Add layout options to the layout dropdown menu
-    selector = soup.find("select", {"id": "string_algo"})
-    for algo in GD.sessionData["layoutAlgos"]:
-        selector.append(
-            bs(f"""<option value="{algo}">{algo}</option>""", "html.parser")
-        )
+    # with open(
+    #     os.path.join(st._FLASK_TEMPLATE_PATH, "string_upload_tab.html"), "w"
+    # ) as f:
+    #     f.write(str(soup.prettify()))
 
-    with open(
-        os.path.join(st._FLASK_TEMPLATE_PATH, "string_upload_tab.html"), "w"
-    ) as f:
-        f.write(str(soup.prettify()))
+    # # Add organism options to the organism dropdown menu
+    # with open(
+    #     os.path.join(st._FLASK_TEMPLATE_PATH, "string_map_tab_template.html"), "r"
+    # ) as f:
+    #     soup = bs(f, "html.parser")
+    # selector = soup.find("select", {"id": "string_organism"})
 
-    # Add organism options to the organism dropdown menu
-    with open(
-        os.path.join(st._FLASK_TEMPLATE_PATH, "string_map_tab_template.html"), "r"
-    ) as f:
-        soup = bs(f, "html.parser")
-    selector = soup.find("select", {"id": "string_organism"})
-
-    for algo in GD.sessionData["organisms"]:
-        selector.append(
-            bs(f"""<option value="{algo}">{algo}</option>""", "html.parser")
-        )
-    with open(os.path.join(st._FLASK_TEMPLATE_PATH, "string_map_tab.html"), "w") as f:
-        f.write(str(soup.prettify()))
+    # for algo in GD.sessionData["organisms"]:
+    #     selector.append(
+    #         bs(f"""<option value="{algo}">{algo}</option>""", "html.parser")
+    #     )
+    # with open(os.path.join(st._FLASK_TEMPLATE_PATH, "string_map_tab.html"), "w") as f:
+    #     f.write(str(soup.prettify()))
 
 
 if __name__ == "__main__":

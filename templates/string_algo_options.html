@@ -1,0 +1,7 @@
+<script>
+    var sessiondata = JSON.parse({{ sessionData| tojson}});
+    var algorithms = sessiondata.layoutAlgos;
+    for (var i = 0; i < algorithms.length; i++) {
+        document.write("<option value=" + algorithms[i] + ">" + algorithms[i] + "</option>");
+    };
+</script>
