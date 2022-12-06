@@ -133,14 +133,7 @@
         document.getElementById("chbLrgb").checked = false; // turn off link layout change
         "display:block";
     } else {
-        var divs = document.getElementsByTagName("div")
-        for (var i = 0; i < divs.length; i++) {
-            if (divs[i].id.includes("tabs-")) {
-                if (divs[i].children[0].id == "string_ev_tab") {
-                    divs[i].remove();
-                };
-            };
-        };
+        var div = document.getElementById("string_ev_tab");
+        div.parentNode.remove();
     }
-    deactivateTabs("mainTabs");
 </script>
