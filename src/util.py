@@ -110,9 +110,13 @@ def clean_filename(name: str) -> str:
 
 
 def pepare_uploader():
-    GD.sessionData["layoutAlgos"] = st.LayoutAlgroithms.all_algos
-    GD.sessionData["actAlgo"] = st.LayoutAlgroithms.spring
-    GD.sessionData["organisms"] = st.Organisms.all_organisms
+    strinEx_config = {}
+
+    strinEx_config["layoutAlgos"] = st.LayoutAlgroithms.all_algos
+    strinEx_config["actAlgo"] = st.LayoutAlgroithms.spring
+    strinEx_config["organisms"] = st.Organisms.all_organisms
+
+    GD.sessionData["stringex"] = strinEx_config
     # with open(
     #     os.path.join(st._FLASK_TEMPLATE_PATH, "string_upload_tab_template.html"), "r"
     # ) as f:
