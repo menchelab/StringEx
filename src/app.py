@@ -151,11 +151,10 @@ def string_preview():
 @blueprint.route("/uploadfiles", methods=["GET", "POST"])
 def string_ex_upload_files():
     """Route to execute the upload of a VRNetz using the STRING Uploader."""
-
     form = flask.request.form.to_dict()
     vr_netz_files = flask.request.files.getlist("vrnetz")
     if len(vr_netz_files) == 0:
-        return "No VRNetz file provided."
+        return flask.redirect("/upload")
     network_file = vr_netz_files[0]
     network = network_file.read().decode("utf-8")
     network = json.loads(network)
@@ -196,7 +195,7 @@ def string_ex_map_files():
     f_src_network = flask.request.files.getlist("vrnetz")
     vr_netz_files = flask.request.files.getlist("vrnetz")
     if len(vr_netz_files) == 0:
-        return "No VRNetz file provided."
+        return flask.redirect("/upload")
     f_src_network = vr_netz_files[0]
     src_network = f_src_network.read().decode("utf-8")
     src_network = json.loads(src_network)
