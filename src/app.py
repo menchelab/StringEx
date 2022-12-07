@@ -4,9 +4,10 @@ import random
 
 import flask
 import GlobalData as GD
+from PIL import Image
+
 import uploader
 import util
-from PIL import Image
 
 from . import settings as st
 from . import util as string_util
@@ -152,7 +153,10 @@ def string_ex_upload_files():
     """Route to execute the upload of a VRNetz using the STRING Uploader."""
 
     form = flask.request.form.to_dict()
-    network_file = flask.request.files.getlist("vrnetz")[0]
+    vr_netz_files = flask.request.files.getlist("vrnetz")
+    if len(vr_netz_files) == 0:
+        return "No VRNetz file provided."
+    network_file = vr_netz_files[0]
     network = network_file.read().decode("utf-8")
     network = json.loads(network)
     project_name = ""
@@ -189,7 +193,11 @@ def string_ex_upload_files():
 def string_ex_map_files():
     """Route to Map a small String network to a genome scale network."""
     form = flask.request.form.to_dict()
-    f_src_network = flask.request.files.getlist("vrnetz")[0]
+    f_src_network = flask.request.files.getlist("vrnetz")
+    vr_netz_files = flask.request.files.getlist("vrnetz")
+    if len(vr_netz_files) == 0:
+        return "No VRNetz file provided."
+    f_src_network = vr_netz_files[0]
     src_network = f_src_network.read().decode("utf-8")
     src_network = json.loads(src_network)
     organism = form.get("string_organism")
