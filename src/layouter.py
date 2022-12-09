@@ -11,7 +11,7 @@ from .settings import LayoutTags as LT
 from .settings import LinkTags as LiT
 from .settings import NodeTags as NT
 from .settings import VRNetzElements as VRNE
-from .settings import logger
+from .settings import log
 
 
 class Layouter:
@@ -60,7 +60,7 @@ class Layouter:
         try:
             return self.pick_cg_layout_algorithm(layout_algo, cg_variables)
         except ImportError:
-            logger.warning("cartoGRAPHs is not installed.")
+            log.warning("cartoGRAPHs is not installed.")
             use_spring = input("Use spring layout instead? [y/n]: ")
             if use_spring == "y":
                 return self.create_spring_layout()
@@ -173,7 +173,7 @@ class Layouter:
                 LA.spring: self.create_spring_layout,
                 LA.kamada_kawai: self.create_kamada_kawai_layout,
             }
-            logger.debug(f"Applying layout: {layout_algo}")
+            log.debug(f"Applying layout: {layout_algo}")
             layout = layouts[layout_algo]()  # Will use the desired layout algorithm
 
         points = np.array(list(layout.values()))
@@ -193,7 +193,7 @@ class Layouter:
         idx = 0
         cytoscape_nodes = []
         cy_points = []
-        logger.debug(f"Length of Layout {len(layout)}")
+        log.debug(f"Length of Layout {len(layout)}")
         for node, pos in layout.items():
             node = self.network[VRNE.nodes][idx]
             color = [
@@ -299,13 +299,13 @@ class Layouter:
         # Set up the colors for each evidence type
         if evidences is None:
             evidences = Evidences.get_default_scheme()
-        logger.debug(f"Evidence colors: {evidences}")
+        log.debug(f"Evidence colors: {evidences}")
         links = self.network[VRNE.links]
-        logger.debug(f"links loaded.")
+        log.debug(f"links loaded.")
         if VRNE.link_layouts not in self.network:
             self.network[VRNE.link_layouts] = []
         for ev in evidences:
-            logger.debug(f"Handling evidence: {ev}.")
+            log.debug(f"Handling evidence: {ev}.")
             self.network[VRNE.link_layouts].append(ev)
             cur_links = {idx: link for idx, link in enumerate(links)}
             if not ev == Evidences.any:

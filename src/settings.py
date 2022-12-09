@@ -1,11 +1,21 @@
-import logging
 import os
 import sys
+from logging import DEBUG
+
+from . import logger
 
 try:
     from pip._internal.operations import freeze
 except ImportError:  # pip < 10.0
     from pip.operations import freeze
+
+_LOG_DEBUG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s"
+_LOG_DEFAULT_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+_LOG_LEVEL = DEBUG
+
+_LOG_FORMAT = _LOG_DEBUG_FORMAT
+F_LOG_LEVEL = _LOG_LEVEL
+C_LOG_LEVEL = _LOG_LEVEL
 
 _WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 _THIS_EXT = os.path.join(_WORKING_DIR, "..")
@@ -27,20 +37,10 @@ os.makedirs(_NETWORKS_PATH, exist_ok=os.X_OK)
 
 UNIPROT_MAP = os.path.join(_STATIC_PATH, "uniprot_mapping.csv")
 _MAPPING_ARBITARY_COLOR = [255, 255, 255]
-logger = logging.getLogger("StringEx")
-logger.setLevel(logging.DEBUG)
-# create console handler and set level to debug
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
 
-# create formatter
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
-# add formatter to ch
-ch.setFormatter(formatter)
-
-# add ch to logger
-logger.addHandler(ch)
+log = logger.get_logger(
+    level=_LOG_LEVEL, f_level=F_LOG_LEVEL, c_level=C_LOG_LEVEL, format=_LOG_FORMAT
+)
 
 # Tags
 class LayoutTags:

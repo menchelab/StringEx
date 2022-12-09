@@ -153,11 +153,16 @@ def string_ex_upload_files():
     """Route to execute the upload of a VRNetz using the STRING Uploader."""
     form = flask.request.form.to_dict()
     vr_netz_files = flask.request.files.getlist("vrnetz")
-    if len(vr_netz_files) == 0:
-        return flask.redirect("/upload")
+    if len(vr_netz_files) == 0 or vr_netz_files[0].filename == "":
+        st.log.error(f"No VRNetz file provided!")
+        return '<a style="color:red;"href="/upload">ERROR invalid VRNetz file!</a>'
     network_file = vr_netz_files[0]
     network = network_file.read().decode("utf-8")
-    network = json.loads(network)
+    try:
+        network = json.loads(network)
+    except json.decoder.JSONDecodeError:
+        st.log.error(f"Invalid VRNetz file:{network_file.filename}")
+        return '<a style="color:red;">ERROR invalid VRNetz file!</a>'
     project_name = ""
     if form["string_namespace"] == "New":
         project_name = form["string_new_name"]
@@ -198,7 +203,12 @@ def string_ex_map_files():
         return flask.redirect("/upload")
     f_src_network = vr_netz_files[0]
     src_network = f_src_network.read().decode("utf-8")
-    src_network = json.loads(src_network)
+    try:
+        src_network = json.loads(src_network)
+        st.log.error(f"No VRNetz file provided!")
+    except json.decoder.JSONDecodeError:
+        st.log.error(f"Invalid VRNetz file:{f_src_network}")
+        return '<a style="color:red;">ERROR invalid VRNetz file!</a>'
     organism = form.get("string_organism")
     project_name = form.get("string_map_project_name")
     src_filename = f_src_network.filename

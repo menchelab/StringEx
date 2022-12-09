@@ -1,3 +1,4 @@
+import logging
 import os
 
 try:
@@ -5,13 +6,18 @@ try:
 except ModuleNotFoundError:
     pass
 import networkx as nx
-from bs4 import BeautifulSoup as bs
 from PIL import ImageColor
 
 from . import settings as st
 from .settings import LayoutTags as LT
 from .settings import NodeTags as NT
-from .settings import logger
+from .settings import log
+
+
+def change_logger_namespace(self, record, namespace):
+    dct = record.__dict__
+    dct["name"] = namespace
+    return self._fmt % dct
 
 
 def prepare_networkx_network(G: nx.Graph, positions: dict = None) -> tuple[dict, dict]:

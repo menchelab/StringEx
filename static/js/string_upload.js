@@ -78,6 +78,7 @@ $(document).ready(function() {
     console.log("Submitting")
 
     // document.getElementById("upload_button").style.backgroundImage = "{{ url_for('static', filename = 'img/active_gears.png') }}";
+    $("#string_upload_message").html("");
     document.getElementById("string_upload_button").value = '...';
     document.getElementById("string_upload_button").disabled = true;
     document.getElementById("string_upload_processing").style.display = "block";
@@ -112,7 +113,7 @@ $(document).ready(function() {
       processData: false,
       success: function (data) {
         console.log("117: Data: " + data);
-        $("#string_upload_message").html("Upload successful: " + data);
+        $("#string_upload_message").html(data);
         document.getElementById("string_upload_button").value = "Upload"; 
         document.getElementById("string_upload_button").disabled = false;
         document.getElementById("string_upload_processing").style.display = "none";

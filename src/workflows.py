@@ -12,7 +12,7 @@ from .converter import VRNetzConverter
 # from .cytoscape_parser import CytoscapeParser
 from .layouter import Layouter
 from .map_small_on_large import map_source_to_target
-from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, Organisms, logger
+from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, Organisms, log
 
 # from .settings import VRNetzElements as VRNE
 # from .string_commands import (StringCompoundQuery, StringDiseaseQuery,
@@ -65,10 +65,10 @@ def VRNetzer_upload_workflow(
             "min_dist": 0.0,
         }
 
-    logger.info("Starting upload of VRNetz...")
+    log.info("Starting upload of VRNetz...")
     start = time.time()
 
-    logger.debug(f"Network loaded in {time.time()-start} seconds.")
+    log.debug(f"Network loaded in {time.time()-start} seconds.")
 
     if not project_name:
         return "namespace fail"
@@ -82,7 +82,7 @@ def VRNetzer_upload_workflow(
         gen_layout=tags.get("string_calc_lay"),
         cg_variables=cg_variables,
     )
-    logger.debug(f"Applying layout algorithm in {time.time()-s1} seconds.")
+    log.debug(f"Applying layout algorithm in {time.time()-s1} seconds.")
     network = layouter.network
 
     # upload network
@@ -94,17 +94,17 @@ def VRNetzer_upload_workflow(
     )
     s1 = time.time()
     state = uploader.upload_files(network)
-    logger.debug(f"Uploading process took {time.time()-s1} seconds.")
+    log.debug(f"Uploading process took {time.time()-s1} seconds.")
     if tags.get("string_write"):
         outfile = f"{_NETWORKS_PATH}/{project_name}_processed.VRNetz"
         with open(outfile, "w") as f:
             json.dump(network, f)
-        logger.info(f"Saved network as {outfile}")
+        log.info(f"Saved network as {outfile}")
     if tags.get("stringify"):
         uploader.stringify_project()
-        logger.debug("Layouts of project has been stringified.")
-    logger.debug(f"Total process took {time.time()-s1} seconds.")
-    logger.info("Project has been uploaded!")
+        log.debug("Layouts of project has been stringified.")
+    log.debug(f"Total process took {time.time()-s1} seconds.")
+    log.info("Project has been uploaded!")
     html = (
         f'<a style="color:green;" href="/StringEx/preview?project={project_name}">SUCCESS: Network {filename} saved as project {project_name} </a><br>'
         + state
@@ -131,7 +131,7 @@ def VRNetzer_map_workflow(
         str: HTML string to reflect whether the mapping was successful or not.
     """
 
-    logger.info("Starting mapping of VRNetz...")
+    log.info("Starting mapping of VRNetz...")
 
     f_organ = Organisms.get_file_name(organism)
     f_organ = os.path.join(_PROJECTS_PATH, f_organ)
@@ -172,7 +172,7 @@ def VRNetzer_map_workflow(
         html = f'<a style="color:green;" href="/StringEx/preview?project={project_name}">SUCCESS: network {src_filename} mapped on {organism} saved as project {project_name} </a>'
     except Exception as e:
         error = traceback.format_exc()
-        logger.error(error)
+        log.error(error)
         html = f'<a style="color:red;">ERROR </a>: {error}', 500
     return html
 
@@ -193,22 +193,22 @@ def apply_layout_workflow(
         layouter.gen_graph(nodes, links)
     else:
         layouter.read_from_vrnetz(network)
-        logger.info(f"Network extracted from: {network}")
+        log.info(f"Network extracted from: {network}")
 
     if gen_layout:
-        logger.info(f"Applying algorithm {layout_algo} ...")
+        log.info(f"Applying algorithm {layout_algo} ...")
         layouter.apply_layout(layout_algo, cg_variables)
         if layout_algo is None:
             layout_algo = "spring"
-        logger.info(f"Layout algorithm {layout_algo} applied!")
+        log.info(f"Layout algorithm {layout_algo} applied!")
     # Correct Cytoscape positions to be positive.
     # if cy_layout:
     #     layouter.correct_cytoscape_pos()
-    #     logger.info(f"2D layout created!")
+    #     log.info(f"2D layout created!")
     if stringify:
-        logger.info("Will Stringify.")
+        log.info("Will Stringify.")
         layouter.gen_evidence_layouts()
-        logger.info(f"Layouts stringified!")
+        log.info(f"Layouts stringified!")
     return layouter
 
 
@@ -229,11 +229,11 @@ def create_project_workflow(
         print(f"OUTFILE:{outfile}")
         with open(outfile, "w") as f:
             json.dump(network, f)
-        logger.info(f"Saved network as {outfile}")
+        log.info(f"Saved network as {outfile}")
     if stringifiy and cy_layout:
         uploader.stringify_project()
-        logger.info(f"Layouts stringified: {project_name}")
-    logger.info(f"Project created: {project_name}")
+        log.info(f"Layouts stringified: {project_name}")
+    log.info(f"Project created: {project_name}")
     return state
 
 
@@ -261,11 +261,11 @@ def convert_workflow(
 #     if color_mapping is None:
 #         return graph
 #     mapping_type = color_mapping["type"]
-#     logger.info(
+#     log.info(
 #         f"Color mapping extracted from: {style}.xml. Mapping Type: {mapping_type}"
 #     )
 #     graph = colorize_nodes(graph, color_mapping)
-#     logger.info(f"Colored nodes according to color mapping.")
+#     log.info(f"Colored nodes according to color mapping.")
 #     return graph
 
 # def protein_query_workflow(
@@ -273,14 +273,14 @@ def convert_workflow(
 # ) -> None:
 #     """Fetches a network for given protein query."""
 #     query = StringProteinQuery(query=p_query, **kwargs)
-#     logger.info(f"Command as list:{query.cmd_list}")
+#     log.info(f"Command as list:{query.cmd_list}")
 #     parser.exec_cmd(query.cmd_list)
 
 
 # def disease_query_workflow(parser: CytoscapeParser, disease: str, **kwargs) -> None:
 #     """Fetches a network for given disease query."""
 #     query = StringDiseaseQuery(disease=disease, **kwargs)
-#     logger.info(f"Command as list:{query.cmd_list}")
+#     log.info(f"Command as list:{query.cmd_list}")
 #     parser.exec_cmd(query.cmd_list)
 
 
@@ -289,14 +289,14 @@ def convert_workflow(
 # ) -> None:
 #     """Fetches a network for given compound query."""
 #     query = StringCompoundQuery(query=query, **kwargs)
-#     logger.info(f"Command as list:{query.cmd_list}")
+#     log.info(f"Command as list:{query.cmd_list}")
 #     parser.exec_cmd(query.cmd_list)
 
 
 # def pubmed_query_workflow(parser: CytoscapeParser, pubmed: list[str], **kwargs) -> None:
 #     """Fetches a network for given pubmed query."""
 #     query = StringPubMedQuery(pubmed=pubmed, **kwargs)
-#     logger.info(f"Command as list:{query.cmd_list}")
+#     log.info(f"Command as list:{query.cmd_list}")
 #     parser.exec_cmd(query.cmd_list)
 #     print(query.cmd_list)
 
@@ -320,7 +320,7 @@ def convert_workflow(
 #     network_file = f"{network_loc}.VRNetz"
 
 #     parser.export_network(filename=network_loc)
-#     logger.info(f"Network exported: {network}")
+#     log.info(f"Network exported: {network}")
 
 #     # generate a 3D layout
 #     layouter = apply_layout_workflow(f"{network_loc}.VRNetz", layout_algo)
@@ -328,7 +328,7 @@ def convert_workflow(
 #     # if keep_output is False, we remove the tmp GraphML file
 #     if not keep_output:
 #         os.remove(network_file)
-#         logger.info(f"Removed tmp file: {network_file}")
+#         log.info(f"Removed tmp file: {network_file}")
 
 #     return layouter, filename
 
