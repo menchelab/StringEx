@@ -10,11 +10,13 @@ def get_logger(
     f_level=logging.ERROR,
     format=None,
 ):
+    main_log = os.path.join("logs", "StringEx.log")
+    os.makedirs(os.path("logs"), exist_ok=True)
     logger = logging.getLogger(name)
     logger.setLevel(level)
     # Create handlers
     c_handler = logging.StreamHandler(sys.stdout)
-    f_handler = logging.FileHandler(os.path.join("logs", "StringEx.log"), "w")
+    f_handler = logging.FileHandler(main_log, "w")
     c_handler.setLevel(c_level)
     f_handler.setLevel(f_level)
 
