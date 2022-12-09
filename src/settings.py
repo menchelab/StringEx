@@ -8,6 +8,7 @@ except ImportError:  # pip < 10.0
     from pip.operations import freeze
 
 _WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
+_THIS_EXT = os.path.join(_WORKING_DIR, "..")
 _EXTENSION_PATH = os.path.join(_WORKING_DIR, "..", "..")
 _VRNETZER_PATH = os.path.join(_EXTENSION_PATH, "..")
 

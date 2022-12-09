@@ -1,2 +1,5 @@
 **__pycache__**
 *.pyc
+src/settings.py
+.venv/**
+STRING/**

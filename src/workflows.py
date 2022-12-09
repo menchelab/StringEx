@@ -77,7 +77,7 @@ def VRNetzer_upload_workflow(
     s1 = time.time()
     layouter = apply_layout_workflow(
         network,
-        layout_algo=tags.get("algo"),
+        layout_algo=algo,
         stringify=tags.get("stringify"),
         gen_layout=tags.get("string_calc_lay"),
         cg_variables=cg_variables,

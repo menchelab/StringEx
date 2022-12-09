@@ -3,7 +3,7 @@ function selectEvidenceWebGL(id, opt) {
         var links = document.getElementById("linksRGB");
         console.log(pdata);
         for (let i = 0; i < links.length; i++) {
-            if (links[i].text == opt) {
+            if (String(links[i].text).includes(opt)) {
                 console.log("selected layout:" + links[i].text);
                 document.getElementById("linksRGB").selectedIndex = i;
                 console.log("index:"+$('#linksRGB option:selected').index())
