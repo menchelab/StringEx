@@ -4,3 +4,5 @@ src/settings.py
 .venv/**
 STRING/**/*.txt
 .vscode/settings.json
+STRING/**/*.gzip
+logs/**

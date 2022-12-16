@@ -10,9 +10,11 @@ import numpy as np
 import pandas
 
 from src import settings as st
+from src.classes import Evidences
+from src.classes import LinkTags as LiT
+from src.classes import NodeTags as NT
+from src.classes import Organisms
 from src.layouter import Layouter
-from src.settings import LinkTags as LiT
-from src.settings import NodeTags as NT
 
 
 def construct_graph(
@@ -70,7 +72,7 @@ def gen_graph(
         tuple[nx.Graph, dict]: Graph representing the protein-protein interaction network and a dictionary containing the nodes of the graph.
     """
 
-    species = st.Organisms.get_scientific_name(organism)
+    species = Organisms.get_scientific_name(organism)
     G = nx.Graph()
     nodes_in = {}
     next_id = 0
@@ -86,7 +88,7 @@ def gen_graph(
     if last_link is None:
         last_link = len(network_table)
 
-    color_scheme = st.Evidences.get_default_scheme()
+    color_scheme = Evidences.get_default_scheme()
     l_lays = {ev: [] for ev in color_scheme}
 
     for idx in range(last_link):
@@ -141,14 +143,14 @@ def gen_graph(
             value = int(row.get(key))
             if value > 0:
                 if key == "experimental":
-                    key = st.Evidences.stringdb_experiments
+                    key = Evidences.stringdb_experiments.value
                 elif key == "database":
-                    key = st.Evidences.stringdb_databases
+                    key = Evidences.stringdb_databases.value
                 else:
                     key = f"stringdb_{key}"
             link[key] = value / 1000
 
-        if st.Evidences.stringdb_experiments in link:
+        if Evidences.stringdb_experiments.value in link:
             G.add_edge(link[LiT.start], link[LiT.end])
 
         for ev in l_lays:
@@ -168,13 +170,13 @@ def write_link_layouts(organism: str, l_lays: dict) -> None:
         organism (str): Organism from which the network originates from.
         l_lays (dict): Dictionary of link layouts with ev as key and list of links as value.
     """
-    color_scheme = st.Evidences.get_default_scheme()
+    color_scheme = Evidences.get_default_scheme()
     _directory = os.path.join(st._STATIC_PATH, "csv", "STRING", organism)
     os.makedirs(_directory, exist_ok=True)
-    output = ""
     files = []
     for ev in l_lays:
-        for link in l_lays[ev]:
+        output = ""
+        for l, link in enumerate(l_lays[ev]):
             link: dict
             start = link.get(LiT.start)
             end = link.get(LiT.end)
@@ -233,7 +235,6 @@ def write_network(organism: str, G: nx.Graph, l_lays: dict) -> None:
     json_str = json.dumps(graph) + "\n"
     json_bytes = json_str.encode("utf-8")
     file_name = os.path.join(st._THIS_EXT, "STRING", organism, "network.json.gzip")
-    print(file_name)
     with gzip.open(file_name, "w") as fout:
         fout.write(json_bytes)
 
@@ -267,8 +268,7 @@ def gen_layout(G: nx.Graph) -> dict:
     Returns:
         dict: Dictionary with node ids as keys and 3D positions as values.
     """
-    print("gen layout")
-    layout = nx.spring_layout(G, dim=3)
+    layout = nx.spring_layout(G, dim=3, k=1.0)
     points = np.array(list(layout.values()))
     points = Layouter.to_positive(points, 3)
     points = Layouter.normalize_values(points, 3)
@@ -285,17 +285,10 @@ def construct_layouts(organism: str) -> None:
         organism (str): Organism which should be processed.
     """
     G, l_lays = read_network(organism)
-    layout = gen_layout(G)  # TODO Allow different layouts
+    # layout = gen_layout(G)  # TODO Allow different layouts
     write_link_layouts(organism, l_lays)
-    write_node_layout(organism, G, layout)
-    _directory = os.path.join(st._STATIC_PATH, "csv", "STRING", organism)
-    file_name = os.path.join(st._STATIC_PATH, "csv", "STRING", f"{organism}.tgz")
-    with tarfile.open(file_name, "w:gz") as tar:
-        tar.add(_directory, arcname=organism)
-
-
-if __name__ == "__main__":
-    # construct_graph("STRING", st.Organisms.yeast)
-    # construct_layouts(st.Organisms.yeast)
-    for path in sys.path:
-        print(path)
+    # write_node_layout(organism, G, layout)
+    # _directory = os.path.join(st._STATIC_PATH, "csv", "STRING", organism)
+    # file_name = os.path.join(st._STATIC_PATH, "csv", "STRING", f"{organism}.tgz")
+    # with tarfile.open(file_name, "w:gz") as tar:
+    #     tar.add(_directory, arcname=organism)

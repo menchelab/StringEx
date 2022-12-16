@@ -18,7 +18,7 @@ f_handler = RotatingFileHandler(
     encoding=None,
     delay=0,
 )
-f_handler.setLevel(st.LOG_LEVEL)
+f_handler.setLevel(st._LOG_LEVEL)
 f_handler.setFormatter(st._LOG_FORMAT)
 st.log.addHandler(f_handler)
 
@@ -26,15 +26,13 @@ st.log.addHandler(f_handler)
 def main():
     """Main function to construct the node layout and link layout files which can be uploaded to the VRNetzer website. This is to reproduce the full interactome STRING networks from scratch."""
     for organism in Organisms.all_organisms:
-        if organism not in [
-            Organisms.yeast,
-        ]:
+        if organism not in [Organisms.yeast]:
             continue
         tax_id = Organisms.get_tax_ids(organism)
         st.log.info(f"Processing organism: {organism} with taxonomy id: {tax_id}.")
         # load_files.download(tax_id, organism)
-        # read_string.construct_graph("STRING", organism)
-        # read_string.construct_layouts(organism)
+        read_string.construct_graph("STRING", organism)
+        read_string.construct_layouts(organism)
 
 
 if __name__ == "__main__":

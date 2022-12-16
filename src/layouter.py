@@ -426,7 +426,6 @@ class Layouter:
             if not ev == Evidences.any.value:
                 cur_links = {idx: link for idx, link in enumerate(links) if ev in link}
             else:
-                print(links[0])
                 cur_links = {idx: link for idx, link in enumerate(links)}
             # Skip This evidence if there are not edges for this evidence
             if len(cur_links) == 0:
