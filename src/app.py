@@ -132,7 +132,7 @@ def string_preview():
 
     if length > 30000:
         length = 30000
-    for x in range(length - 1):
+    for x in range(length):
         newLink = {}
         newLink["id"] = x
         newLink["s"] = links["links"][x]["s"]
