@@ -149,8 +149,12 @@ def string_preview():
 
 
 @blueprint.route("/uploadfiles", methods=["GET", "POST"])
-def string_ex_upload_files():
-    """Route to execute the upload of a VRNetz using the STRING Uploader."""
+def string_ex_upload_files() -> str:
+    """This route is used to upload a VRNetz using the STRING Uploader. A POST request is send to it, when a user clicks the "upload" button.
+
+    Returns:
+        str: A status giving information whether the upload was successful or not.
+    """
     form = flask.request.form.to_dict()
     vr_netz_files = flask.request.files.getlist("vrnetz")
     if len(vr_netz_files) == 0 or vr_netz_files[0].filename == "":
@@ -178,24 +182,19 @@ def string_ex_upload_files():
     for key, _ in tags.items():
         if key in form:
             tags[key] = True
+    algo_variables = string_util.get_algo_variables(algo, form)
 
-    cg_variables = {
-        "prplxty": form.get("string_cg_prplxty", 50),
-        "density": form.get("string_cg_density", 0.5),
-        "l_rate": form.get("string_cg_l_rate", 200),
-        "steps": form.get("string_cg_steps", 1000),
-        "n_neighbors": form.get("string_cg_n_neighbors", 15),
-        "spread": form.get("string_cg_spread", 1.0),
-        "min_dist": form.get("string_cg_min_dist", 0.0),
-    }
     return wf.VRNetzer_upload_workflow(
-        network, network_file.filename, project_name, algo, tags, cg_variables
+        network, network_file.filename, project_name, algo, tags, algo_variables
     )
 
 
 @blueprint.route("/mapfiles", methods=["GET", "POST"])
 def string_ex_map_files():
-    """Route to Map a small String network to a genome scale network."""
+    """This route is used to map a small VRNetz onto full genome STRING interactomes. A POST request is send to it, when a user clicks the "map" button.
+    Returns:
+        str: A status giving information whether the upload was successful or not.
+    """
     form = flask.request.form.to_dict()
     f_src_network = flask.request.files.getlist("vrnetz")
     vr_netz_files = flask.request.files.getlist("vrnetz")
@@ -212,7 +211,7 @@ def string_ex_map_files():
     organism = form.get("string_organism")
     project_name = form.get("string_map_project_name")
     src_filename = f_src_network.filename
-    return wf.VRNetzer_map_workflow(organism, project_name, src_filename)
+    return wf.VRNetzer_map_workflow(src_network, src_filename, organism, project_name)
 
 
 # @blueprint.route("/upload", methods=["GET", "POST"])

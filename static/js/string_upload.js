@@ -1,4 +1,5 @@
 $(document).ready(function() {
+  document.getElementById("string_spring").style.display = "block";
   document.getElementById("string_new_namespace_name").readOnly = true;
   $(function () {
     $("#string_upload_namespaces").selectmenu({
@@ -23,12 +24,28 @@ $(document).ready(function() {
     if (name.includes("tsne")) {
       document.getElementById("string_cg_tsne").style.display = "block";
       document.getElementById("string_cg_umap").style.display = "none";
+      document.getElementById("string_spring").style.display = "none";
+      document.getElementById("string_kamada_kawai").style.display = "none";
     } else if (name.includes("umap")) {
       document.getElementById("string_cg_umap").style.display = "block";
       document.getElementById("string_cg_tsne").style.display = "none";
+      document.getElementById("string_spring").style.display = "none";
+      document.getElementById("string_kamada_kawai").style.display = "none";
+    } else if (name == "spring") {
+      document.getElementById("string_cg_umap").style.display = "none";
+      document.getElementById("string_cg_tsne").style.display = "none";
+      document.getElementById("string_spring").style.display = "block";
+      document.getElementById("string_kamada_kawai").style.display = "none";
+    } else if (name == "kamada_kawai") {
+      document.getElementById("string_cg_umap").style.display = "none";
+      document.getElementById("string_cg_tsne").style.display = "none";
+      document.getElementById("string_spring").style.display = "none";
+      // document.getElementById("string_kamada_kawai").style.display = "block"; // might be confusing when you cannot directly select the columns for weights
     } else {
       document.getElementById("string_cg_umap").style.display = "none";
       document.getElementById("string_cg_tsne").style.display = "none";
+      document.getElementById("string_spring").style.display = "none";
+      document.getElementById("string_kamada_kawai").style.display = "none";
     };
   });
 

@@ -51,8 +51,8 @@
                                     CREATE NEW PROJECT
                               </h6>
                               <br />
-                              <input class="swagBox" id="string_new_namespace_name" name="string_new_name"
-                                    placeholder="New Project" type="text" />
+                              <input class="stringInputBox" id="string_new_namespace_name" placeholder="New Project"
+                                    type="text" />
                               <p id="string_submit_warnings" style="display:inline">
                               </p>
                         </div>
@@ -157,23 +157,19 @@
                               <h6>
                                     prplxty
                               </h6>
-                              <input class="swagBox" id="string_cg_prplxty" min="1" name="string_new_name" type="number"
-                                    value="50" />
+                              <input class="stringInputBox" id="string_cg_prplxty" min="1" type="number" value="50" />
                               <h6>
                                     DENSITY
                               </h6>
-                              <input class="swagBox" id="string_cg_density" min="1" name="string_new_name" type="number"
-                                    value="12" />
+                              <input class="stringInputBox" id="string_cg_density" min="1" type="number" value="12" />
                               <h6>
                                     l_rate
                               </h6>
-                              <input class="swagBox" id="string_cg_l_rate" min="1" name="string_new_name" type="number"
-                                    value="200" />
+                              <input class="stringInputBox" id="string_cg_l_rate" min="1" type="number" value="200" />
                               <h6>
                                     STEPS
                               </h6>
-                              <input class="swagBox" id="string_cg_steps" min="1" name="string_new_name" type="number"
-                                    value="250" />
+                              <input class="stringInputBox" id="string_cg_steps" min="1" type="number" value="250" />
                         </div>
                   </div>
                   <div class="six columns">
@@ -181,18 +177,51 @@
                               <h6>
                                     NUMBER OF NEIGHBORS
                               </h6>
-                              <input class="swagBox" id="string_cg_n_neighbors" min="1" name="string_new_name"
-                                    type="number" value="10" />
+                              <input class="stringInputBox" id="string_cg_n_neighbors" min="1" type="number"
+                                    value="10" />
                               <h6>
                                     SPREAD
                               </h6>
-                              <input class="swagBox" id="string_cg_spread" name="string_new_name" step="0.1"
-                                    type="number" value="1" />
+                              <input class="stringInputBox" id="string_cg_spread" step="0.1" type="number" value="1" />
                               <h6>
                                     MINIMAL DISTANCE
                               </h6>
-                              <input class="swagBox" id="string_cg_min_dist" max="1" min="0" name="string_new_name"
-                                    step="0.1" type="number" value="0.5" />
+                              <input class="stringInputBox" id="string_cg_min_dist" max="1" min="0" step="0.1"
+                                    type="number" value="0.5" />
+                        </div>
+                  </div>
+                  <div class="six columns">
+                        <div class="frameBox" id="string_spring" style="display:none">
+                              <h6>
+                                    OPTIMAL DISTANCE BETWEEN NODES
+                              </h6>
+                              <input class="stringInputBox" id="string_spring_opt_dist" min="0" max="1" type="number"
+                                    step="0.0001" value="0" />
+                              <p>If 0, the default value 1/sqrt(n) is used.</p>
+                              <h6>
+                                    ITERATIONS
+                              </h6>
+                              <input class="stringInputBox" id="string_spring_iterations" type="number" value="50"
+                                    min="1" />
+                              <h6>
+                                    THRESHOLD
+                              </h6>
+                              <input class="stringInputBox" id="string_spring_threshold" min="0" step="0.0001"
+                                    type="number" value="0.0001" />
+                        </div>
+                  </div>
+                  <div class="six columns">
+                        <div class="frameBox" id="string_kamada_kawai" style="display:none">
+                              <h6>
+                                    WEIGHT COLUMN
+                              </h6>
+                              <input class="stringInputBox" id="string_kamada_kawai_weight" type="text" value="None" />
+                              <p>If None, then all link weights are 1.</p>
+                              <h6>
+                                    SCALE
+                              </h6>
+                              <input class="stringInputBox" id="string_kamada_kawai_scale" type="number" value="1"
+                                    min="0" />
                         </div>
                   </div>
             </div>

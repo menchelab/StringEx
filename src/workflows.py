@@ -7,12 +7,13 @@ import traceback
 
 import flask
 
+from .classes import Organisms
 from .converter import VRNetzConverter
 
 # from .cytoscape_parser import CytoscapeParser
 from .layouter import Layouter
 from .map_small_on_large import map_source_to_target
-from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, Organisms, log
+from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, log
 
 # from .settings import VRNetzElements as VRNE
 # from .string_commands import (StringCompoundQuery, StringDiseaseQuery,
@@ -31,7 +32,7 @@ def VRNetzer_upload_workflow(
     project_name: str,
     algo: str = "string",
     tags: dict = None,
-    cg_variables: dict = None,
+    algo_variables: dict = None,
     project_path: str = None,
 ) -> str:
     """Used from the StringEX/uploadfiles route to upload VRNetz networks to the VRNetzer.
@@ -54,16 +55,8 @@ def VRNetzer_upload_workflow(
             "string_calc_lay": False,
         }
 
-    if cg_variables is None:
-        cg_variables = {
-            "prplxty": 50,
-            "density": 0.5,
-            "l_rate": 200,
-            "steps": 1000,
-            "n_neighbors": 15,
-            "spread": 1.0,
-            "min_dist": 0.0,
-        }
+    if algo_variables is None:
+        algo_variables = {}
 
     log.info("Starting upload of VRNetz...")
     start = time.time()
@@ -80,7 +73,7 @@ def VRNetzer_upload_workflow(
         layout_algo=algo,
         stringify=tags.get("stringify"),
         gen_layout=tags.get("string_calc_lay"),
-        cg_variables=cg_variables,
+        algo_variables=algo_variables,
     )
     log.debug(f"Applying layout algorithm in {time.time()-s1} seconds.")
     network = layouter.network
@@ -114,7 +107,7 @@ def VRNetzer_upload_workflow(
 
 
 def VRNetzer_map_workflow(
-    network: dict,
+    src_network: dict,
     src_filename: str,
     organism: str,
     project_name: str,
@@ -138,7 +131,7 @@ def VRNetzer_map_workflow(
 
     nodes_file = os.path.join(f_organ, "nodes.json")
     links_file = os.path.join(f_organ, "links.json")
-    print(nodes_file)
+
     with open(nodes_file, "r") as json_file:
         trg_network = json.load(json_file)
     with open(links_file, "r") as json_file:
@@ -168,8 +161,8 @@ def VRNetzer_map_workflow(
         ) as json_file:
             json.dump(pfile, json_file)
 
-        map_source_to_target(src_network, trg_network, f_organ, project_name)
-        html = f'<a style="color:green;" href="/StringEx/preview?project={project_name}">SUCCESS: network {src_filename} mapped on {organism} saved as project {project_name} </a>'
+        html = map_source_to_target(src_network, trg_network, f_organ, project_name)
+
     except Exception as e:
         error = traceback.format_exc()
         log.error(error)
@@ -183,7 +176,7 @@ def apply_layout_workflow(
     layout_algo: str = None,
     cy_layout: bool = True,
     stringify: bool = True,
-    cg_variables: dict = {},
+    algo_variables: dict = {},
 ) -> Layouter:
     layouter = Layouter()
     if type(network) is dict:
@@ -197,7 +190,7 @@ def apply_layout_workflow(
 
     if gen_layout:
         log.info(f"Applying algorithm {layout_algo} ...")
-        layouter.apply_layout(layout_algo, cg_variables)
+        layouter.apply_layout(layout_algo, algo_variables)
         if layout_algo is None:
             layout_algo = "spring"
         log.info(f"Layout algorithm {layout_algo} applied!")

@@ -15,7 +15,23 @@ input[type="checkbox"] {
     border-image: url("/static/css/images/frame1.png") 10 stretch;
     visibility: visible;
 }
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Input Boxes
+++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+.stringInputBox {
+    border: 10px solid transparent;
+    padding: 5px;
+    border-image: url("images/frame1.png") 10 stretch;
+    background-color: rgba(20, 20, 20, 1);
+    min-height: 58px;
+    min-width: 500px;
+}
 
+.stringInputBox:hover,
+.stringInputBox:focus,
+.stringInputBox:active {
+    background-color: #222222;
+}
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Buttons
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++*/

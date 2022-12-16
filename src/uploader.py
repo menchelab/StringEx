@@ -13,16 +13,15 @@ except ModuleNotFoundError:
 from flask import jsonify
 from PIL import Image
 
-from .settings import _MAPPING_ARBITARY_COLOR, _PROJECTS_PATH
-from .settings import AttrTags as AT
-from .settings import Evidences as EV
-from .settings import LayoutTags as LT
-from .settings import LinkTags as LiT
-from .settings import NodeTags as NT
-from .settings import ProjectTag as PT
-from .settings import StringTags as ST
-from .settings import VRNetzElements as VRNE
-from .settings import log
+from .classes import AttrTags as AT
+from .classes import Evidences as EV
+from .classes import LayoutTags as LT
+from .classes import LinkTags as LiT
+from .classes import NodeTags as NT
+from .classes import ProjectTag as PT
+from .classes import StringTags as ST
+from .classes import VRNetzElements as VRNE
+from .settings import _MAPPING_ARBITARY_COLOR, _PROJECTS_PATH, log
 from .util import clean_filename
 
 
@@ -31,6 +30,14 @@ def os_join(*args):
 
 
 class Uploader:
+    """Uploader class to upload VRNetz files.
+    network (dict): network to be uploaded
+    p_name (str): project name
+    skip_exists (bool, optional): Skip existing the generation of out files if they already exi^ Defaults to False.
+    stringify (bool, optional): Is used to reflect STRING features, if the network is a string network. Defaults to True.
+    p_path (str, optional): path to where the projects can be found. Defaults to None.
+    """
+
     def __init__(
         self,
         network: dict,
@@ -65,13 +72,14 @@ class Uploader:
         self.pfile = pfile
         self.nodes = {"nodes": []}
         self.links = {"links": []}
-
-    def makeProjectFolders(self) -> None:
         self.p_path = os_join(_PROJECTS_PATH, self.p_name)
         self.pfile_file = os_join(self.p_path, "pfile.json")
         self.names_file = os_join(self.p_path, "names.json")
         self.nodes_file = os_join(self.p_path, "nodes.json")
         self.links_file = os_join(self.p_path, "links.json")
+
+    def makeProjectFolders(self) -> None:
+        """Creates the project folders and writes empty pfile and names file."""
 
         path = self.p_path
 
@@ -94,6 +102,11 @@ class Uploader:
         log.debug(f"Full Path {path}")
 
     def loadProjectInfo(self) -> dict or str:
+        """List the project information.
+
+        Returns:
+            dict or str: Contains the project information or a string if the project does not exist.
+        """
         self.folder = os_join(self.p_path)
         self.layoutfolder = os_join(self.folder, "layouts")
         self.layoutRGBfolder = os_join(self.folder, "layoutsRGB")
@@ -126,17 +139,43 @@ class Uploader:
             with open(file, "w") as json_file:
                 json.dump(content, json_file)
 
+    def read_json_files(self) -> None:
+        """Will readout all json files in the project folder."""
+        files = [self.pfile_file, self.names_file, self.nodes_file, self.links_file]
+
+        contents = ["pfile", "names", "nodes", "links"]
+        for file, content in zip(
+            files,
+            contents,
+        ):
+            with open(file, "r") as json_file:
+                self.__dict__[content] = json.load(json_file)
+
     @staticmethod
-    def loadAnnotations(p_path: str) -> dict:
-        """Return all annotations corresponding to a project name."""
-        namefile = os_join(p_path, "names.json")
+    def loadAnnotations(projects_path: str = _PROJECTS_PATH) -> dict:
+        """Return all annotations corresponding to a project name.
+
+        Args:
+            p_path (str): path to where the projects can be found.
+
+        Returns:
+            dict: annotations contained in the names.json file of the project.
+        """
+        namefile = os_join(projects_path, "names.json")
         f = open(namefile)
         data = json.load(f)
         return data
 
     @staticmethod
     def listProjects(projects_path: str = _PROJECTS_PATH) -> list:
-        """Returns a list of all projects."""
+        """Returns a list of all projects.
+
+        Args:
+            projects_path (str, optional): Path to where projects can be found. Defaults to _PROJECTS_PATH.
+
+        Returns:
+            list: All projects in the projects path.
+        """
         projects_path
         os.makedirs(projects_path, exist_ok=os.X_OK)
         sub_folders = [
@@ -147,10 +186,21 @@ class Uploader:
         # print(sub_folders)
         return sub_folders
 
-    def extract_node_data(self, elem, layouts, elem_idx):
+    def extract_node_data(
+        self, elem: dict, layouts: list[str]
+    ) -> list[tuple[int, int, int] and tuple[int, int, int, int]]:
+        """Extracts the data from a node.
+
+        Args:
+            elem (dict): node to extract data from.
+            layouts (list[str]): layouts for which data should be extracted.
+
+        Returns:
+            list[tuple[int, int, int] and tuple[int, int, int, int]]: contains coordinates (low,high) and color for each layout.
+        """
         tex = []
         elem_lays = {lay[LT.name]: idx for idx, lay in enumerate(elem[NT.layouts])}
-        self.extract_node_label(elem, elem_idx)
+        self.extract_node_label(elem)
         for idx, layout in enumerate(layouts):
             tex.append([])
             coords = [0, 0, 0]  # x,y,z
@@ -179,21 +229,33 @@ class Uploader:
 
         return tex
 
-    def extract_node_label(self, elem, idx):
-        """Extracts the node labels and add them to the names dictionary."""
+    def extract_node_label(
+        self,
+        elem: dict,
+    ) -> None:
+        """Extracts the node labels and add them to the names dictionary.
+
+        Args:
+            elem (dict): Node from which the label should be extracted.
+        """
         uniprot = elem.get(NT.name)
         if uniprot:
             name = [uniprot]
             if "names" not in self.names:
                 self.names["names"] = []
-            # labels = self.names["names"]
-            # if idx < len(labels):
-            #     if name == labels[idx]:
-            #         return
             self.names["names"].append(name)
 
     @staticmethod
-    def extract_link_data(elem: dict, layouts):
+    def extract_link_data(elem: dict, layouts) -> list[tuple[int, int, int, int]]:
+        """Extracts the data from a node.
+
+        Args:
+            elem (dict): Link to extract data from.
+            layouts (_type_): Layouts for which data should be extracted.
+
+        Returns:
+            list[tuple[int, int, int, int]]: contains coordinates (low,high) and color for each layout.
+        """
         tex = None
         if LiT.layouts in elem.keys():
             elem_lays = {lay[LT.name]: idx for idx, lay in enumerate(elem[LiT.layouts])}
@@ -228,11 +290,20 @@ class Uploader:
 
     def makeNodeTex(
         self,
-        nodes,
-        layouts=[LT._3d],
-        skip_attr=["layouts"],
+        nodes: dict,
+        layouts: list[str] = [LT._3d],
+        skip_attr: list[str] = ["layouts"],
     ) -> str:
-        """Generates Node textures from a dictionary of nodes."""
+        """Generates Node textures from a dictionary of nodes.
+
+        Args:
+            nodes (dict): contains all nodes of the network.
+            layouts (list[str], optional): layouts for which the output should be generated. Defaults to [LT._3d].
+            skip_attr (list[str], optional): Attributes to skip for each node . Defaults to ["layouts"].
+
+        Returns:
+            str: _description_
+        """
         n = len(nodes)  # Number of Nodes
         hight = 128 * (int(n / 16384) + 1)
 
@@ -253,23 +324,13 @@ class Uploader:
                 ]
             )
 
-        universal_attributes = [NT.description, NT.sequence, NT.species]
-        string_attributes = [
-            ST.stringdb_description,
-            ST.stringdb_sequence,
-            ST.stringdb_species,
-        ]
-
         for idx, elem in enumerate(nodes):
-            for u_att, s_attr in zip(universal_attributes, string_attributes):
-                if s_attr in elem:
-                    elem[u_att] = elem[s_attr]
-                    del elem[s_attr]
+            elem = self.change_to_universal_attr(elem)
 
             self.nodes[VRNE.nodes].append(
                 {k: v for k, v in elem.items() if k not in skip_attr}
             )
-            tex = self.extract_node_data(elem, layouts, idx)
+            tex = self.extract_node_data(elem, layouts)
             for l, _ in enumerate(layouts):
                 for d in range(3):
                     l_tex[l][d][elem[NT.id]] = tex[l][d]
@@ -315,8 +376,16 @@ class Uploader:
         return output
 
     # TODO other name for variable filename. maybe Layout name
-    def makeLinkTex(self, links: dict, nodes: dict, layouts: list) -> str:
-        """Generate a Link texture from a dictionary of edges."""
+    def makeLinkTex(self, links: dict, layouts: list) -> str:
+        """Generate a Link texture from a dictionary of edges.
+
+        Args:
+            links (dict): contains all links of the network.
+            layouts (list): contains all layouts for which the output should be generated.
+
+        Returns:
+            str: status message to report the status of the execution.
+        """
         hight = 512
         path = self.p_path
 
@@ -390,22 +459,13 @@ class Uploader:
 
         return output
 
-    @staticmethod
-    def extract_desired_data(network, ingored_elements):
-        nodes_data = {
-            node: data
-            for node, data in network["nodes"].items()
-            if node not in ingored_elements
-        }
-        edges_data = {
-            edge: data
-            for edge, data in network["edges"].items()
-            if edge not in ingored_elements
-        }
-        return nodes_data, edges_data
+    def stringify_project(self, links: bool = True, nodes: bool = True):
+        """Only adds the evidences to pfile layouts.
 
-    def stringify_project(self, links=True, nodes=True):
-        """Only adds the evidences to pfile layouts."""
+        Args:
+            links (bool, optional): Wether to add string specific node layouts. Defaults to True.
+            nodes (bool, optional): Whether to add string specific edge layouts. Defaults to True.
+        """
         ev = EV.get_default_scheme().keys()
         ev_xyz = [f"{ev}XYZ" for ev in ev]
         ev_rgb = [f"{ev}RGB" for ev in ev]
@@ -445,7 +505,14 @@ class Uploader:
         network: dict,
     ) -> str:
         """Generates textures and upload the needed network files. If created_2d_layout is True, it will create 2d layouts of the network one based on the cytoscape coordinates and one based on the new coordinated that come from the 3D layout without the z-coordinate.
-        Furthermore, for each STRING evidence a edge texture with the respective color will be generated. If it is not a STRING network, only a single edge layout is created."""
+        Furthermore, for each STRING evidence a edge texture with the respective color will be generated. If it is not a STRING network, only a single edge layout called "any" is created.
+
+        Args:
+            network (dict): Has to have the following keys: nodes, links, node_layouts, link_layouts
+
+        Returns:
+            str: status message of the upload
+        """
         project = clean_filename(self.p_name)
 
         # Set up project directories
@@ -475,7 +542,7 @@ class Uploader:
 
         state += self.makeNodeTex(nodes, layouts=n_lay)
 
-        state += self.makeLinkTex(links, nodes, l_lay)
+        state += self.makeLinkTex(links, l_lay)
 
         self.write_json_files()
 
@@ -486,23 +553,71 @@ class Uploader:
 
         return state
 
-    def color_nodes(self, target_project):
-        self.pfile_file = os.path.join(self.p_path, "pfile.json")
-        with open(self.pfile_file, "r") as f:
-            self.pfile = json.load(f)
+    def change_to_universal_attr(self, node: dict) -> dict:
+        """Rename STRING DB attributes to vrnetzer universal attributes so they will be displayed at the correct place on the node panel
+
+        Args:
+            node (dict): Node to change.
+
+        Returns:
+            dict: Node with changed attribute keys.
+        """
+        universal_attributes = [NT.description, NT.sequence, NT.species]
+        string_attributes = [
+            ST.stringdb_description,
+            ST.stringdb_sequence,
+            ST.stringdb_species,
+        ]
+        for u_att, s_attr in zip(universal_attributes, string_attributes):
+            if s_attr in node:
+                node[u_att] = node[s_attr]
+                del node[s_attr]
+        return node
+
+    def color_nodes(
+        self,
+        target_project: str,
+        mapping_color: list[int, int, int] = _MAPPING_ARBITARY_COLOR,
+    ):
+        """Will color all node in the target project to the color of the corresponding node in the source project to reflect the mapped nodes.
+        Node which are not mapped will be colored in the mapping color and will glow less.
+
+        Args:
+            target_project (str): name of the target project
+            mapping_color (list[int], optional): color (RGB) of not mapped nodes. Defaults to [255, 255, 255].
+        """
+        self.read_json_files()
+        target_links = self.pfile[PT.links]
+        target_links_rgb = self.pfile[PT.links_rgb]
 
         layouts = self.pfile["layoutsRGB"]
-        links = self.pfile["linksRGB"]
+        l_lay = [ev.value for ev in EV]
 
         self.links = {"links": []}
 
-        nodes = self.network.get(VRNE.nodes)
         links = self.network.get(VRNE.links)
-        l_lay = [ev for ev in EV.get_default_scheme().keys()]
-
-        self.makeLinkTex(links, nodes, l_lay)
+        self.makeLinkTex(links, l_lay)
         self.stringify_project(nodes=False)
 
+        self.pfile[PT.links] += [
+            link for link in target_links if "stringdb" not in link
+        ]
+        self.pfile[PT.links_rgb] += [
+            link for link in target_links_rgb if "stringdb" not in link
+        ]
+        for elem in self.network[VRNE.nodes]:
+            elem = self.change_to_universal_attr(elem)
+            self.nodes[VRNE.nodes].append(
+                {k: v for k, v in elem.items() if k not in ["layouts"]}
+            )
+        for elem in self.network[VRNE.links]:
+            link = {
+                LiT.id: elem.get(LiT.id),
+                LiT.start: elem.get(LiT.start),
+                LiT.end: elem.get(LiT.end),
+            }
+            self.links[VRNE.links].append(link)
+        self.write_json_files()
         for l, layout in enumerate(layouts):
             pathRGB = os_join(target_project, "layoutsRGB", f"{layout}.png")
             img = Image.open(pathRGB)
@@ -514,7 +629,7 @@ class Uploader:
                         all_nodes_done = True
                         break
                     node = self.network["nodes"][i]
-                    if node[NT.node_color] == _MAPPING_ARBITARY_COLOR:
+                    if node[NT.node_color] == mapping_color:
                         color = node[NT.node_color] + [50]
                     else:
                         color = node[NT.node_color] + [255 // 2]

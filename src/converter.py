@@ -5,16 +5,23 @@ import os
 import numpy as np
 import pandas as pd
 
+from .classes import LayoutTags as LT
+from .classes import LinkTags as LiT
+from .classes import NodeTags as NT
+from .classes import VRNetzElements as VRNE
 from .layouter import Layouter
 from .settings import _NETWORKS_PATH, UNIPROT_MAP
-from .settings import LayoutTags as LT
-from .settings import LinkTags as LiT
-from .settings import NodeTags as NT
-from .settings import VRNetzElements as VRNE
 
 
 class VRNetzConverter:
-    """Converts a network from edge/link list to VRNetz format"""
+    """Converts a network from edge/link list to VRNetz format
+
+    Args:
+        node_files (list[str]or str): A list of paths or a single csv file(s) containing all nodes.
+        link_files (list[str]or str, optional): A list of paths or a single path to csv file(s) that contain links. Defaults to None.
+        uniprot_mapping_file (str, optional): Path to a uniprot_mapping file where the identifiers are mapped to uniprot ids . Defaults to None.
+        project_name (str, optional): Name of the project to which this should all of that be consolidated. Defaults to None.
+    """
 
     def __init__(
         self,
@@ -73,8 +80,16 @@ class VRNetzConverter:
         with open(os.path.join(_NETWORKS_PATH, self.project_name), "w+") as f:
             json.dump(vr_netz, f)
 
-    def gen_node_layout(self, node_file: str, layout, nodes_map: list) -> list:
-        """Extract node list from a node csv file"""
+    def gen_node_layout(self, node_file: str, layout: str, nodes_map: dict) -> list:
+        """Extract node list from a node csv file.
+
+        Args:
+            node_file (str): Path to a csv file containing all nodes
+            layout (str): Name of layout.
+            nodes_map (dict): Contains all node in the network with node id as key and the node as value.
+        Returns:
+            list: nodes_map contains all node in the network with node id as key and the node as value.
+        """
         uniprot_map = pd.read_csv(self.uniprot_mapping_file, sep=",")
         nodes = pd.read_csv(
             node_file,
@@ -123,8 +138,17 @@ class VRNetzConverter:
 
         return nodes_map
 
-    def gen_link_list(self, link_file, layout, links_map) -> dict:
-        """Extract edge dict from a edge csv file"""
+    def gen_link_list(self, link_file: str, layout: str, links_map: dict) -> dict:
+        """Extract edge dict from a edge csv file
+
+        Args:
+            link_file (str): Path to a csv file containing links.
+            layout (str): name of the layout which is processed.
+            links_map (dict): Contains all links in the network with link id as key and the link as value.
+
+        Returns:
+            dict: links_map contains all links in the network with link id as key and the link as value.
+        """
         links = pd.read_csv(link_file, sep=",", header=None, names=["s", "e"]).to_dict(
             orient="records"
         )

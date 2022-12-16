@@ -5,71 +5,131 @@ import networkx as nx
 import numpy as np
 
 from . import util
-from .settings import Evidences
-from .settings import LayoutAlgroithms as LA
-from .settings import LayoutTags as LT
-from .settings import LinkTags as LiT
-from .settings import NodeTags as NT
-from .settings import VRNetzElements as VRNE
+from .classes import Evidences
+from .classes import LayoutAlgroithms as LA
+from .classes import LayoutTags as LT
+from .classes import LinkTags as LiT
+from .classes import NodeTags as NT
+from .classes import VRNetzElements as VRNE
 from .settings import log
 
 
 class Layouter:
-    """Simple class to apply a 3D layout algorithm to a Graph extracted from a GraphML file."""
+    """Simple class to apply a 3D layout algorithm to a networkx graph.
+
+    Args:
+        graph (networkx.Graph): Graph for which the layouts will be generated.
+    """
 
     graph: nx.Graph = nx.Graph()
 
-    def gen_graph(self, nodes, links):
+    def gen_graph(self, nodes: dict, links: dict) -> nx.Graph:
+        """Generates a networkx graph based on a dict of nodes and links.
+
+        Args:
+            nodes (dict): contains all nodes that should be part of the graph with node ids as keys and nodes as values.
+            links (dict): contains all links that should be part of the graph with link ids as keys and links as values.
+
+        Returns:
+            networkx.Graph: Graph for which the layouts will be generated.
+        """
         for node_data in nodes:
             self.graph.add_node(node_data[NT.id], data=node_data)
             # self.node_map[node_data["id"]] = node_data
         for link in links:
             self.graph.add_edge(link[LiT.start], link[LiT.end], data=link)
             # self.edge_map[(str(edge["s"]), str(edge["e"]))] = edge
+        self.network = {VRNE.nodes: nodes, VRNE.links: links}
         return self.graph
 
     def read_from_vrnetz(self, file: str) -> nx.Graph:
+        """Reads a graph from a VRNetz file.
+
+        Args:
+            file (str): Path to a VRNetz file.
+
+        Returns:
+            networkx.Graph: Graph for which the layouts will be generated.
+        """
         network = json.load(open(file))
         self.network = network
         nodes = network[VRNE.nodes]
         links = network[VRNE.links]
         return self.gen_graph(nodes, links)
 
-    def get_node_data(self, node):
+    def get_node_data(self, node: str) -> dict:
+        """Get the data of the desired node.
+
+        Args:
+            node (str): id of the desired node.
+
+        Returns:
+            dict: containing all data of a node
+        """
         if "data" not in self.graph.nodes[node]:
             self.graph.nodes[node]["data"] = {}
+        # self.graph.nodes[node].get("data",{}) # might work not sure
         return self.graph.nodes[node]["data"]
 
-    def set_node_data(self, node, data):
+    def set_node_data(self, node: str, data: dict) -> None:
+        """Set the dat of a desired node.
+
+        Args:
+            node (str):  id of the desired node.
+            data (dict): containing all data of a node
+        """
         self.graph.nodes[node]["data"] = data
 
     def read_from_grahpml(self, file: str) -> nx.Graph:
+        """Read a graph from a graphml file.
+
+        Args:
+            file (str): path to the graphml file.
+
+        Returns:
+            networkx.Graph: Graph for which the layouts will be generated.
+        """
         self.graph = nx.read_graphml(file)
         return self.graph
 
-    def create_spring_layout(self) -> dict:
-        return nx.spring_layout(self.graph, dim=3)
+    def create_spring_layout(self, algo_variables: dict) -> dict:
+        """Generates a spring layout for the Graph.
 
-    def create_kamada_kawai_layout(self) -> dict:
+        Args:
+            algo_variables (dict): contains variables for the algorithm.
+
+        Returns:
+            dict: node ids as keys and three dimensional positions as values.
+        """
+        k = algo_variables.get("opt_dist")
+        iterations = algo_variables.get("iterations", 50)
+        threshold = algo_variables.get("threshold", 0.0001)
+        return nx.spring_layout(
+            self.graph, dim=3, k=k, iterations=iterations, threshold=threshold
+        )
+
+    def create_kamada_kawai_layout(self, algo_variables: dict) -> dict:
+        """Generates a kamada kawai layout for the Graph.
+        Args:
+            algo_variables (dict): contains variables for the algorithm. Does not do anything.
+        Returns:
+            dict: node ids as keys and three dimensional positions as values.
+        """
         return nx.kamada_kawai_layout(self.graph, dim=3)
 
     def create_cartoGRAPH_layout(
         self, layout_algo: str, cg_variables: dict = None
     ) -> dict:
-        """Will pick the correct cartoGRAPH layout algorithm and apply it to the graph. If cartoGRAPH is not installed, it will ask the user whether to use networkx spring algorithm instead."""
-        try:
-            return self.pick_cg_layout_algorithm(layout_algo, cg_variables)
-        except ImportError:
-            log.warning("cartoGRAPHs is not installed.")
-            use_spring = input("Use spring layout instead? [y/n]: ")
-            if use_spring == "y":
-                return self.create_spring_layout()
-            else:
-                exit()
+        """Will pick the correct cartoGRAPHs layout algorithm and apply it to the graph. If cartoGRAPH is not installed an ImportError is raised.
 
-    def pick_cg_layout_algorithm(self, layout_algo, cg_variables: dict = {}) -> dict:
-        """Will pick the correct cartoGRAPH layout algorithm and apply it to the graph and return positions"""
-        print(cg_variables)
+        Args:
+            layout_algo (str): layout algorithm to choose. possible algorithms are listed in setting.LayoutAlgroithms.
+            cg_variables (dict, optional): contains algorithm variables. Defaults to None.
+
+        Returns:
+            dict: node ids as keys and three dimensional positions as values.
+        """
+        # try:
         import cartoGRAPHs as cg
 
         dim = 3
@@ -157,24 +217,41 @@ class Layouter:
             return cg.layout_geodesic(
                 self.graph, d_radius, n_neighbors, spread, min_dist, DM
             )
+        # except ImportError:
+        #     log.warning("cartoGRAPHs is not installed.")
+        #     use_spring = input("Use spring layout instead? [y/n]: ")
+        #     if use_spring == "y":
+        #         return self.create_spring_layout()
+        #     else:
+        #         exit()
 
     def apply_layout(
-        self, layout_algo: str = None, cg_variables: dict = {}
-    ) -> nx.layout:
-        """Applies a layout algorithm and adds the node positions to nodes in the self.network[VRNE.nodes] list."""
+        self, layout_algo: str = None, algo_variables: dict = {}
+    ) -> dict[str, list[float]]:
+        """Applies a layout algorithm and adds the node positions to nodes in the self.network[VRNE.nodes] list.
+
+        Args:
+            layout_algo (str, optional): layout algorithm to choose. possible algorithms are listed in setting.LayoutAlgroithms.. Defaults to None.
+            algo_variables (dict, optional): Contains algorithm variables. Defaults to None.. Defaults to {}.
+
+        Returns:
+            dict[str,list[float]]: with node ids as keys and three dimensional node positions as values.
+        """
         if layout_algo is None:
             """Select default layout algorithm"""
             layout_algo = LA.spring
 
         if LA.cartoGRAPH in layout_algo:
-            layout = self.create_cartoGRAPH_layout(layout_algo, cg_variables)
+            layout = self.create_cartoGRAPH_layout(layout_algo, algo_variables)
         else:
             layouts = {
                 LA.spring: self.create_spring_layout,
                 LA.kamada_kawai: self.create_kamada_kawai_layout,
             }
             log.debug(f"Applying layout: {layout_algo}")
-            layout = layouts[layout_algo]()  # Will use the desired layout algorithm
+            layout = layouts[layout_algo](
+                algo_variables
+            )  # Will use the desired layout algorithm
 
         points = np.array(list(layout.values()))
         points = self.to_positive(points, 3)
@@ -245,8 +322,19 @@ class Layouter:
 
         return layout
 
-    def correct_cytoscape_pos(self, cytoscape_nodes, points, layout_id) -> np.array:
-        """Corrects the Cytoscape positions to be positive and between 0 and 1."""
+    def correct_cytoscape_pos(
+        self, cytoscape_nodes: list, points: list[list[float]], layout_id: int
+    ) -> np.array:
+        """Corrects the Cytoscape positions to be positive and between 0 and 1.
+
+        Args:
+            cytoscape_nodes (list): list of nodes that are part of the cytoscape layout
+            points (list[list[float]]): 2d array that contains all positions for every node.
+            layout_id (int): id of the layout in each node dictionary.
+
+        Returns:
+            np.array: 2d Array contains all positions for every node but now normalized between 0 and 1.
+        """
         # Only handle nodes which are contained in the cytoscape layout
         # cytoscape_nodes = []
         # points = []
@@ -276,7 +364,16 @@ class Layouter:
         return points
 
     @staticmethod
-    def to_positive(points, dims=3) -> np.array:
+    def to_positive(points: np.array, dims=3) -> np.array:
+        """Move every coordinate to positive space.
+
+        Args:
+            points (np.array):  2d array that contains all positions for every node.
+            dims (int, optional): Dimensions each node point has. Defaults to 3.
+
+        Returns:
+            np.array: 2d array that contains all positions for every node with only positive values.
+        """
         min_values = [min(points[:, i]) for i in range(dims)]
         # Move everything into positive space
         for i, point in enumerate(points):
@@ -286,6 +383,15 @@ class Layouter:
 
     @staticmethod
     def normalize_values(points, dims=3) -> np.array:
+        """Scale every coordinate between 0 and 1
+
+        Args:
+            points (np.array):  2d array that contains all positions for every node.
+            dims (int, optional): Dimensions each node point has. Defaults to 3.
+
+        Returns:
+            np.array: 2d array that contains all positions for every node with values only between 0 and 1
+        """
         # Normalize Values between 0 and 1
         min_values = [min(points[:, i]) for i in range(dims)]
         max_values = [max(points[:, i]) for i in range(dims)]
@@ -295,7 +401,17 @@ class Layouter:
                 points[i, d] /= norms[d]
         return points
 
-    def gen_evidence_layouts(self, evidences: dict = None) -> dict:
+    def gen_evidence_layouts(
+        self, evidences: dict[str, tuple[float, float, float, float]] or None = None
+    ) -> list[dict[str, object]]:
+        """Set the link color for each STRING evidence type. Based on the score the link opacity is scaled.
+
+        Args:
+            evidences (dict[str, tuple[float, float, float, float]] or None, optional): Contains all possible evidence types and their corresponding color. Defaults to None.
+
+        Returns:
+            list: list of link dictionaries.
+        """
         # Set up the colors for each evidence type
         if evidences is None:
             evidences = Evidences.get_default_scheme()
@@ -307,22 +423,28 @@ class Layouter:
         for ev in evidences:
             log.debug(f"Handling evidence: {ev}.")
             self.network[VRNE.link_layouts].append(ev)
-            cur_links = {idx: link for idx, link in enumerate(links)}
-            if not ev == Evidences.any:
+            if not ev == Evidences.any.value:
                 cur_links = {idx: link for idx, link in enumerate(links) if ev in link}
+            else:
+                print(links[0])
+                cur_links = {idx: link for idx, link in enumerate(links)}
             # Skip This evidence if there are not edges for this evidence
             if len(cur_links) == 0:
                 continue
 
             # Color each link with the color of the evidence
             for idx, link in cur_links.items():
-                if ev == Evidences.any:
-                    color = evidences[ev]
-                    # TODO extract the alpha value with the highest score.
+                scale_factor = 0
+                if ev == Evidences.any.value:
+                    for other_ev in [e.value for e in Evidences if e != Evidences.any]:
+                        if other_ev in link:
+                            if link[other_ev] > scale_factor:
+                                scale_factor = link[other_ev]
                 else:
-                    color = evidences[ev][:3] + (
-                        int(link[ev] * 255),
-                    )  # Alpha scales with score
+                    scale_factor = link[ev]
+                color = evidences[ev][:3] + (
+                    int(scale_factor * 255),
+                )  # Alpha scales with score
                 if LiT.layouts not in self.network[VRNE.links][idx]:
                     self.network[VRNE.links][idx][LiT.layouts] = []
                 self.network[VRNE.links][idx][LiT.layouts].append(
