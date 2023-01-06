@@ -41,6 +41,7 @@ class StringTags:
     stringdb_description = "stringdb_description"
     stringdb_species = "stringdb_species"
     stringdb_shared_name = "shared name"
+    stringdb_score = "stringdb_score"
 
 
 class ProjectTag:

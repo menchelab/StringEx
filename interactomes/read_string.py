@@ -181,9 +181,8 @@ def write_link_layouts(organism: str, l_lays: dict) -> None:
             start = link.get(LiT.start)
             end = link.get(LiT.end)
             color = color_scheme[ev]
-            value = link.get(ev)
-            if value:
-                alpha = int(color[3] * value)
+            if ev in link:
+                alpha = int(color[3] * link.get(ev))
             else:
                 alpha = 255
             color = color[:3] + tuple((alpha,))

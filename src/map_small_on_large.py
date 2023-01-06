@@ -1,6 +1,9 @@
+import glob
 import json
 import os
 import shutil
+
+from PIL import Image
 
 from .classes import Evidences as EV
 from .classes import LayoutTags as LT
@@ -33,25 +36,19 @@ from .uploader import Uploader
 #     return target_edge
 
 
-def map_links(idx: int, t_link: dict, all_links: dict, target_net: dict) -> dict:
+def map_links(t_link: dict, s_link: dict) -> dict:
     """Add the link evidences from the string network to the ppi network.
 
     Args:
-        idx (int): index of a link in the target network.
         t_link (dict): target link extracted from the ppi network.
-        all_links (dict): contains all links from the string network.
-        target_net (dict): target ppi network.
-
+        s_link (dict): source link extracted from the string network.
     Returns:
-        dict: _description_
+        dict: updated link dict
     """
-    link = int(t_link[LiT.start]), int(t_link[LiT.end])
-    if link in all_links:
-        for k, v in all_links[link].items():
-            if k not in t_link:
-                t_link[k] = v
-        target_net[VRNE.links][idx] = t_link
-    return target_net
+    for k, v in s_link.items():
+        if k not in t_link:
+            t_link[k] = v
+    return t_link
 
 
 def gen_name_suid_map(source_net: dict) -> tuple[dict, dict]:
@@ -75,7 +72,7 @@ def gen_name_suid_map(source_net: dict) -> tuple[dict, dict]:
     return all_dis_names, all_canoncial_names, all_shared_names
 
 
-def gen_links_map(source_net: dict) -> dict:
+def gen_link_maps(source_net: dict, target_net: dict) -> dict:
     """Maps the link id to the link object.
 
     Args:
@@ -84,10 +81,13 @@ def gen_links_map(source_net: dict) -> dict:
     Returns:
         dict: map from link id to link object.
     """
-    all_links = {}
-    for s_link in source_net[VRNE.links]:
-        all_links[s_link[LiT.start], s_link[LiT.end]] = s_link
-    return all_links
+    all_soruce_links, all_target_links = {}, {}
+    dicts = [all_soruce_links, all_target_links]
+    nets = [source_net, target_net]
+    for dictionary, net in zip(dicts, nets):
+        for link in net[VRNE.links]:
+            dictionary[link[LiT.start], link[LiT.end]] = link
+    return all_soruce_links, all_target_links
 
 
 def map_nodes(
@@ -155,7 +155,7 @@ def map_source_to_target(
     """
 
     all_dis_names, all_canoncial_names, all_shared_names = gen_name_suid_map(source)
-    all_source_links = gen_links_map(source)
+    all_source_links, all_target_links = gen_link_maps(source, target)
     updated_nodes = {}
     # ppi_to_suid = {}
     log.debug(f"{all_dis_names.keys()}")
@@ -189,11 +189,132 @@ def map_source_to_target(
                 data[LiT.end] = updated
             links_to_consider[link] = data
 
-    for idx, t_link in enumerate(target[VRNE.links]):
-        target = map_links(idx, t_link, links_to_consider, target)
+    nxt_idx = len(target)
+    for idx, s_link in enumerate(links_to_consider):
+        if s_link in all_target_links:
+            t_link = all_target_links[s_link]
+            l_idx = t_link[LiT.id]
+            s_link = links_to_consider[s_link]
+            target[VRNE.links][l_idx] = map_links(t_link, s_link)
+            # log.debug(f"updated link:{l_idx}")
+        else:
+            s_link = links_to_consider[s_link]
+            s_link[LiT.id] = nxt_idx
+            # log.debug(f"Added link:{nxt_idx}")
+            target[VRNE.links].append(s_link)
+            nxt_idx += 1
+
+    layouter = Layouter()
+    layouter.network = {VRNE.nodes: target[VRNE.nodes], VRNE.links: target[VRNE.links]}
+    layouter.gen_evidence_layouts()
+    target = layouter.network
+    nb = 0
+    for link in target[VRNE.links]:
+        if EV.stringdb_neighborhood.value in link:
+            nb += 1
     uploader = Uploader(target, project_name)
     uploader.color_nodes(target_project)
     return f'<a style="color:green;" href="/StringEx/preview?project={project_name}">SUCCESS: Saved as project {project_name} </a>'
+
+
+def extract_links_from_tex(link_texs: str, link_rgbs: str) -> list[dict]:
+    """extract links from the links texture and the color from linkRGB.
+
+    Args:
+        link_texs (str): path to the directory which contains the link textures of the project.
+        link_rgbs (str): path to the directory which contains the linkrgb textures of the project.
+
+    Returns:
+        list[dict]: contains all extracted links.
+    """
+    links = {}
+    next_idx = 0
+    for file in glob.glob(link_texs):
+        evidence = None
+        rgb = None
+        rgb_file = None
+        for ev in EV:
+            ev = ev.value
+            if ev in file:
+                evidence = ev
+                for rf in glob.glob(link_rgbs):
+                    if evidence in rf:
+                        rgb_file = rf
+                        break
+                break
+        tex = Image.open(file)
+        if rgb_file:
+            rgb = Image.open(rgb_file)
+        rgb_x, rgb_y = 0, 0
+        all_link_done = False
+        for y in range(tex.height):
+            for x in range(0, tex.width, 2):
+                all_link_done, next_idx, rgb_x, rgb_y, links = extract_link_data(
+                    x, y, rgb_x, rgb_y, tex, links, evidence, rgb, next_idx
+                )
+                if all_link_done:
+                    break
+            if all_link_done:
+                break
+    return list(links.values())
+
+
+def extract_link_data(
+    x: int,
+    y: int,
+    rgb_x: int,
+    rgb_y: int,
+    tex: Image,
+    links: dict,
+    evidence: str or None,
+    rgb: Image or None,
+    next_idx: int,
+) -> dict[tuple, dict]:
+    """Extracts the data for a link from an texture Image and its rgb Image.
+
+    Args:
+        x (int): horizontal pixel in the texture image.
+        y (int): vertical pixel in the texture image.
+        rgb_x (int): horizontal pixel in the rgb image.
+        rgb_y (int): vertical pixel in the rgb image.
+        tex (Image): texture image object.
+        links (dict): dictionary containing all links with a tuple of start, and end as keys and the link itself as value.
+        evidence (str o rNone): string evidence of the current layout.
+        rgb (Image or None): rgb image object.
+        next_idx (int): next index for the link id.
+    Returns:
+        dict[tuple, dict]: dictionary containing all links with a tuple of start, and end as keys and the link itself as value.
+    """
+    start_p = tex.getpixel((x, y))
+    if x + 1 < tex.width:
+        end_p = tex.getpixel((x + 1, y))
+    else:
+        end_p = tex.getpixel((0, y + 1))
+    if start_p == (0, 0, 0):
+        return True, next_idx, rgb_x, rgb_y, links
+    start = start_p[0] + start_p[1] * 128 + start_p[2] * 128 * 128
+    end = end_p[0] + end_p[1] * 128 + end_p[2] * 128 * 128
+    if tuple((start, end)) not in links:
+        link = {
+            LiT.id: next_idx,
+            LiT.start: start,
+            LiT.end: end,
+        }
+        links[tuple((start, end))] = link
+        next_idx += 1
+    else:
+        link = links[tuple((start, end))]
+    link = links[tuple((start, end))]
+    if rgb:
+        color = rgb.getpixel((rgb_x, rgb_y))
+        rgb_x += 1
+        if rgb_x >= rgb.width:
+            rgb_x = 0
+            rgb_y += 1
+        if evidence:
+            score = color[3] / 255
+            link[evidence] = score
+    return False, next_idx, rgb_x, rgb_y, links
 
 
 if __name__ == "__main__":

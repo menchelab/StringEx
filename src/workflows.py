@@ -1,3 +1,4 @@
+import glob
 import json
 import logging
 import os
@@ -7,12 +8,12 @@ import traceback
 
 import flask
 
-from .classes import Organisms
+from .classes import Evidences, Organisms
 from .converter import VRNetzConverter
 
 # from .cytoscape_parser import CytoscapeParser
 from .layouter import Layouter
-from .map_small_on_large import map_source_to_target
+from .map_small_on_large import extract_links_from_tex, map_source_to_target
 from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, log
 
 # from .settings import VRNetzElements as VRNE
@@ -130,13 +131,11 @@ def VRNetzer_map_workflow(
     f_organ = os.path.join(_PROJECTS_PATH, f_organ)
 
     nodes_file = os.path.join(f_organ, "nodes.json")
-    links_file = os.path.join(f_organ, "links.json")
-
+    links_files = os.path.join(f_organ, "links", "*")
+    rgb_files = os.path.join(f_organ, "linksRGB", "*")
     with open(nodes_file, "r") as json_file:
         trg_network = json.load(json_file)
-    with open(links_file, "r") as json_file:
-        trg_network["links"] = json.load(json_file)["links"]
-
+    trg_network["links"] = extract_links_from_tex(links_files, rgb_files)
     layouter = Layouter()
     layouter.network = src_network
     layouter.gen_evidence_layouts()
@@ -152,14 +151,19 @@ def VRNetzer_map_workflow(
         shutil.copytree(
             f_organ, os.path.join(_PROJECTS_PATH, project_name), dirs_exist_ok=True
         )
-        with open(os.path.join(f_organ, "pfile.json"), "r") as json_file:
-            pfile = json.load(json_file)
+        for dir in ["links", "linksRGB"]:
+            for file in glob.glob(os.path.join(_PROJECTS_PATH, project_name, dir, "*")):
+                for ev in Evidences:
+                    if ev.value in file:
+                        os.remove(file)
+        with open(os.path.join(f_organ, "pfile.json"), "r") as f:
+            pfile = json.load(f)
             pfile["name"] = project_name
             pfile["network"] = "string"
         with open(
             os.path.join(os.path.join(_PROJECTS_PATH, project_name), "pfile.json"), "w"
-        ) as json_file:
-            json.dump(pfile, json_file)
+        ) as f:
+            json.dump(pfile, f)
 
         html = map_source_to_target(src_network, trg_network, f_organ, project_name)
 

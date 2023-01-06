@@ -10,6 +10,7 @@ from .classes import LayoutAlgroithms as LA
 from .classes import LayoutTags as LT
 from .classes import LinkTags as LiT
 from .classes import NodeTags as NT
+from .classes import StringTags as ST
 from .classes import VRNetzElements as VRNE
 from .settings import log
 
@@ -435,10 +436,15 @@ class Layouter:
             for idx, link in cur_links.items():
                 scale_factor = 0
                 if ev == Evidences.any.value:
-                    for other_ev in [e.value for e in Evidences if e != Evidences.any]:
-                        if other_ev in link:
-                            if link[other_ev] > scale_factor:
-                                scale_factor = link[other_ev]
+                    scale_factor = link.get(ST.stringdb_score)
+                    if not scale_factor:
+                        scale_factor = 0
+                        for other_ev in [
+                            e.value for e in Evidences if e != Evidences.any
+                        ]:
+                            if other_ev in link:
+                                if link[other_ev] > scale_factor:
+                                    scale_factor = link[other_ev]
                 else:
                     scale_factor = link[ev]
                 color = evidences[ev][:3] + (

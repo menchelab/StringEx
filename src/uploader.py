@@ -128,9 +128,19 @@ class Uploader:
 
     def write_json_files(self) -> None:
         """Will update the project files: pfile, names, nodes, links"""
-        files = [self.pfile_file, self.names_file, self.nodes_file, self.links_file]
+        files = [
+            self.pfile_file,
+            self.names_file,
+            self.nodes_file,
+            self.links_file,
+        ]
 
-        contents = [self.pfile, self.names, self.nodes, self.links]
+        contents = [
+            self.pfile,
+            self.names,
+            self.nodes,
+            self.links,
+        ]
 
         for file, content in zip(
             files,
@@ -246,12 +256,14 @@ class Uploader:
             self.names["names"].append(name)
 
     @staticmethod
-    def extract_link_data(elem: dict, layouts) -> list[tuple[int, int, int, int]]:
+    def extract_link_data(
+        elem: dict, layouts: list
+    ) -> dict[str, list[tuple[int], tuple[int], tuple[int]]]:
         """Extracts the data from a node.
 
         Args:
             elem (dict): Link to extract data from.
-            layouts (_type_): Layouts for which data should be extracted.
+            layouts (list): Layouts for which data should be extracted.
 
         Returns:
             list[tuple[int, int, int, int]]: contains coordinates (low,high) and color for each layout.
@@ -269,22 +281,18 @@ class Uploader:
             ex = end % 128
             eyl = end // 128 % 128
             eyh = end // 16384
-            tex = []
+            tex = {}
             for idx, layout in enumerate(layouts):
                 color = [0, 0, 0, 0]
-                tex.append([])
                 if layout in elem_lays:
                     layout_idx = elem_lays[layout]
-                    layout = elem[LiT.layouts][layout_idx]
-                    if LT.color in layout:
-                        if isinstance(layout[LT.color], tuple):
-                            color = layout[LT.color]
+                    elem_layout = elem[LiT.layouts][layout_idx]
+                    if LT.color in elem_layout:
+                        if isinstance(elem_layout[LT.color], tuple):
+                            color = elem_layout[LT.color]
                     else:
                         color = [0, 255, 0, 255]
-
-                tex[idx].append((sx, syl, syh))
-                tex[idx].append((ex, eyl, eyh))
-                tex[idx].append(tuple(color))
+                    tex[layout] = [(sx, syl, syh), (ex, eyl, eyh), tuple(color)]
 
         return tex
 
@@ -386,16 +394,15 @@ class Uploader:
         Returns:
             str: status message to report the status of the execution.
         """
-        hight = 512
+        height = 512
         path = self.p_path
 
         l_tex = []
         l_img = []
-
         for l in layouts:
-            l_tex.append([[(0, 0, 0)] * 1024 * hight, [(0, 0, 0, 0)] * 512 * hight])
+            l_tex.append([[(0, 0, 0)] * 1024 * height, [(0, 0, 0, 0)] * 512 * height])
             l_img.append(
-                [Image.new("RGB", (1024, hight)), Image.new("RGBA", (512, hight))]
+                [Image.new("RGB", (1024, height)), Image.new("RGBA", (512, height))]
             )
         # texl = [(0, 0, 0)] * 1024 * hight
         # texc = [(0, 0, 0, 0)] * 512 * hight
@@ -415,13 +422,15 @@ class Uploader:
             if tex is None:
                 continue
             for l, layout in enumerate(layouts):
-                if tex[l][2] is not None:
+                if layout in tex:
                     idx = l_idx[l]
                     if idx >= 262144:
                         continue
-                    l_tex[l][0][idx * 2] = tex[l][0]  # texl[i * 2] = pixell1
-                    l_tex[l][0][idx * 2 + 1] = tex[l][1]  # texl[i * 2 + 1] = pixell2
-                    l_tex[l][1][idx] = tex[l][2]  # texc[i] = pixelc
+                    l_tex[l][0][idx * 2] = tex[layout][0]  # texl[i * 2] = pixell1
+                    l_tex[l][0][idx * 2 + 1] = tex[layout][
+                        1
+                    ]  # texl[i * 2 + 1] = pixell2
+                    l_tex[l][1][idx] = tex[layout][2]  # texc[i] = pixelc
                     l_idx[l] += 1
 
         output = ""
@@ -610,21 +619,14 @@ class Uploader:
             self.nodes[VRNE.nodes].append(
                 {k: v for k, v in elem.items() if k not in ["layouts"]}
             )
-        for elem in self.network[VRNE.links]:
-            link = {
-                LiT.id: elem.get(LiT.id),
-                LiT.start: elem.get(LiT.start),
-                LiT.end: elem.get(LiT.end),
-            }
-            self.links[VRNE.links].append(link)
         self.write_json_files()
         for l, layout in enumerate(layouts):
             pathRGB = os_join(target_project, "layoutsRGB", f"{layout}.png")
             img = Image.open(pathRGB)
             i = 0
             all_nodes_done = False
-            for x in range(img.height):
-                for y in range(img.width):
+            for y in range(img.width):
+                for x in range(img.height):
                     if i >= len(self.network["nodes"]):
                         all_nodes_done = True
                         break
@@ -633,7 +635,7 @@ class Uploader:
                         color = node[NT.node_color] + [50]
                     else:
                         color = node[NT.node_color] + [255 // 2]
-                    img.putpixel((y, x), tuple(color))
+                    img.putpixel((x, y), tuple(color))
                     i += 1
                 if all_nodes_done:
                     break
