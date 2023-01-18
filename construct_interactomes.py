@@ -7,6 +7,7 @@ from logging.handlers import RotatingFileHandler
 
 import interactomes.load_files as load_files
 import interactomes.read_string as read_string
+import interactomes.upload_network as upload_network
 from src import settings as st
 from src import util
 from src.classes import LayoutAlgroithms, Organisms
@@ -55,7 +56,7 @@ def main(parser:dict):
     """Main function to construct the node layout and link layout files which can be uploaded to the VRNetzer website. This is to reproduce the full interactome STRING networks from scratch."""
     for organism in parser.organism:
         tax_id = Organisms.get_tax_ids(organism)
-        clean_name = util.clean_filename(organism)
+        clean_name = Organisms.get_file_name(organism)
         st.log.info(f"Processing organism: {organism} with taxonomy id: {tax_id}.")
         if parser.download:
             load_files.download(tax_id, organism, parser.src_dir,clean_name)
@@ -79,7 +80,7 @@ def main(parser:dict):
             read_string.construct_layouts(clean_name, parser.src_dir, parser.layout_algo, variables)
 
         if parser.upload:
-            read_string.upload_network(clean_name, parser.tarball, parser.output_dir, parser.ip, parser.port)
+            upload_network.upload(clean_name, parser.tarball, parser.output_dir, parser.ip, parser.port)
 
 
 if __name__ == "__main__":

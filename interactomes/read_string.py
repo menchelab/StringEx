@@ -298,7 +298,7 @@ def write_link_layouts(organism: str, l_lays: dict, all_links:list, _dir:str) ->
             color = color[:3] + tuple((alpha,))
             color = ",".join([str(c) for c in color])
             output += f"{start},{end},{color}\n"
-        file_name = os.path.join(_directory, f"{organism}_{ev}.csv")
+        file_name = os.path.join(_directory, f"{ev}.csv")
         with open(file_name, "w") as f:
             f.write(output)
         files.append(file_name)
@@ -326,7 +326,7 @@ def write_node_layout(organism: str, G: nx.Graph, layout: dict, _dir:str) -> Non
         color = ",".join([str(c) for c in color])
         attr = f"{node.get(NT.name)};{node.get(NT.uniprot)};{node.get(NT.description)}"
         output += f"{pos},{color},{attr}\n"
-    file_name = os.path.join(_directory, f"{organism}_node.csv")
+    file_name = os.path.join(_directory, f"nodes.csv")
     with open(file_name, "w") as f:
         f.write(output)
     st.log.info(f"Node layout for {organism} has been written to {file_name}.")
@@ -409,49 +409,3 @@ def construct_layouts(organism: str, _dir:str,layout_algo:str=None,variables:dic
     with tarfile.open(file_name, "w:gz") as tar:
         tar.add(organism_dir, arcname=organism)
     st.log.info(f"Compressed layouts to {file_name}.")
-
-def upload_network(organism: str,src:str, dest:str, ip:str="localhost", port:int=5000) -> None:
-    """Uploads the network using the internal upload route of the VRNetzer.
-
-    Args:
-        organism (str): Organism for which the layout files should be uploaded.
-        ip (str): IP of the VRNetzer.
-        port (int): Port of the VRNetzer.
-        src (str): path to .tgz file.
-        dest (str): path directory, where to unpack the .tgz file.
-    """
-    file_name = os.path.join(src, f"{organism}.tgz")
-    dest = os.path.join(dest, organism)
-    with tarfile.open(file_name, "r:gz") as tar:
-        for file in tar.getmembers():
-            if file.name.endswith(".csv"):
-                file.name = os.path.basename(file.name)
-                tar.extract(file, dest)
-    layouts = []
-    link_layouts=[]
-    for f in glob.glob(os.path.join(dest,"*")):
-        if f.endswith("node.csv"):
-            layouts.append(f)
-        for l in [ev.value for ev in Evidences]:
-            if f.endswith(f"{l}.csv"):
-                link_layouts.append(f)
-    project_name =f"string_{util.clean_filename(organism).lower()}_ppi"
-    data = {"namespace":"New",
-        "new_name":project_name}
-    files = []
-    for file in layouts:
-        files.append(("layouts", open(file,"rb")))
-    for file in link_layouts:
-        files.append(("links",open(file,"rb")))
-
-    r = requests.post(f"http://{ip}:{port}/uploadfiles",data = data,files=files)
-    st.log.info(f"Uploaded network for {organism}.")
-    st.log.debug(f"Response: {r}")
-
-    pfile_path = os.path.join(st._PROJECTS_PATH,project_name,"pfile.json")
-    with open(pfile_path,"r") as pfile:
-        tmp = json.load(pfile)
-    tmp["network_type"] = "ppi"
-    tmp["network"] = "string"
-    with open(pfile_path,"w") as pfile:
-        json.dump(tmp,pfile)
