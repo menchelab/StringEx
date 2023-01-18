@@ -18,10 +18,7 @@ from .settings import log
 class Layouter:
     """Simple class to apply a 3D layout algorithm to a networkx graph.
 
-    Args:
-        graph (networkx.Graph): Graph for which the layouts will be generated.
     """
-
     graph: nx.Graph = nx.Graph()
 
     def gen_graph(self, nodes: dict, links: dict) -> nx.Graph:
@@ -139,7 +136,7 @@ class Layouter:
             prplxty = cg_variables.get("prplxty", 50)
             density = cg_variables.get("density", 0.5)
             l_rate = cg_variables.get("l_rate", 200)
-            steps = cg_variables.get("steps", 1000)
+            steps = cg_variables.get("steps", 250)
             if "local" in layout_algo:
                 return cg.layout_local_tsne(
                     self.graph, dim, prplxty, density, l_rate, steps
@@ -157,9 +154,9 @@ class Layouter:
                     self.graph, dim, prplxty, density, l_rate, steps
                 )
         if "umap" in layout_algo:
-            n_neighbors = cg_variables.get("n_neighbors", 15)
+            n_neighbors = cg_variables.get("n_neighbors", 10)
             spread = cg_variables.get("spread", 1.0)
-            min_dist = cg_variables.get("min_dist", 0.0)
+            min_dist = cg_variables.get("min_dist", 0.1)
             if "local" in layout_algo:
                 return cg.layout_local_umap(
                     self.graph, dim, n_neighbors, spread, min_dist
@@ -173,7 +170,7 @@ class Layouter:
                     self.graph, dim, n_neighbors, spread, min_dist
                 )
             elif "functional" in layout_algo:
-                "TODO: Implement functional Functional"
+                "TODO: Implement functional"
                 MATRIX = cg.get_functional_matrix(self.graph)
                 rows = len(list(G.nodes()))
                 feat_one = [(val) if i % 3 else (scale) for i in range(rows)]
@@ -262,6 +259,17 @@ class Layouter:
         for i, key in enumerate(layout):
             layout[key] = points[i]
 
+        return layout
+
+    def add_layout_to_vrnetz(self,layout:dict) -> None:
+        """Adds the points of the generated layout to the underlying VRNetz
+
+        Args:
+            layout (dict): Dictionary containing node ids as keys and a 3-tuple of coordinates as values.
+        """
+        if VRNE.node_layouts not in self.network:
+                self.network[VRNE.node_layouts] = []
+                
         if LT.string_3d_no_z not in self.network[VRNE.node_layouts]:
             self.network[VRNE.node_layouts].append(LT.string_3d_no_z)
 
@@ -291,9 +299,6 @@ class Layouter:
                 color = cy_layout[LT.color]
                 node[NT.layouts][layout_id][LT.color] = color
 
-            if VRNE.node_layouts not in self.network:
-                self.network[VRNE.node_layouts] = []
-
             if NT.layouts not in node:
                 node[NT.layouts] = []
 
@@ -321,8 +326,6 @@ class Layouter:
 
         self.correct_cytoscape_pos(cytoscape_nodes, cy_points, layout_id)
 
-        return layout
-
     def correct_cytoscape_pos(
         self, cytoscape_nodes: list, points: list[list[float]], layout_id: int
     ) -> np.array:
@@ -336,17 +339,6 @@ class Layouter:
         Returns:
             np.array: 2d Array contains all positions for every node but now normalized between 0 and 1.
         """
-        # Only handle nodes which are contained in the cytoscape layout
-        # cytoscape_nodes = []
-        # points = []
-        # for node in self.graph.nodes:
-        #     data = self.get_node_data(node)
-        #     cy_layout, idx = util.find_cy_layout(data)
-        #     if cy_layout is not None:
-        #         cytoscape_nodes.append(node)
-
-        #         # Get positions of only these
-        #         points.append(cy_layout[LT.position])
 
         if len(points) == 0:
             return None

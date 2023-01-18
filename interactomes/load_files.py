@@ -8,12 +8,13 @@ import requests
 from src import settings as st
 
 
-def download(tax_id: int, organism: str):
+def download(tax_id: int, organism: str, dest:str,clean_name:str):
     """Used to download necessary files from STRING database to create full genome networks.
 
     Args:
         tax_id (int): Taxonomy ID of the organism.
         organism (str): Organism for which the data should be downloaded.
+        dest (str): Destination folder for the downloaded files.
     """
     url = "https://stringdb-static.org/download/"
     links = "protein.links.detailed.v11.5/"
@@ -22,7 +23,7 @@ def download(tax_id: int, organism: str):
     organism_links = f"{tax_id}.protein.links.detailed.v11.5.txt.gz"
     organism_info = f"{tax_id}.protein.info.v11.5.txt.gz"
     organism_aliases = f"{tax_id}.protein.aliases.v11.5.txt.gz"
-    directory = os.path.join(st._THIS_EXT, "STRING", organism)
+    directory = os.path.join(dest, clean_name)
     os.makedirs(directory, exist_ok=True)
     for data, file in zip(
         [links, info, ali],

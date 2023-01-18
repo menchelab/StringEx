@@ -19,8 +19,8 @@ blueprint = flask.Blueprint(
     "StringEx",
     __name__,
     url_prefix=url_prefix,
-    template_folder=st._FLASK_TEMPLATE_PATH,
-    static_folder=st._FLASK_STATIC_PATH,
+    template_folder=st._THIS_EXT_TEMPLATE_PATH,
+    static_folder=st._THIS_EXT_STATIC_PATH,
 )
 
 main_tabs = ["string_main_tab.html"]
@@ -168,8 +168,9 @@ def string_ex_upload_files() -> str:
         st.log.error(f"Invalid VRNetz file:{network_file.filename}")
         return '<a style="color:red;">ERROR invalid VRNetz file!</a>'
     project_name = ""
+    print(form.keys())
     if form["string_namespace"] == "New":
-        project_name = form["string_new_name"]
+        project_name = form["string_new_namespace_name"]
 
     else:
         project_name = form["existing_namespace"]

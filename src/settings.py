@@ -17,12 +17,12 @@ _THIS_EXT = os.path.join(_WORKING_DIR, "..")
 _EXTENSION_PATH = os.path.join(_WORKING_DIR, "..", "..")
 _VRNETZER_PATH = os.path.join(_EXTENSION_PATH, "..")
 
-_STATIC_PATH = os.path.join(_VRNETZER_PATH, "static")
+_STATIC_PATH = os.path.join(_VRNETZER_PATH, "static") # Static path of the VRNetzer
 _PROJECTS_PATH = os.path.join(_STATIC_PATH, "projects")
 _NETWORKS_PATH = os.path.join(_STATIC_PATH, "networks")
 
-_FLASK_TEMPLATE_PATH = os.path.join(_WORKING_DIR, "..", "templates")
-_FLASK_STATIC_PATH = os.path.join(_WORKING_DIR, "..", "static")
+_THIS_EXT_TEMPLATE_PATH = os.path.join(_WORKING_DIR, "..", "templates") # Template path of this extension
+_THIS_EXT_STATIC_PATH = os.path.join(_WORKING_DIR, "..", "static") # Static path of this extension
 _VRNETZER_PATH = os.path.join(_WORKING_DIR, "..", "..")
 _VRNETZER_TEMPLATE_PATH = os.path.join(_VRNETZER_PATH, "templates")
 # _STYLES_PATH = os.path.join(_STATIC_PATH, "styles")

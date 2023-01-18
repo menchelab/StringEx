@@ -38,7 +38,7 @@ def get_algo_variables(algo: str, form: dict) -> dict:
         }
     if algo == LayoutAlgroithms.spring:
         opt_dist = form.get("string_spring_opt_dist", 0)
-        if opt_dist is 0:
+        if opt_dist == 0:
             opt_dist = None
 
         return {

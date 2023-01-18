@@ -6,3 +6,4 @@ STRING/**/*.txt
 .vscode/settings.json
 STRING/**/*.gzip
 logs/**
+static/string_interactomes/*

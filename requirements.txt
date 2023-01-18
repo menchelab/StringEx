@@ -3,3 +3,5 @@ pandas>=1.5.0
 numpy>=1.23.3
 scipy
 requests
+Pillow
+flask
