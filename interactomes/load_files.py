@@ -1,16 +1,10 @@
-import glob
 import gzip
 import os
-import sys
-from ast import alias
 
-import pandas
 import requests
 
-from src import settings as st
 
-
-def download(tax_id: int, organism: str, dest:str,clean_name:str):
+def download(tax_id: int, dest: str, clean_name: str, string_db_ver: str = "11.5"):
     """Used to download necessary files from STRING database to create full genome networks.
 
     Args:
@@ -19,12 +13,12 @@ def download(tax_id: int, organism: str, dest:str,clean_name:str):
         dest (str): Destination folder for the downloaded files.
     """
     url = "https://stringdb-static.org/download/"
-    links = "protein.links.detailed.v11.5/"
-    info = "protein.info.v11.5/"
-    ali = "protein.aliases.v11.5/"
-    organism_links = f"{tax_id}.protein.links.detailed.v11.5.txt.gz"
-    organism_info = f"{tax_id}.protein.info.v11.5.txt.gz"
-    organism_aliases = f"{tax_id}.protein.aliases.v11.5.txt.gz"
+    links = f"protein.links.detailed.v{string_db_ver}/"
+    info = f"protein.info.v{string_db_ver}/"
+    ali = f"protein.aliases.v{string_db_ver}/"
+    organism_links = f"{tax_id}.{links[:-1]}.txt.gz"
+    organism_info = f"{tax_id}.{info[:-1]}.txt.gz"
+    organism_aliases = f"{tax_id}.{ali[:-1]}.txt.gz"
     directory = os.path.join(dest, clean_name)
     os.makedirs(directory, exist_ok=True)
     for data, file in zip(
@@ -38,23 +32,7 @@ def download(tax_id: int, organism: str, dest:str,clean_name:str):
             with open(os.path.join(directory, file.strip(".gz")), "wb+") as f:
                 f.write(content)
 
-def filter_entries(tax_id:int, organism:str,dest:str,clean_name:str):
-    for file in glob.glob(os.path.join(dest, "*")):
-        if file.endswith("protein.links.detailed.v11.5.txt"):
-            link_file = file
-        elif file.endswith(".protein.aliases.v11.5.txt"):
-            alias_file = file
-        elif file.endswith(".protein.info.v11.5.txt"):
-            description_file = file
-    alias_table = pandas.read_table(
-        alias_file,
-        header=0,
-        sep="\t",
-        index_col=0,
-    )
 
-    # TODO: Filter unused lines
-    
 if __name__ == "__main__":
     organisms = {
         "human": 9606,
