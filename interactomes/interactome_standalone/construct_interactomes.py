@@ -4,10 +4,9 @@ import os
 import timeit
 from logging.handlers import RotatingFileHandler
 
-import interactomes.load_files as load_files
-import interactomes.read_string as read_string
-import interactomes.upload_network as upload_network
-from src import settings as st
+import src.load_files as load_files
+import src.logger as log
+import src.read_string as read_string
 from src.classes import LayoutAlgroithms, Organisms
 
 f_handler = RotatingFileHandler(
@@ -18,11 +17,11 @@ f_handler = RotatingFileHandler(
     encoding=None,
     delay=0,
 )
-f_handler.setLevel(st._LOG_LEVEL)
-f_handler.setFormatter(st._LOG_FORMAT)
-st.log.addHandler(f_handler)
-_SOURCE_FILES = os.path.join(st._THIS_EXT_STATIC_PATH,"string_interactomes")
-_OUTPUT_PATH = os.path.join(st._STATIC_PATH,"csv","string_interactomes")
+f_handler.setLevel(log._LOG_LEVEL)
+f_handler.setFormatter(log._LOG_FORMAT)
+log.log.addHandler(f_handler)
+_SOURCE_FILES = os.path.join(".","string_interactomes")
+_OUTPUT_PATH = os.path.join(".","csv","string_interactomes")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Construct STRING interactomes")
@@ -55,20 +54,20 @@ def main(parser:dict):
     for organism in parser.organism:
         tax_id = Organisms.get_tax_ids(organism)
         clean_name = Organisms.get_file_name(organism)
-        st.log.info(f"Processing organism: {organism} with taxonomy id: {tax_id}.")
+        log.log.info(f"Processing organism: {organism} with taxonomy id: {tax_id}.")
         start = timeit.default_timer()
         end_download,end_construct,end_layout,end_upload = None, None, None, None
         if parser.download:
             start_download = timeit.default_timer()
             load_files.download(tax_id, organism, parser.src_dir,clean_name)
             end_download = round((timeit.default_timer()-start_download)*10**6,3)
-            st.log.debug(f"Runtime of download: {end_download/1000} ms")
+            log.log.debug(f"Runtime of download: {end_download/1000} ms")
 
         if parser.construct:
             start_construct = timeit.default_timer()
             read_string.construct_graph(parser.src_dir, organism,clean_name)
             end_construct = round((timeit.default_timer()-start_construct)*10**6,3)
-            st.log.debug(f"Runtime of construct: {end_construct/1000} ms")
+            log.log.debug(f"Runtime of construct: {end_construct/1000} ms")
 
         if parser.layout:
             variables = {
@@ -86,23 +85,23 @@ def main(parser:dict):
             start_layout = timeit.default_timer()
             read_string.construct_layouts(clean_name, parser.src_dir, parser.layout_algo, variables)
             end_layout = round((timeit.default_timer()-start_layout)*10**6,3)
-            st.log.debug(f"Runtime of layout_calc: {end_layout/1000} ms")
+            log.log.debug(f"Runtime of layout_calc: {end_layout/1000} ms")
 
-
-        if parser.upload:
-            start_upload = timeit.default_timer()
-            upload_network.upload(clean_name, parser.tarball, parser.output_dir, parser.ip, parser.port)
-            end_upload = round((timeit.default_timer()-start_upload)*10**6,3)
-            st.log.debug(f"Runtime of upload: {end_upload/1000} ms")
+        ###### Irrelevant for runtime, can ignore
+        # if parser.upload:
+        #     start_upload = timeit.default_timer()
+        #     upload_network.upload(clean_name, parser.tarball, parser.output_dir, parser.ip, parser.port)
+        #     end_upload = round((timeit.default_timer()-start_upload)*10**6,3)
+        #     log.log.debug(f"Runtime of upload: {end_upload/1000} ms")
 
         end = round((timeit.default_timer()-start)*10**6,3)
-        st.log.debug(f"Overall runtime:{end} ms")
-        st.log.debug("====================")
+        log.log.debug(f"Overall runtime:{end} ms")
+        log.log.debug("====================")
         for flag,name,runtime in zip([parser.download,parser.construct,parser.layout,parser.upload],["Download","Construct","Layout","Upload"],[end_download,end_construct,end_layout,end_upload]):
             if flag:
-                st.log.debug(f"{name}\t{runtime/1000} ms")
-
-        st.log.debug
+                if runtime is not None:
+                    log.log.debug(f"{name}\t{runtime/1000} ms")
+                    
 if __name__ == "__main__":
     parser = parse_args()
     main(parser)

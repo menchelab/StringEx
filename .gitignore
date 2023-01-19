@@ -7,3 +7,6 @@ STRING/**/*.txt
 STRING/**/*.gzip
 logs/**
 static/string_interactomes/*
+interactomes/interactome_standalone/logs/*
+interactomes/interactome_standalone/string_interactomes/*
+interactomes/interactome_standalone/venv/*

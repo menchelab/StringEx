@@ -7,15 +7,15 @@ import tarfile
 import networkx as nx
 import numpy as np
 import pandas
-import requests
 
-from src import map_uniprot
-from src import settings as st
 from src.classes import Evidences
 from src.classes import LinkTags as LiT
 from src.classes import NodeTags as NT
 from src.classes import Organisms
 from src.layouter import Layouter
+
+from . import logger as log
+from . import map_uniprot
 
 
 def construct_graph(
@@ -225,7 +225,7 @@ def gen_graph(
     graph_data["all_links"] = all_links
     write_network(clean_name, graph_data, _dir)
 
-    st.log.info(f"Network for {organism} has {len(G.nodes)} nodes and {len(G.edges)} edges.")
+    log.log.info(f"Network for {organism} has {len(G.nodes)} nodes and {len(G.edges)} edges.")
 
     return G, l_lays
 
@@ -241,11 +241,11 @@ def map_gene_names_to_uniprot(G:nx.Graph,map_gene_name:dict,taxid:str) -> nx.Gra
         nx.Graph: Same graph as the input graph, but with updated uniprot ids.
     """    
     if len(map_gene_name) > 0:
-        st.log.debug("Mapping gene names to uniprot ids...")
+        log.log.debug("Mapping gene names to uniprot ids...")
         invert_map = {v:k for k,v in map_gene_name.items()}
 
         query_results= map_uniprot.query_gen_names_uniport(taxid,list(map_gene_name.values()))
-        with open("test.json", "w") as f:
+        with open("query_results.json", "w") as f:
             json.dump(query_results, f)
         for entry in query_results["results"]:
             gene_name = entry.get("from")
@@ -300,7 +300,7 @@ def write_link_layouts(organism: str, l_lays: dict, all_links:list, _dir:str) ->
         with open(file_name, "w") as f:
             f.write(output)
         files.append(file_name)
-        st.log.info(f"link layout for evidence {ev} for {organism} has been written to {file_name}.")
+        log.log.info(f"link layout for evidence {ev} for {organism} has been written to {file_name}.")
 
 
 def write_node_layout(organism: str, G: nx.Graph, layout: dict, _dir:str) -> None:
@@ -327,7 +327,7 @@ def write_node_layout(organism: str, G: nx.Graph, layout: dict, _dir:str) -> Non
     file_name = os.path.join(_directory, f"nodes.csv")
     with open(file_name, "w") as f:
         f.write(output)
-    st.log.info(f"Node layout for {organism} has been written to {file_name}.")
+    log.log.info(f"Node layout for {organism} has been written to {file_name}.")
 
 
 def write_network(organism: str, graph: dict,_dir:str) -> None:
@@ -364,7 +364,7 @@ def read_network(organism: str, _dir:str) -> tuple[nx.Graph, dict]:
     l_lays = graph.pop("link_layouts")
     all_links = graph.pop("all_links")
     G = nx.node_link_graph(graph)
-    st.log.info(f"Read network from file {file_name}.")
+    log.log.info(f"Read network from file {file_name}.")
     return G, l_lays, all_links
 
 
@@ -386,7 +386,7 @@ def gen_layout(G: nx.Graph, layout_algo:str = None, variables:dict=None) -> dict
     # write points to node and add position to node data.
     for i, key in enumerate(layout):
         layout[key] = points[i]
-    st.log.info(f"Generated layout. Used algorithm: {layout_algo}.")
+    log.log.info(f"Generated layout. Used algorithm: {layout_algo}.")
     return layout
 
 def construct_layouts(organism: str, _dir:str,layout_algo:str=None,variables:dict=None) -> None:
@@ -406,4 +406,4 @@ def construct_layouts(organism: str, _dir:str,layout_algo:str=None,variables:dic
     organism_dir = os.path.join(_dir, organism)
     with tarfile.open(file_name, "w:gz") as tar:
         tar.add(organism_dir, arcname=organism)
-    st.log.info(f"Compressed layouts to {file_name}.")
+    log.log.info(f"Compressed layouts to {file_name}.")
