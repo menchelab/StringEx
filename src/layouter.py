@@ -16,9 +16,8 @@ from .settings import log
 
 
 class Layouter:
-    """Simple class to apply a 3D layout algorithm to a networkx graph.
+    """Simple class to apply a 3D layout algorithm to a networkx graph."""
 
-    """
     graph: nx.Graph = nx.Graph()
 
     def gen_graph(self, nodes: dict, links: dict) -> nx.Graph:
@@ -235,41 +234,45 @@ class Layouter:
         Returns:
             dict[str,list[float]]: with node ids as keys and three dimensional node positions as values.
         """
-        if layout_algo is None:
-            """Select default layout algorithm"""
-            layout_algo = LA.spring
+        layouts = []
+        if isinstance(layout_algo, str):
+            layout_algo = [layout_algo]
+        for algo in layout_algo:
+            if algo is None:
+                """Select default layout algorithm"""
+                algo = LA.spring
 
-        if LA.cartoGRAPH in layout_algo:
-            layout = self.create_cartoGRAPH_layout(layout_algo, algo_variables)
-        else:
-            layouts = {
-                LA.spring: self.create_spring_layout,
-                LA.kamada_kawai: self.create_kamada_kawai_layout,
-            }
-            log.debug(f"Applying layout: {layout_algo}")
-            layout = layouts[layout_algo](
-                algo_variables
-            )  # Will use the desired layout algorithm
+            if LA.cartoGRAPH in algo:
+                layout = self.create_cartoGRAPH_layout(algo, algo_variables)
+            else:
+                lay_func = {
+                    LA.spring: self.create_spring_layout,
+                    LA.kamada_kawai: self.create_kamada_kawai_layout,
+                }
+                log.debug(f"Applying layout: {algo}")
+                layout = lay_func[algo](
+                    algo_variables
+                )  # Will use the desired layout algorithm
 
-        points = np.array(list(layout.values()))
-        points = self.to_positive(points, 3)
-        points = self.normalize_values(points, 3)
+            points = np.array(list(layout.values()))
+            points = self.to_positive(points, 3)
+            points = self.normalize_values(points, 3)
 
-        # write points to node and add position to node data.
-        for i, key in enumerate(layout):
-            layout[key] = points[i]
+            # write points to node and add position to node data.
+            for i, key in enumerate(layout):
+                layout[key] = points[i]
+            layouts.append(layout)
+        return layouts
 
-        return layout
-
-    def add_layout_to_vrnetz(self,layout:dict) -> None:
+    def add_layout_to_vrnetz(self, layout: dict) -> None:
         """Adds the points of the generated layout to the underlying VRNetz
 
         Args:
             layout (dict): Dictionary containing node ids as keys and a 3-tuple of coordinates as values.
         """
         if VRNE.node_layouts not in self.network:
-                self.network[VRNE.node_layouts] = []
-                
+            self.network[VRNE.node_layouts] = []
+
         if LT.string_3d_no_z not in self.network[VRNE.node_layouts]:
             self.network[VRNE.node_layouts].append(LT.string_3d_no_z)
 

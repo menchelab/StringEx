@@ -180,7 +180,7 @@ def apply_layout_workflow(
 
     if gen_layout:
         log.info(f"Applying algorithm {layout_algo} ...")
-        layout = layouter.apply_layout(layout_algo, algo_variables)
+        layout = layouter.apply_layout(layout_algo, algo_variables)[0]
         layouter.add_layout_to_vrnetz(layout)
         if layout_algo is None:
             layout_algo = "spring"

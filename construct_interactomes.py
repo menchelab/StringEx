@@ -3,7 +3,6 @@ import argparse
 import os
 import timeit
 from datetime import timedelta
-from logging.handlers import RotatingFileHandler
 
 import interactomes.load_files as load_files
 import interactomes.read_string as read_string
@@ -90,6 +89,7 @@ def parse_args():
         "-lay",
         type=str,
         help="Defines the layout algorithm which should be used.",
+        nargs="*",
         default=LayoutAlgroithms.spring,
         choices=LayoutAlgroithms.all_algos,
     )
@@ -205,8 +205,11 @@ def parse_args():
 
 
 def workflow(parser):
-    download_runtime, construct_runtime, layout_runtime = None, None, None
+    runtimes = {}
     for organism in parser.organism:
+        if parser.benchmark:
+            start_time = timeit.default_timer()
+            runtimes[organism] = {}
         tax_id = Organisms.get_tax_ids(organism)
         clean_name = Organisms.get_file_name(organism)
         st.log.info(f"Processing organism: {organism} with taxonomy id: {tax_id}.")
@@ -222,10 +225,10 @@ def workflow(parser):
                     repeat=parser.benchmark_repeat,
                     number=parser.benchmark_number,
                 )
-                download_runtime = [
-                    str(timedelta(seconds=val)) for val in download_runtime
-                ]
+                average = sum(download_runtime) / len(download_runtime)
+                download_runtime = str(timedelta(seconds=average))
                 st.log.info(f"Runtime of step download: {download_runtime}")
+                runtimes[organism]["download"] = download_runtime
             else:
                 download()
 
@@ -236,6 +239,7 @@ def workflow(parser):
                     parser.src_dir,
                     organism,
                     clean_name,
+                    tax_id,
                     parser.last_link,
                     parser.max_links,
                 )
@@ -249,6 +253,7 @@ def workflow(parser):
                 average = sum(construct_runtime) / len(construct_runtime)
                 construct_runtime = str(timedelta(seconds=average))
                 st.log.info(f"Runtime of step construct: {construct_runtime}")
+                runtimes[organism]["construct"] = construct_runtime
             else:
                 construct()
 
@@ -280,6 +285,7 @@ def workflow(parser):
                 average = sum(layout_runtime) / len(layout_runtime)
                 layout_runtime = str(timedelta(seconds=average))
                 st.log.info(f"Runtime of step layout: {layout_runtime}")
+                runtimes[organism]["layout"] = layout_runtime
             else:
                 layout()
 
@@ -303,33 +309,31 @@ def workflow(parser):
                 average = sum(upload_runtime) / len(upload_runtime)
                 upload_runtime = str(timedelta(seconds=average))
                 st.log.info(f"Runtime of step upload: {upload_runtime}")
+                runtimes[organism]["upload"] = upload_runtime
             else:
                 upload()
-
-    runtimes = (
-        download_runtime,
-        construct_runtime,
-        layout_runtime,
-    )
-    # , upload_runtime)
+        runtimes[organism]["total"] = timedelta(
+            seconds=timeit.default_timer() - start_time
+        )
     return runtimes
 
 
 def main():
     """Main function to construct the node layout and link layout files which can be uploaded to the VRNetzer website. This is to reproduce the full interactome STRING networks from scratch. If benchmark is on it will benchmark the runtime of the different steps."""
     parser = parse_args()
-
     if parser.benchmark:
         total_runtime = timeit.default_timer()
         runtimes = workflow(parser)
         total_runtime = timedelta(seconds=timeit.default_timer() - total_runtime)
-        st.log.info(f"Total runtime: \t\t\t\t{total_runtime}")
+        st.log.info(f"Overall runtime for: \t\t\t\t{total_runtime}")
         st.log.info(f"=" * 50)
-        for step, runtime in zip(
-            ["download", "construct", "layout", "upload"], runtimes
-        ):
-            if runtime:
-                st.log.info(f"Runtime of step {step}: \t{runtime}")
+        for organism, r in runtimes.items():
+            total_runtime = r.pop("total")
+            st.log.info(f"Total runtime for {organism}: \t\t\t\t{total_runtime}")
+            st.log.info(f"=" * 50)
+            for step, runtime in r.items():
+                if runtime:
+                    st.log.info(f"Runtime of step {step}: \t{runtime}")
     else:
         workflow(parser)
 

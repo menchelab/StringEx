@@ -21,7 +21,8 @@ from src.layouter import Layouter
 def construct_graph(
     networks_directory: str,
     organism: str,
-    clean_name,
+    clean_name: str,
+    tax_id: int,
     last_link: int or None = None,
     MAX_NUM_LINKS=262144,
 ):
@@ -30,20 +31,26 @@ def construct_graph(
     Args:
         networks_directory (str): Path to directory where the STRING DB network files are stored for the given organism.
         organism (str): Organism from which the network originates from.
+        clean_name (str): Clean name of the organism and final project name.
+        tax_id (int): Taxonomy ID of the organism.
         last_link (int o rNone, optional): FOR DEBUGGING: Integer of the last link to be processed. Defaults to None.
 
     Returns:
         tuple[nx.Graph, dict]: Graph representing the protein-protein interaction network and a dictionary containing the nodes of the graph.
     """
-    link_file, alias_file, description_file = "", "", ""
+
     directory = os.path.join(networks_directory, clean_name)
-    for file in glob.glob(os.path.join(directory, "*")):
-        if file.endswith("protein.links.detailed.v11.5.txt"):
-            link_file = file
-        elif file.endswith(".protein.aliases.v11.5.txt"):
-            alias_file = file
-        elif file.endswith(".protein.info.v11.5.txt"):
-            description_file = file
+
+    link_file = os.path.join(directory, f"{tax_id}.protein.links.detailed.v11.5.txt")
+    filtered = os.path.join(
+        directory, f"{tax_id}.protein.links.detailed.v11.5.filtered.txt"
+    )
+    if os.path.isfile(filtered):
+        link_file = filtered
+
+    alias_file = os.path.join(directory, f"{tax_id}.protein.aliases.v11.5.txt")
+    description_file = os.path.join(directory, f"{tax_id}.protein.info.v11.5.txt")
+
     network_table = pandas.read_table(link_file, header=0, sep=" ")
     if len(network_table) > MAX_NUM_LINKS:
         st.log.info(f"Too many links. Will filter them.")
@@ -52,6 +59,8 @@ def construct_graph(
         )
         network_table = network_table.reset_index(drop=True)
         network_table = network_table.truncate(after=MAX_NUM_LINKS - 1)
+        network_table.to_csv(filtered, sep=" ", index=False)
+
     alias_table = pandas.read_table(
         alias_file,
         header=0,
@@ -275,7 +284,6 @@ def gen_graph(
     graph_data = nx.node_link_data(G)
     graph_data["link_layouts"] = l_lays
     graph_data["all_links"] = all_links
-    print(len(all_links))
     write_network(clean_name, graph_data, _dir)
 
     st.log.info(
@@ -343,30 +351,8 @@ def write_network(organism: str, graph: dict, _dir: str) -> None:
     st.log.debug(f"Zipping network to {file_name} took {time() - t1} seconds.")
 
 
-def gen_layout(G: nx.Graph, layout_algo: str = None, variables: dict = None) -> dict:
-    """Generates a 3D layout for the graph.
-
-    Args:
-        G (nx.Graph): Graph to generate layout for.
-
-    Returns:
-        dict: Dictionary with node ids as keys and 3D positions as values.
-    """
-    layouter = Layouter()
-    layouter.graph = G
-    layout = layouter.apply_layout(layout_algo, variables)
-    points = np.array(list(layout.values()))
-    points = Layouter.to_positive(points, 3)
-    points = Layouter.normalize_values(points, 3)
-    # write points to node and add position to node data.
-    for i, key in enumerate(layout):
-        layout[key] = points[i]
-    st.log.info(f"Generated layout. Used algorithm: {layout_algo}.")
-    return layout
-
-
 def construct_layouts(
-    organism: str, _dir: str, layout_algo: str = None, variables: dict = None
+    organism: str, _dir: str, layout_algo: list[str] = None, variables: dict = None
 ) -> None:
     """Constructs the layouts for the network and compress them into a tar file.
 
@@ -376,6 +362,24 @@ def construct_layouts(
         layout_algo (str): Defines the layout algorithm which should be used.
         variables (dict): Defines the variables of the respective layout algorithm.
     """
+
+    def gen_layout(
+        G: nx.Graph, layout_algo: str = None, variables: dict = None
+    ) -> dict:
+        """Generates a 3D layout for the graph.
+
+        Args:
+            G (nx.Graph): Graph to generate layout for.
+
+        Returns:
+            dict: Dictionary with node ids as keys and 3D positions as values.
+        """
+        layouter = Layouter()
+        layouter.graph = G
+        layouts = layouter.apply_layout(layout_algo, variables)
+        for idx, algo in enumerate(layout_algo):
+            layouts[idx]["name"] = algo
+        return layouts
 
     def read_network(organism: str, _dir: str) -> tuple[nx.Graph, dict]:
         """Reads the graphml of the network and a json file with the link layouts.
@@ -399,7 +403,7 @@ def construct_layouts(
         st.log.info(f"Read network from file {file_name}.")
         return G, l_lays, all_links
 
-    def write_node_layout(organism: str, G: nx.Graph, layout: dict, _dir: str) -> None:
+    def write_node_layout(organism: str, G: nx.Graph, layouts: dict, _dir: str) -> None:
         """Will write the node layout to a csv file with the following format:
         x,y,r,g,b,a,name;uniprot_id;description. File name is: {organism}_node.csv located in projects folder.
 
@@ -410,20 +414,22 @@ def construct_layouts(
         """
         _directory = os.path.join(_dir, organism)
         os.makedirs(_directory, exist_ok=True)
-        output = ""
-        for i in range(len(layout)):
-            node = G.nodes[i]
-            pos = layout[i]
-            color = (255, 255, 255)
-            pos = ",".join([str(p) for p in pos])
-            color += ((255 // 2),)
-            color = ",".join([str(c) for c in color])
-            attr = f"{node.get(NT.name)};{node.get(NT.uniprot,'')};{node.get(NT.description,'')}"
-            output += f"{pos},{color},{attr}\n"
-        file_name = os.path.join(_directory, f"nodes.csv")
-        with open(file_name, "w") as f:
-            f.write(output)
-        st.log.info(f"Node layout for {organism} has been written to {file_name}.")
+        for layout in layouts:
+            output = ""
+            for i, pos in layout.items():
+                if i == "name":
+                    continue
+                node = G.nodes[i]
+                color = (255, 255, 255)
+                pos = ",".join([str(p) for p in pos])
+                color += ((255 // 2),)
+                color = ",".join([str(c) for c in color])
+                attr = f"{node.get(NT.name)};{node.get(NT.uniprot,'')};{node.get(NT.description,'')}"
+                output += f"{pos},{color},{attr}\n"
+            file_name = os.path.join(_directory, f"{layout['name']}_nodes.csv")
+            with open(file_name, "w") as f:
+                f.write(output)
+            st.log.info(f"Node layout for {organism} has been written to {file_name}.")
 
     def write_link_layouts(
         organism: str, l_lays: dict, all_links: list, _dir: str
@@ -440,37 +446,34 @@ def construct_layouts(
         color_scheme = Evidences.get_default_scheme()
         _directory = os.path.join(_dir, organism)
         os.makedirs(_directory, exist_ok=True)
-        files = []
-        ev_output = {ev: "" for ev in l_lays}
-        for idx, link in enumerate(all_links):
-            print(idx, end="\r")
-            start = link.get(LiT.start)
-            end = link.get(LiT.end)
-            for ev in l_lays:
-                ev_color = color_scheme[ev]
-                if idx in l_lays[ev]:
-                    alpha = int(ev_color[3] * link.get(ev))
+        for ev in l_lays:
+            output = ""
+            for l, idx in enumerate(l_lays[ev]):
+                link = all_links[idx]
+                start = link.get(LiT.start)
+                end = link.get(LiT.end)
+                color = color_scheme[ev]
+
+                if ev in link:
+                    alpha = int(color[3] * link.get(ev))
                 else:
                     alpha = 255
-                color = ev_color[:3] + tuple((alpha,))
-                color = ",".join([str(c) for c in color])
-                ev_output[ev] += f"{start},{end},{color}\n"
 
-        for ev, output in ev_output.items():
+                color = color[:3] + tuple((alpha,))
+                color = ",".join([str(c) for c in color])
+                output += f"{start},{end},{color}\n"
             file_name = os.path.join(_directory, f"{ev}.csv")
             with open(file_name, "w") as f:
                 f.write(output)
-            files.append(file_name)
             st.log.info(
                 f"link layout for evidence {ev} for {organism} has been written to {file_name}."
             )
 
     G, l_lays, all_links = read_network(organism, _dir)
-    print(len(all_links))
-    exit()
-    layout = gen_layout(G, layout_algo, variables)
+    layouts = gen_layout(G, layout_algo, variables)
+    st.log.info(f"Generated layout. Used algorithm: {layout_algo}.")
     write_link_layouts(organism, l_lays, all_links, _dir)
-    write_node_layout(organism, G, layout, _dir)
+    write_node_layout(organism, G, layouts, _dir)
     # file_name = os.path.join(_dir, f"{organism}.tgz")
     # organism_dir = os.path.join(_dir, organism)
     # t1 = time()

@@ -22,9 +22,11 @@ def upload(organism: str, src: str, ip: str = "localhost", port: int = 5000) -> 
     for f in glob.glob(os.path.join(src, organism, "*")):
         if f.endswith("nodes.csv"):
             layouts.append(f)
-        for l in [ev.value for ev in Evidences]:
+        for l in [ev.value for ev in Evidences if ev.value != "any"]:
             if f.endswith(f"{l}.csv"):
                 link_layouts.append(f)
+    link_layouts.append(os.path.join(src, organism, "any.csv"))
+
     project_name = organism
     data = {"namespace": "New", "new_name": project_name}
     files = []
@@ -32,7 +34,7 @@ def upload(organism: str, src: str, ip: str = "localhost", port: int = 5000) -> 
         files.append(("layouts", open(file, "rb")))
     for file in link_layouts:
         files.append(("links", open(file, "rb")))
-
+    r = requests.post(f"http://{ip}:{port}/delpro?project={project_name}")
     r = requests.post(f"http://{ip}:{port}/uploadfiles", data=data, files=files)
     st.log.info(f"Uploaded network for {organism}.")
     st.log.debug(f"Response: {r}")
