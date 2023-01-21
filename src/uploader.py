@@ -614,6 +614,8 @@ class Uploader:
         self.pfile[PT.links_rgb] += [
             link for link in target_links_rgb if "stringdb" not in link
         ]
+
+        self.nodes = {"nodes": []}  # Reset nodes
         for elem in self.network[VRNE.nodes]:
             elem = self.change_to_universal_attr(elem)
             self.nodes[VRNE.nodes].append(

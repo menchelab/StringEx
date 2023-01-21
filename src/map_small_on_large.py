@@ -131,9 +131,9 @@ def map_nodes(
                 for k, v in s_node.items():
                     if (
                         k not in t_node
-                    ):  # Add all keys which are not yet in the node informations
+                    ):  # Add all keys which are not yet in the node information
                         t_node[k] = v
-                    break
+                break
     target[VRNE.nodes][idx] = t_node
     return target, s_node
 
@@ -158,20 +158,22 @@ def map_source_to_target(
     all_source_links, all_target_links = gen_link_maps(source, target)
     updated_nodes = {}
     # ppi_to_suid = {}
-    log.debug(f"{all_dis_names.keys()}")
-    log.debug(f"{all_canoncial_names.keys()}")
+    # log.debug(f"{all_dis_names.keys()}")
+    # log.debug(f"{all_canoncial_names.keys()}")
     for idx, t_node in enumerate(target[VRNE.nodes]):
         target, s_node = map_nodes(
             idx, t_node, all_dis_names, all_canoncial_names, all_shared_names, target
         )
         if s_node:
             updated_nodes[s_node[NT.id]] = t_node
+            target[VRNE.nodes][idx] = t_node
     if len(updated_nodes) == 0:
         log.error("No nodes could be mapped. Aborting")
         return (
             f'<a style="color:red;">ERROR </a>: No nodes could be mapped. Aborting',
             500,
         )
+    log.debug(f"Updated {len(updated_nodes)} nodes")
     # Check all links in the source network, whether they contain nodes that can also be found in the target network. If so, add the link to the target network and update the ids to the ids of the target network.
     links_to_consider = {}
     for link in all_source_links:
