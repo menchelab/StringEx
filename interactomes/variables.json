@@ -1,0 +1,308 @@
+{
+    "H.sapiens": {
+        "spring": {
+            "-opd": 0,
+            "-it": 50,
+            "-spth": 0.0001
+        },
+        "cg_global_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_gloabl_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_local_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_global_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        },
+        "cg_local_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        }
+    },
+    "A.thaliana": {
+        "spring": {
+            "-opd": 0,
+            "-it": 50,
+            "-spth": 0.0001
+        },
+        "cg_global_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_gloabl_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_local_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_global_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        },
+        "cg_local_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        }
+    },
+    "D.melanogaster": {
+        "spring": {
+            "-opd": 0,
+            "-it": 50,
+            "-spth": 0.0001
+        },
+        "cg_global_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_gloabl_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_local_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_global_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        },
+        "cg_local_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        }
+    },
+    "C.elegans": {
+        "spring": {
+            "-opd": 0,
+            "-it": 50,
+            "-spth": 0.0001
+        },
+        "cg_global_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_gloabl_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_local_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_global_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        },
+        "cg_local_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        }
+    },
+    "E.coli": {
+        "spring": {
+            "-opd": 0,
+            "-it": 50,
+            "-spth": 0.0001
+        },
+        "cg_global_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_gloabl_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_local_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_global_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        },
+        "cg_local_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        }
+    },
+    "S.cerevisiae": {
+        "spring": {
+            "-opd": 0,
+            "-it": 50,
+            "-spth": 0.0001
+        },
+        "cg_global_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_gloabl_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_local_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_global_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        },
+        "cg_local_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        }
+    },
+    "D.rerio": {
+        "spring": {
+            "-opd": 0,
+            "-it": 50,
+            "-spth": 0.0001
+        },
+        "cg_global_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_gloabl_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_local_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_global_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        },
+        "cg_local_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        }
+    },
+    "M.musculus": {
+        "spring": {
+            "-opd": 0,
+            "-it": 50,
+            "-spth": 0.0001
+        },
+        "cg_global_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_gloabl_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_local_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_global_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        },
+        "cg_local_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        }
+    },
+    "R.norvegicus": {
+        "spring": {
+            "-opd": 0,
+            "-it": 50,
+            "-spth": 0.0001
+        },
+        "cg_global_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_gloabl_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_local_umap": {
+            "-nn": 10,
+            "-spr": 1.0,
+            "-md": 0.9
+        },
+        "cg_global_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        },
+        "cg_local_tsne": {
+            "-prp": 50,
+            "-den": 12,
+            "-lra": 200,
+            "-st": 250
+        }
+    }
+}

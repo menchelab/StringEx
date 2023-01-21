@@ -1,5 +1,6 @@
 #!Python3
 import argparse
+import json
 import os
 import timeit
 from datetime import timedelta
@@ -24,13 +25,15 @@ _SOURCE_FILES = os.path.join(".", "string_interactomes")
 _OUTPUT_PATH = os.path.join(".", "csv", "string_interactomes")
 
 
-def parse_args():
+def parse_args(args=None):
     parser = argparse.ArgumentParser(description="Construct STRING interactomes")
+    organisms = Organisms.all_organisms.copy()
+    organisms.extend(["reproduce", "all"])
     parser.add_argument(
         "organism",
         type=str,
         help="Organism to construct the interactome for.",
-        choices=Organisms.all_organisms,
+        choices=organisms,
         nargs="*",
     )
     parser.add_argument(
@@ -93,26 +96,42 @@ def parse_args():
         default=LayoutAlgroithms.spring,
         choices=LayoutAlgroithms.all_algos,
     )
+    parser.add_argument(
+        "--overwrite",
+        "-ow",
+        action="store_true",
+        default=False,
+        help="Turns on to overwrite <layout>_nodes.csv layout files.",
+    )
+    parser.add_argument(
+        "--overwrite_links",
+        "-owl",
+        action="store_true",
+        default=False,
+        help="Turns on to overwrite <layout>_links.csv layout files.",
+    )
     # TODO: Ask christ about the parameters
+    ### CARTOGRAPH VARIABLES ###
+    ### TSNE ###
     parser.add_argument(
         "--prplxty",
         "-prp",
         type=int,
-        help="Prplxty parameter of cartoGRAPHs local algorithms.",
+        help="Perplexity parameter of cartoGRAPHs TSNE algorithms.",
         default=50,
     )
     parser.add_argument(
         "--density",
         "-den",
         type=int,
-        help="Density parameter of cartoGRAPHs local algorithms.",
+        help="Density parameter of cartoGRAPHs TSNE algorithms.",
         default=12,
     )
     parser.add_argument(
         "--lrate",
         "-lra",
         type=int,
-        help="l_rate parameter of cartoGRAPHs local algorithms.",
+        help="l_rate parameter of cartoGRAPHs tsne algorithms.",
         default=200,
     )
     parser.add_argument(
@@ -122,33 +141,35 @@ def parse_args():
         help="Step parameter of cartoGRAPHs local algorithms.",
         default=250,
     )
+    ### UMAP ###
     parser.add_argument(
         "--n_neighbors",
         "-nn",
         type=int,
-        help="Defines the number of neighbor parameter of cartoGRAPHs global algorithms.",
+        help="Defines the number of neighbor parameter of cartoGRAPHs umap algorithms.",
         default=10,
     )
     parser.add_argument(
         "--spread",
         "-spr",
         type=float,
-        help="Defines the spread parameter of cartoGRAPHs global algorithms.",
+        help="Defines the spread parameter of cartoGRAPHs umap algorithms.",
         default=1.0,
     )
     parser.add_argument(
         "--min_dist",
         "-md",
         type=float,
-        help="Defines the min_dist parameter of cartoGRAPHs global algorithms.",
+        help="Defines the min_dist parameter of cartoGRAPHs umap algorithms.",
         default=0.1,
     )
+    ### SPRING VARIABLES ###
     parser.add_argument(
         "--opt_dist",
         "-opd",
         type=int,
         help="Defines the optimal distance parameter k of NetworkX's spring algorithm.",
-        default=250,
+        default=0,
     )
     parser.add_argument(
         "--iterations",
@@ -160,9 +181,9 @@ def parse_args():
     parser.add_argument(
         "--spring_threshold",
         "-spth",
-        type=int,
-        help="Defines the threshold parpameter of NetworkX's spring algorithm.",
-        default=15,
+        type=float,
+        help="Defines the threshold parameter of NetworkX's spring algorithm.",
+        default=0.0001,
     )
     # Benchmark
     parser.add_argument(
@@ -200,8 +221,9 @@ def parse_args():
         help="Filter out every links that is more than this based on experimental score and combined score.",
         default=264144,
     )
-
-    return parser.parse_args()
+    if args is None:
+        return parser.parse_args()
+    return parser.parse_args(args)
 
 
 def workflow(parser):
@@ -258,6 +280,8 @@ def workflow(parser):
                 construct()
 
         if parser.layout:
+            if parser.opt_dist <= 0:
+                parser.opt_dist = None
             variables = {
                 "prplxty": parser.prplxty,
                 "density": parser.density,
@@ -273,7 +297,12 @@ def workflow(parser):
 
             def layout():
                 read_string.construct_layouts(
-                    clean_name, parser.src_dir, parser.layout_algo, variables
+                    clean_name,
+                    parser.src_dir,
+                    parser.layout_algo,
+                    variables,
+                    parser.overwrite,
+                    parser.overwrite_links,
                 )
 
             if parser.benchmark:
@@ -312,15 +341,72 @@ def workflow(parser):
                 runtimes[organism]["upload"] = upload_runtime
             else:
                 upload()
-        runtimes[organism]["total"] = timedelta(
-            seconds=timeit.default_timer() - start_time
-        )
+        if parser.benchmark:
+            runtimes[organism]["total"] = timedelta(
+                seconds=timeit.default_timer() - start_time
+            )
     return runtimes
 
 
-def main():
+def reproduce_networks(parser: argparse.Namespace) -> None:
+    """This will reproduce all the interactomes StringEX from source with the same parameters as in th original paper."""
+    variables_file = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), "interactomes", "variables.json"
+    )
+    with open(variables_file) as f:
+        variables = json.load(f)
+
+    parser.layout_algo = [
+        "spring",
+        "cg_global_umap",
+        "cg_global_tsne",
+        "cg_local_umap",
+        "cg_local_tsne",
+    ]
+    parser.organism.remove("reproduce")
+    if parser.organism == "all":
+        parser.organism = Organisms.all_organisms
+    for organism in parser.organism:
+        algo = parser.layout_algo[0]
+        disabled = "-"
+        if not parser.download:
+            disabled += "d"
+        if not parser.construct:
+            disabled += "c"
+        if not parser.layout:
+            disabled += "l"
+        if "u" not in disabled:
+            disabled += "u"
+        base = [
+            disabled,
+            organism,
+            "-b",
+            "-lay",
+        ]
+        for idx, algo in enumerate(parser.layout_algo):
+            if idx == 0:
+                args = base + [algo]
+            else:
+                if "c" not in disabled:
+                    disabled += "c"
+                if "d" not in disabled:
+                    disabled += "d"
+                args = [disabled] + base[1:] + [algo]
+            for k, v in variables[organism][algo].items():
+                args += [f"{k}", f"{v}"]
+            main(args)
+    args = ["-dcl", "all", "-p", f"{parser.port}", "-ip", f"{parser.ip}"]
+    main(args)
+
+
+def main(args=None):
     """Main function to construct the node layout and link layout files which can be uploaded to the VRNetzer website. This is to reproduce the full interactome STRING networks from scratch. If benchmark is on it will benchmark the runtime of the different steps."""
-    parser = parse_args()
+    parser = parse_args(args)
+    if "reproduce" in parser.organism:
+        reproduce_networks(parser)
+        return
+    if "all" in parser.organism:
+        parser.organism = Organisms.all_organisms
     if parser.benchmark:
         total_runtime = timeit.default_timer()
         runtimes = workflow(parser)

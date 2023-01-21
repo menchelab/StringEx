@@ -203,7 +203,7 @@ class Organisms:
             str: name of the project
         """
         file_names = {
-            Organisms.human: "new_ppi",
+            Organisms.human: "string_human_ppi",
             Organisms.mouse: "string_mouse_ppi",
             Organisms.yeast: "string_yeast_ppi",
             Organisms.worm: "string_worm_ppi",

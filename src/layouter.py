@@ -133,7 +133,7 @@ class Layouter:
 
         if "tsne" in layout_algo:
             prplxty = cg_variables.get("prplxty", 50)
-            density = cg_variables.get("density", 0.5)
+            density = cg_variables.get("density", 12)
             l_rate = cg_variables.get("l_rate", 200)
             steps = cg_variables.get("steps", 250)
             if "local" in layout_algo:
@@ -243,6 +243,7 @@ class Layouter:
                 algo = LA.spring
 
             if LA.cartoGRAPH in algo:
+                log.debug(f"Applying layout: {algo}")
                 layout = self.create_cartoGRAPH_layout(algo, algo_variables)
             else:
                 lay_func = {
@@ -411,7 +412,7 @@ class Layouter:
         # Set up the colors for each evidence type
         if evidences is None:
             evidences = Evidences.get_default_scheme()
-        log.debug(f"Evidence colors: {evidences}")
+        # log.debug(f"Evidence colors: {evidences}")
         links = self.network[VRNE.links]
         log.debug(f"links loaded.")
         if VRNE.link_layouts not in self.network:

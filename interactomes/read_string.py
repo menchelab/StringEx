@@ -1,4 +1,3 @@
-import glob
 import gzip
 import json
 import os
@@ -6,7 +5,6 @@ import tarfile
 from time import time
 
 import networkx as nx
-import numpy as np
 import pandas
 
 import src.settings as st
@@ -112,7 +110,12 @@ def gen_graph(
         tuple[nx.Graph, dict]: Graph representing the protein-protein interaction network and a dictionary containing the nodes of the graph.
     """
 
-    def extract_nodes(idx: int, identifier: str):
+    def extract_nodes(
+        idx: int,
+        identifier: str,
+        alias_table: pandas.DataFrame,
+        description_table: pandas.DataFrame,
+    ) -> tuple[dict, int, pandas.DataFrame, pandas.DataFrame]:
         def extract_unirot_id(alias: pandas.DataFrame) -> list:
             """Extracts possible uniprot ids from the alias column of a node.
 
@@ -122,8 +125,6 @@ def gen_graph(
             Returns:
                 list: contains all uniprot ids for a node.
             """
-            if alias.empty:
-                return None
             for tag in ["Ensembl_UniProt_AC", "BLAST_UniProt_AC"]:
                 row = alias["source"] == tag
                 if isinstance(row, bool):
@@ -164,9 +165,12 @@ def gen_graph(
 
         # get uniprot id(s)
         alias = alias_table.loc[alias_table.index == identifier]
-        uniprot = extract_unirot_id(alias)
-        if uniprot:
-            node["uniprot"] = uniprot
+        if not alias.empty:
+            alias.drop(identifier, axis=0)
+            uniprot = extract_unirot_id(alias)
+        else:
+            uniprot = None
+        node["uniprot"] = uniprot
 
         gene_name = extract_gene_name(alias)
         if gene_name:
@@ -175,11 +179,12 @@ def gen_graph(
                 map_gene_name[node[NT.id]] = gene_name
 
         node[NT.species] = species
-        annotation = description_table.loc[identifier].get("annotation")
+        annotation = description_table.at[identifier, "annotation"]
+        description_table = description_table.drop(identifier, axis=0)
         if annotation != "annotation not available":
             node[NT.description] = annotation
 
-        return node, idx
+        return node, idx, alias_table, description_table
 
     species = Organisms.get_scientific_name(organism)
     taxid = Organisms.get_tax_ids(organism)
@@ -214,6 +219,7 @@ def gen_graph(
 
     G = nx.Graph()
     mapping_time = 0
+
     for idx, row in network_table.iterrows():
         if idx >= last_link:
             break
@@ -225,7 +231,9 @@ def gen_graph(
         for identifier in [start, end]:
             if identifier not in nodes_in:
                 t1 = time()
-                node, next_id = extract_nodes(next_id, identifier)
+                node, next_id, alias_table, description_table = extract_nodes(
+                    next_id, identifier, alias_table, description_table
+                )
                 mapping_time += time() - t1
                 nodes_in[identifier] = node
 
@@ -352,7 +360,12 @@ def write_network(organism: str, graph: dict, _dir: str) -> None:
 
 
 def construct_layouts(
-    organism: str, _dir: str, layout_algo: list[str] = None, variables: dict = None
+    organism: str,
+    _dir: str,
+    layout_algo: list[str] = None,
+    variables: dict = None,
+    overwrite: bool = False,
+    overwrite_links: bool = False,
 ) -> None:
     """Constructs the layouts for the network and compress them into a tar file.
 
@@ -403,7 +416,9 @@ def construct_layouts(
         st.log.info(f"Read network from file {file_name}.")
         return G, l_lays, all_links
 
-    def write_node_layout(organism: str, G: nx.Graph, layouts: dict, _dir: str) -> None:
+    def write_node_layout(
+        organism: str, G: nx.Graph, layouts: dict, _dir: str, overwrite: bool = False
+    ) -> None:
         """Will write the node layout to a csv file with the following format:
         x,y,r,g,b,a,name;uniprot_id;description. File name is: {organism}_node.csv located in projects folder.
 
@@ -419,6 +434,12 @@ def construct_layouts(
             for i, pos in layout.items():
                 if i == "name":
                     continue
+                file_name = os.path.join(_directory, f"{layout['name']}_nodes.csv")
+                if os.path.isfile(file_name) and not overwrite:
+                    st.log.info(
+                        f"Node layout for {layout['names']} for {organism} already exists. Skipping."
+                    )
+                    continue
                 node = G.nodes[i]
                 color = (255, 255, 255)
                 pos = ",".join([str(p) for p in pos])
@@ -426,13 +447,13 @@ def construct_layouts(
                 color = ",".join([str(c) for c in color])
                 attr = f"{node.get(NT.name)};{node.get(NT.uniprot,'')};{node.get(NT.description,'')}"
                 output += f"{pos},{color},{attr}\n"
-            file_name = os.path.join(_directory, f"{layout['name']}_nodes.csv")
+
             with open(file_name, "w") as f:
                 f.write(output)
             st.log.info(f"Node layout for {organism} has been written to {file_name}.")
 
     def write_link_layouts(
-        organism: str, l_lays: dict, all_links: list, _dir: str
+        organism: str, l_lays: dict, all_links: list, _dir: str, overwrite: bool = False
     ) -> None:
         """Will write the link layouts to a csv file with the following format:
         start,end,r,g,b,a. File name is: {organism}_{ev}.csv located in projects folder.
@@ -447,6 +468,12 @@ def construct_layouts(
         _directory = os.path.join(_dir, organism)
         os.makedirs(_directory, exist_ok=True)
         for ev in l_lays:
+            file_name = os.path.join(_directory, f"{ev}.csv")
+            if os.path.isfile(file_name) and not overwrite:
+                st.log.info(
+                    f"link layout for evidence {ev} for {organism} already exists. Skipping."
+                )
+                continue
             output = ""
             for l, idx in enumerate(l_lays[ev]):
                 link = all_links[idx]
@@ -462,7 +489,6 @@ def construct_layouts(
                 color = color[:3] + tuple((alpha,))
                 color = ",".join([str(c) for c in color])
                 output += f"{start},{end},{color}\n"
-            file_name = os.path.join(_directory, f"{ev}.csv")
             with open(file_name, "w") as f:
                 f.write(output)
             st.log.info(
@@ -470,10 +496,22 @@ def construct_layouts(
             )
 
     G, l_lays, all_links = read_network(organism, _dir)
+    tmp = layout_algo.copy()
+    for layout in tmp:
+        file_name = os.path.join(_dir, organism, f"{layout}_nodes.csv")
+        if os.path.isfile(file_name) and not overwrite:
+            st.log.info(
+                f"Node layout for layout {layout} for {organism} already exists. Skipping."
+            )
+            layout_algo.remove(layout)
+        else:
+            st.log.info(
+                f"{file_name} does not exist or overwrite is allowed. Generating layout."
+            )
     layouts = gen_layout(G, layout_algo, variables)
-    st.log.info(f"Generated layout. Used algorithm: {layout_algo}.")
-    write_link_layouts(organism, l_lays, all_links, _dir)
-    write_node_layout(organism, G, layouts, _dir)
+    st.log.info(f"Generated layouts. Used algorithms: {layout_algo}.")
+    write_link_layouts(organism, l_lays, all_links, _dir, overwrite_links)
+    write_node_layout(organism, G, layouts, _dir, overwrite=overwrite)
     # file_name = os.path.join(_dir, f"{organism}.tgz")
     # organism_dir = os.path.join(_dir, organism)
     # t1 = time()
