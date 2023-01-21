@@ -16,8 +16,16 @@ function selectEvidenceWebGL(id, opt) {
 }
 function selectEvidenceVRNetzer(id, layout) {
     $('#' + id).on("click", function() {
-        var color = layout + "RGB";
-        var cord = layout + "XYZ";
+        var links = document.getElementById("links");
+        for (let i = 0; i < links.length; i++) {
+            if (String(links[i].text).includes(opt)) {
+                console.log("selected layout:" + links[i].text);
+                layout = links[i].text;
+                break;
+            }
+        }
+        var cord = layout;
+        var color = layout.slice(0,-3) + "RGB";
         socket.emit('ex', { id: "linkcolors", opt: color, fn: "sel" });
         socket.emit('ex', { id: "links", opt: cord, fn: "sel" });
     });
