@@ -1,5 +1,7 @@
+import glob
 import logging
 import os
+import shutil
 
 try:
     import GlobalData as GD
@@ -177,7 +179,7 @@ def clean_filename(name: str) -> str:
     return name
 
 
-def pepare_uploader():
+def pepare_uploader() -> None:
     """Adds extension speciefic dta to the GD.sessionData."""
     strinEx_config = {}
 
@@ -186,36 +188,17 @@ def pepare_uploader():
     strinEx_config["organisms"] = Organisms.all_organisms
 
     GD.sessionData["stringex"] = strinEx_config
-    # with open(
-    #     os.path.join(st._FLASK_TEMPLATE_PATH, "string_upload_tab_template.html"), "r"
-    # ) as f:
-    #     soup = bs(f, "html.parser")
 
-    # # Add layout options to the layout dropdown menu
-    # selector = soup.find("select", {"id": "string_algo"})
-    # for algo in GD.sessionData["layoutAlgos"]:
-    #     selector.append(
-    #         bs(f"""<option value="{algo}">{algo}</option>""", "html.parser")
-    #     )
 
-    # with open(
-    #     os.path.join(st._FLASK_TEMPLATE_PATH, "string_upload_tab.html"), "w"
-    # ) as f:
-    #     f.write(str(soup.prettify()))
-
-    # # Add organism options to the organism dropdown menu
-    # with open(
-    #     os.path.join(st._FLASK_TEMPLATE_PATH, "string_map_tab_template.html"), "r"
-    # ) as f:
-    #     soup = bs(f, "html.parser")
-    # selector = soup.find("select", {"id": "string_organism"})
-
-    # for algo in GD.sessionData["organisms"]:
-    #     selector.append(
-    #         bs(f"""<option value="{algo}">{algo}</option>""", "html.parser")
-    #     )
-    # with open(os.path.join(st._FLASK_TEMPLATE_PATH, "string_map_tab.html"), "w") as f:
-    #     f.write(str(soup.prettify()))
+def move_on_boot() -> None:
+    """Moves the projects directories of the interactomes to the projects directory of the VRNetzer backend."""
+    for _dir in glob.glob(os.path.join(st._THIS_EXT_STATIC_PATH, "projects", "*")):
+        dir_name = os.path.basename(_dir)
+        if os.path.isdir(_dir) and not os.path.isdir(
+            os.path.join(st._PROJECTS_PATH, dir_name)
+        ):
+            log.debug(f"Copying {_dir}")
+            shutil.copytree(_dir, os.path.join(st._PROJECTS_PATH, dir_name))
 
 
 if __name__ == "__main__":

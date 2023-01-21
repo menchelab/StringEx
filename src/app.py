@@ -25,7 +25,12 @@ blueprint = flask.Blueprint(
 
 main_tabs = ["string_main_tab.html"]
 upload_tabs = ["string_upload_tab.html", "string_map_tab.html"]
-before_first_request = [string_util.pepare_uploader]
+
+
+@blueprint.before_app_first_request
+def stringex_setup():
+    string_util.pepare_uploader()
+    string_util.move_on_boot()
 
 
 @blueprint.route("/preview", methods=["GET"])
