@@ -586,6 +586,7 @@ class Uploader:
     def color_nodes(
         self,
         target_project: str,
+        new_nodes: dict[str, dict],
         mapping_color: list[int, int, int] = _MAPPING_ARBITARY_COLOR,
     ):
         """Will color all node in the target project to the color of the corresponding node in the source project to reflect the mapped nodes.

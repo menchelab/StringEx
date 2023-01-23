@@ -72,14 +72,14 @@ def gen_name_suid_map(source_net: dict) -> tuple[dict, dict]:
     return all_dis_names, all_canoncial_names, all_shared_names
 
 
-def gen_link_maps(source_net: dict, target_net: dict) -> dict:
+def gen_link_maps(source_net: dict, target_net: dict) -> tuple[dict, dict]:
     """Maps the link id to the link object.
 
     Args:
         source_net (dict): source string network.
 
     Returns:
-        dict: map from link id to link object.
+        tuple[dict,dict]: maps from link id to link object.
     """
     all_soruce_links, all_target_links = {}, {}
     dicts = [all_soruce_links, all_target_links]
@@ -170,15 +170,27 @@ def map_source_to_target(
     if len(updated_nodes) == 0:
         log.error("No nodes could be mapped. Aborting")
         return (
-            f'<a style="color:red;">ERROR </a>: No nodes could be mapped. Aborting',
+            f'<a style="color:red;">ERROR </a>: No nodes could be mapped. Is this the correct organism you want to map on? Aborting',
             500,
         )
+    # # Used when all unmapped nodes are also added with a calculated layout
+    # next_idx = idx + 1
+    # new_nodes = {}
+    # for s_node in source[VRNE.nodes]:
+    #     if s_node[NT.id] not in updated_nodes:
+    #         old_id = s_node[NT.id]
+    #         s_node[NT.id] = next_idx
+    #         next_idx += 1
+    #         new_nodes[old_id] = s_node
     log.debug(f"Updated {len(updated_nodes)} nodes")
+    # log.debug(f"Will add {len(all_source_links)} new nodes")     # Used when all unmapped nodes are also added with a calculated layout
+
     # Check all links in the source network, whether they contain nodes that can also be found in the target network. If so, add the link to the target network and update the ids to the ids of the target network.
+
     links_to_consider = {}
-    for link in all_source_links:
+    # new_links = {} # Used when all unmapped nodes are also added with a calculated layout
+    for link, data in all_source_links.items():
         if link[0] in updated_nodes or link[1] in updated_nodes:
-            data = all_source_links[link]
             if link[0] in updated_nodes:
                 t_node = updated_nodes[link[0]]  # Node in the target network
                 updated = t_node[NT.id]
@@ -190,6 +202,19 @@ def map_source_to_target(
                 link = tuple((link[0], updated))
                 data[LiT.end] = updated
             links_to_consider[link] = data
+        # # Used when all unmapped nodes are also added with a calculated layout
+        # elif link[0] in new_nodes and link[1] in new_nodes:
+        #     if link[0] in new_nodes:
+        #         s_node = new_nodes[link[0]]
+        #         updated = s_node[NT.id]
+        #         link = tuple((updated, link[1]))
+        #         data[LiT.start] = updated
+        #     if link[1] in new_nodes:
+        #         s_node = new_nodes[link[1]]
+        #         updated = s_node[NT.id]
+        #         link = tuple((link[0], updated))
+        #         data[LiT.end] = updated
+        #     new_links[link] = data
 
     nxt_idx = len(target)
     for idx, s_link in enumerate(links_to_consider):
@@ -206,6 +231,13 @@ def map_source_to_target(
             target[VRNE.links].append(s_link)
             nxt_idx += 1
 
+    # # Used when all unmapped nodes are also added with a calculated layout
+    # for _, data in new_links.items:
+    #     data[LiT.id] = nxt_idx
+    #     # log.debug(f"Added link:{nxt_idx}")
+    #     target[VRNE.links].append(data)
+    #     nxt_idx += 1
+
     layouter = Layouter()
     layouter.network = {VRNE.nodes: target[VRNE.nodes], VRNE.links: target[VRNE.links]}
     layouter.gen_evidence_layouts()
@@ -215,7 +247,7 @@ def map_source_to_target(
         if EV.stringdb_neighborhood.value in link:
             nb += 1
     uploader = Uploader(target, project_name)
-    uploader.color_nodes(target_project)
+    uploader.color_nodes(target_project, None)
     return f'<a style="color:green;" href="/StringEx/preview?project={project_name}">SUCCESS: Saved as project {project_name} </a>'
 
 
