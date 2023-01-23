@@ -167,7 +167,7 @@ def parse_args(args=None):
     parser.add_argument(
         "--opt_dist",
         "-opd",
-        type=int,
+        type=float,
         help="Defines the optimal distance parameter k of NetworkX's spring algorithm.",
         default=0,
     )
@@ -296,6 +296,8 @@ def workflow(parser):
             }
 
             def layout():
+                if isinstance(parser.layout_algo,str):
+                    parser.layout_algo = [parser.layout_algo]
                 read_string.construct_layouts(
                     clean_name,
                     parser.src_dir,
