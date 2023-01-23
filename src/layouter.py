@@ -398,8 +398,10 @@ class Layouter:
                 points[i, d] /= norms[d]
         return points
 
+    @staticmethod
     def gen_evidence_layouts(
-        self, evidences: dict[str, tuple[float, float, float, float]] or None = None
+        network: dict,
+        evidences: dict[str, tuple[float, float, float, float]] or None = None,
     ) -> list[dict[str, object]]:
         """Set the link color for each STRING evidence type. Based on the score the link opacity is scaled.
 
@@ -413,13 +415,13 @@ class Layouter:
         if evidences is None:
             evidences = Evidences.get_default_scheme()
         # log.debug(f"Evidence colors: {evidences}")
-        links = self.network[VRNE.links]
+        links = network[VRNE.links]
         log.debug(f"links loaded.")
-        if VRNE.link_layouts not in self.network:
-            self.network[VRNE.link_layouts] = []
+        if VRNE.link_layouts not in network:
+            network[VRNE.link_layouts] = []
         for ev in evidences:
             log.debug(f"Handling evidence: {ev}.")
-            self.network[VRNE.link_layouts].append(ev)
+            network[VRNE.link_layouts].append(ev)
             if not ev == Evidences.any.value:
                 cur_links = {idx: link for idx, link in enumerate(links) if ev in link}
             else:
@@ -446,13 +448,12 @@ class Layouter:
                 color = evidences[ev][:3] + (
                     int(scale_factor * 255),
                 )  # Alpha scales with score
-                if LiT.layouts not in self.network[VRNE.links][idx]:
-                    self.network[VRNE.links][idx][LiT.layouts] = []
-                self.network[VRNE.links][idx][LiT.layouts].append(
+                if LiT.layouts not in network[VRNE.links][idx]:
+                    network[VRNE.links][idx][LiT.layouts] = []
+                network[VRNE.links][idx][LiT.layouts].append(
                     {LT.name: ev, LT.color: color}
                 )
-        return self.network[VRNE.links]
-
+        return network
 
 if __name__ == "__main__":
     import os

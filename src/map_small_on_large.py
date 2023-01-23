@@ -138,6 +138,106 @@ def map_nodes(
     return target, s_node
 
 
+def extract_link_data(
+    x: int,
+    y: int,
+    rgb_x: int,
+    rgb_y: int,
+    tex: Image,
+    links: dict,
+    evidence: str or None,
+    rgb: Image or None,
+    next_idx: int,
+) -> dict[tuple, dict]:
+    """Extracts the data for a link from an texture Image and its rgb Image.
+
+    Args:
+        x (int): horizontal pixel in the texture image.
+        y (int): vertical pixel in the texture image.
+        rgb_x (int): horizontal pixel in the rgb image.
+        rgb_y (int): vertical pixel in the rgb image.
+        tex (Image): texture image object.
+        links (dict): dictionary containing all links with a tuple of start, and end as keys and the link itself as value.
+        evidence (str o rNone): string evidence of the current layout.
+        rgb (Image or None): rgb image object.
+        next_idx (int): next index for the link id.
+    Returns:
+        dict[tuple, dict]: dictionary containing all links with a tuple of start, and end as keys and the link itself as value.
+    """
+    start_p = tex.getpixel((x, y))
+    if x + 1 < tex.width:
+        end_p = tex.getpixel((x + 1, y))
+    else:
+        end_p = tex.getpixel((0, y + 1))
+    if start_p == (0, 0, 0):
+        return True, next_idx, rgb_x, rgb_y, links
+    start = start_p[0] + start_p[1] * 128 + start_p[2] * 128 * 128
+    end = end_p[0] + end_p[1] * 128 + end_p[2] * 128 * 128
+    if tuple((start, end)) not in links:
+        link = {
+            LiT.id: next_idx,
+            LiT.start: start,
+            LiT.end: end,
+        }
+        links[tuple((start, end))] = link
+        next_idx += 1
+    else:
+        link = links[tuple((start, end))]
+    link = links[tuple((start, end))]
+    if rgb:
+        color = rgb.getpixel((rgb_x, rgb_y))
+        rgb_x += 1
+        if rgb_x >= rgb.width:
+            rgb_x = 0
+            rgb_y += 1
+        if evidence:
+            score = color[3] / 255
+            link[evidence] = score
+    return False, next_idx, rgb_x, rgb_y, links
+
+
+def extract_links_from_tex(link_texs: str, link_rgbs: str) -> list[dict]:
+    """extract links from the links texture and the color from linkRGB.
+
+    Args:
+        link_texs (str): path to the directory which contains the link textures of the project.
+        link_rgbs (str): path to the directory which contains the linkrgb textures of the project.
+
+    Returns:
+        list[dict]: contains all extracted links.
+    """
+    links = {}
+    next_idx = 0
+    for file in glob.glob(link_texs):
+        evidence = None
+        rgb = None
+        rgb_file = None
+        for ev in EV:
+            ev = ev.value
+            if ev in file:
+                evidence = ev
+                for rf in glob.glob(link_rgbs):
+                    if evidence in rf:
+                        rgb_file = rf
+                        break
+                break
+        tex = Image.open(file)
+        if rgb_file:
+            rgb = Image.open(rgb_file)
+        rgb_x, rgb_y = 0, 0
+        all_link_done = False
+        for y in range(tex.height):
+            for x in range(0, tex.width, 2):
+                all_link_done, next_idx, rgb_x, rgb_y, links = extract_link_data(
+                    x, y, rgb_x, rgb_y, tex, links, evidence, rgb, next_idx
+                )
+                if all_link_done:
+                    break
+            if all_link_done:
+                break
+    return list(links.values())
+
+
 def map_source_to_target(
     source: str or dict,
     target: str or dict,
@@ -238,10 +338,8 @@ def map_source_to_target(
     #     target[VRNE.links].append(data)
     #     nxt_idx += 1
 
-    layouter = Layouter()
-    layouter.network = {VRNE.nodes: target[VRNE.nodes], VRNE.links: target[VRNE.links]}
-    layouter.gen_evidence_layouts()
-    target = layouter.network
+    target = {VRNE.nodes: target[VRNE.nodes], VRNE.links: target[VRNE.links]}
+    target = Layouter.gen_evidence_layouts(target)
     nb = 0
     for link in target[VRNE.links]:
         if EV.stringdb_neighborhood.value in link:
@@ -249,106 +347,6 @@ def map_source_to_target(
     uploader = Uploader(target, project_name)
     uploader.color_nodes(target_project, None)
     return f'<a style="color:green;" href="/StringEx/preview?project={project_name}">SUCCESS: Saved as project {project_name} </a>'
-
-
-def extract_links_from_tex(link_texs: str, link_rgbs: str) -> list[dict]:
-    """extract links from the links texture and the color from linkRGB.
-
-    Args:
-        link_texs (str): path to the directory which contains the link textures of the project.
-        link_rgbs (str): path to the directory which contains the linkrgb textures of the project.
-
-    Returns:
-        list[dict]: contains all extracted links.
-    """
-    links = {}
-    next_idx = 0
-    for file in glob.glob(link_texs):
-        evidence = None
-        rgb = None
-        rgb_file = None
-        for ev in EV:
-            ev = ev.value
-            if ev in file:
-                evidence = ev
-                for rf in glob.glob(link_rgbs):
-                    if evidence in rf:
-                        rgb_file = rf
-                        break
-                break
-        tex = Image.open(file)
-        if rgb_file:
-            rgb = Image.open(rgb_file)
-        rgb_x, rgb_y = 0, 0
-        all_link_done = False
-        for y in range(tex.height):
-            for x in range(0, tex.width, 2):
-                all_link_done, next_idx, rgb_x, rgb_y, links = extract_link_data(
-                    x, y, rgb_x, rgb_y, tex, links, evidence, rgb, next_idx
-                )
-                if all_link_done:
-                    break
-            if all_link_done:
-                break
-    return list(links.values())
-
-
-def extract_link_data(
-    x: int,
-    y: int,
-    rgb_x: int,
-    rgb_y: int,
-    tex: Image,
-    links: dict,
-    evidence: str or None,
-    rgb: Image or None,
-    next_idx: int,
-) -> dict[tuple, dict]:
-    """Extracts the data for a link from an texture Image and its rgb Image.
-
-    Args:
-        x (int): horizontal pixel in the texture image.
-        y (int): vertical pixel in the texture image.
-        rgb_x (int): horizontal pixel in the rgb image.
-        rgb_y (int): vertical pixel in the rgb image.
-        tex (Image): texture image object.
-        links (dict): dictionary containing all links with a tuple of start, and end as keys and the link itself as value.
-        evidence (str o rNone): string evidence of the current layout.
-        rgb (Image or None): rgb image object.
-        next_idx (int): next index for the link id.
-    Returns:
-        dict[tuple, dict]: dictionary containing all links with a tuple of start, and end as keys and the link itself as value.
-    """
-    start_p = tex.getpixel((x, y))
-    if x + 1 < tex.width:
-        end_p = tex.getpixel((x + 1, y))
-    else:
-        end_p = tex.getpixel((0, y + 1))
-    if start_p == (0, 0, 0):
-        return True, next_idx, rgb_x, rgb_y, links
-    start = start_p[0] + start_p[1] * 128 + start_p[2] * 128 * 128
-    end = end_p[0] + end_p[1] * 128 + end_p[2] * 128 * 128
-    if tuple((start, end)) not in links:
-        link = {
-            LiT.id: next_idx,
-            LiT.start: start,
-            LiT.end: end,
-        }
-        links[tuple((start, end))] = link
-        next_idx += 1
-    else:
-        link = links[tuple((start, end))]
-    link = links[tuple((start, end))]
-    if rgb:
-        color = rgb.getpixel((rgb_x, rgb_y))
-        rgb_x += 1
-        if rgb_x >= rgb.width:
-            rgb_x = 0
-            rgb_y += 1
-        if evidence:
-            score = color[3] / 255
-            link[evidence] = score
-    return False, next_idx, rgb_x, rgb_y, links
 
 
 if __name__ == "__main__":

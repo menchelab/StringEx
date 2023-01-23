@@ -122,10 +122,7 @@ def VRNetzer_map_workflow(
     with open(nodes_file, "r") as json_file:
         trg_network = json.load(json_file)
     trg_network["links"] = extract_links_from_tex(links_files, rgb_files)
-    layouter = Layouter()
-    layouter.network = src_network
-    layouter.gen_evidence_layouts()
-    src_network = layouter.network
+    src_network = Layouter.gen_evidence_layouts(src_network)
     if project_name is None or project_name == "":
         src_name = os.path.split(src_filename)[1].split(".")[0]
         trg_name = organism.replace(".", "_")
@@ -191,7 +188,7 @@ def apply_layout_workflow(
     #     log.info(f"2D layout created!")
     if stringify:
         log.info("Will Stringify.")
-        layouter.gen_evidence_layouts()
+        layouter.network = Layouter.gen_evidence_layouts(layouter.network)
         log.info(f"Layouts stringified!")
     return layouter
 
