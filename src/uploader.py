@@ -426,6 +426,7 @@ class Uploader:
             self.links[VRNE.links].append(link)
             tex = self.extract_link_data(elem, layouts)
             if tex is None:
+                print("Tex is None")
                 continue
             for l, layout in enumerate(layouts):
                 if layout in tex:
@@ -613,8 +614,8 @@ class Uploader:
         l_lay = [ev.value for ev in EV]
 
         self.links = {"links": []}
-
         links = self.network.get(VRNE.links)
+
         self.makeLinkTex(links, l_lay)
         self.stringify_project(nodes=False)
 
@@ -631,6 +632,9 @@ class Uploader:
             self.nodes[VRNE.nodes].append(
                 {k: v for k, v in elem.items() if k not in ["layouts"]}
             )
+        with open(self.links_file, "r") as json_file:
+            self.links = json.load(json_file)
+
         self.write_json_files()
         for l, layout in enumerate(layouts):
             pathRGB = os_join(target_project, "layoutsRGB", f"{layout}.png")

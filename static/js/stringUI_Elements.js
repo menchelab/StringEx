@@ -17,17 +17,17 @@ function selectEvidenceWebGL(id, opt) {
 function selectEvidenceVRNetzer(id, layout) {
     $('#' + id).on("click", function() {
         var links = document.getElementById("links");
+        console.log(layout)
         for (let i = 0; i < links.length; i++) {
-            if (String(links[i].text).includes(opt)) {
+            if (String(links[i].text).includes(layout)) {
                 console.log("selected layout:" + links[i].text);
-                layout = links[i].text;
+                link_xyz = links[i].text;
                 break;
             }
         }
-        var cord = layout;
-        var color = layout.slice(0,-3) + "RGB";
-        socket.emit('ex', { id: "linkcolors", opt: color, fn: "sel" });
-        socket.emit('ex', { id: "links", opt: cord, fn: "sel" });
+        var link_rgb = link_xyz.slice(0,-3) + "RGB";
+        socket.emit('ex', { id: "linkcolors", opt: link_rgb, fn: "sel" });
+        socket.emit('ex', { id: "links", opt: link_xyz, fn: "sel" });
     });
 }
 function stringForwardButton(id,data) {

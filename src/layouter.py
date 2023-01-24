@@ -99,8 +99,9 @@ class Layouter:
             dict: node ids as keys and three dimensional positions as values.
         """
         k = algo_variables.get("opt_dist")
-        if k <= 0:
-            k = None
+        if k is not None:
+            if k <= 0:
+                k = None
         iterations = algo_variables.get("iterations", 50)
         threshold = algo_variables.get("threshold", 0.0001)
         return nx.spring_layout(

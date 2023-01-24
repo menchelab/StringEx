@@ -1,4 +1,5 @@
 import glob
+import gzip
 import json
 import os
 import shutil
@@ -8,7 +9,7 @@ import traceback
 from .classes import Evidences, Organisms
 from .converter import VRNetzConverter
 from .layouter import Layouter
-from .map_small_on_large import extract_links_from_tex, map_source_to_target
+from .map_small_on_large import map_source_to_target
 from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, log
 from .uploader import Uploader
 
@@ -120,11 +121,14 @@ def VRNetzer_map_workflow(
     f_organ = os.path.join(_PROJECTS_PATH, f_organ)
 
     nodes_file = os.path.join(f_organ, "nodes.json")
-    links_files = os.path.join(f_organ, "links", "*")
-    rgb_files = os.path.join(f_organ, "linksRGB", "*")
+    network_file = os.path.join(f_organ, "network.json.gzip")
+
     with open(nodes_file, "r") as json_file:
         trg_network = json.load(json_file)
-    trg_network["links"] = extract_links_from_tex(links_files, rgb_files)
+    with gzip.open(network_file, "r") as fin:
+        json_bytes = fin.read()
+        json_str = json_bytes.decode("utf-8")
+        trg_network["links"] = json.loads(json_str)["all_links"]
     src_network = Layouter.gen_evidence_layouts(src_network)
     if project_name is None or project_name == "":
         src_name = os.path.split(src_filename)[1].split(".")[0]

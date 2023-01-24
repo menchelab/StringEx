@@ -12,9 +12,10 @@ $(document).ready(function() {
   
   $("#string_map_form").submit(function(event) {
     $("#string_map_preview").hide();
-    $("#string_map_message").html("Mapping...");
+    $("#string_map_message").html("");
     document.getElementById("string_map_button").value = '...';
     document.getElementById("string_map_button").disabled = true;
+    document.getElementById("string_map_processing").style.display = "block";
   
     event.preventDefault();
   
@@ -45,12 +46,14 @@ $(document).ready(function() {
         $("#string_map_message").html(data);
         document.getElementById("string_map_button").value = 'Map';
         document.getElementById("string_map_button").disabled = false;
+        document.getElementById("string_map_processing").style.display = "none";
       },
       error: function (err) {
         console.log("Uploaded failed!");
         $("#string_map_message").html("Mapping failed");
         document.getElementById("string_map_button").value = 'Map';
         document.getElementById("string_map_button").disabled = false;
+        document.getElementById("string_map_processing").style.display = "none";
       },
     });
 

@@ -217,7 +217,6 @@ def string_ex_map_files():
     src_network = f_src_network.read().decode("utf-8")
     try:
         src_network = json.loads(src_network)
-        st.log.error(f"No VRNetz file provided!")
     except json.decoder.JSONDecodeError:
         st.log.error(f"Invalid VRNetz file:{f_src_network}")
         return '<a style="color:red;">ERROR invalid VRNetz file!</a>'

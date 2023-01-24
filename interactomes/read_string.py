@@ -22,7 +22,7 @@ def construct_graph(
     clean_name: str,
     tax_id: int,
     last_link: int or None = None,
-    MAX_NUM_LINKS=262144,
+    MAX_NUM_LINKS=st.MAX_NUM_LINKS,
 ):
     """Extracts data from the STRING DB network files and constructs a nx.Graph afterwards.
 
@@ -216,10 +216,9 @@ def gen_graph(
     nodes_in = {}  # Nodes to be considered for layout calculation
     links_in = []  # Links to be considered for layout calculation
     next_id = 0  # Next id to be assigned to a node
-
+    link_idx = 0
     G = nx.Graph()
     mapping_time = 0
-
     for idx, row in network_table.iterrows():
         if idx >= last_link:
             break
@@ -238,27 +237,22 @@ def gen_graph(
                 nodes_in[identifier] = node
 
         link = {
-            LiT.id: idx,
+            LiT.id: link_idx,
             LiT.start: nodes_in[start][NT.id],
             LiT.end: nodes_in[end][NT.id],
             "any": int(row.get("combined_score")) / 1000,
         }
-
+        link_idx += 1
         for key in ev_columns:
             value = int(row.get(key))
-            max = 0
-            if value > 0:
+            if value / 1000 > 0.0:
                 if key == "experimental":
                     key = Evidences.stringdb_experiments.value
                 elif key == "database":
                     key = Evidences.stringdb_databases.value
                 else:
                     key = f"stringdb_{key}"
-            link[key] = value / 1000
-            if value > max:
-                max = value
-
-        l_lays["any"].append(idx)
+                link[key] = value / 1000
 
         # Only add experimental proven edges for layout calculation
         if link.get(Evidences.stringdb_experiments.value, 0) > threshold:

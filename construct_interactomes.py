@@ -138,7 +138,7 @@ def parse_args(args=None):
         "--steps",
         "-st",
         type=int,
-        help="Step parameter of cartoGRAPHs local algorithms.",
+        help="Step parameter of cartoGRAPHs tsne algorithms.",
         default=250,
     )
     ### UMAP ###
@@ -296,7 +296,7 @@ def workflow(parser):
             }
 
             def layout():
-                if isinstance(parser.layout_algo,str):
+                if isinstance(parser.layout_algo, str):
                     parser.layout_algo = [parser.layout_algo]
                 read_string.construct_layouts(
                     clean_name,
@@ -360,16 +360,37 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
 
     parser.layout_algo = [
         "spring",
-        "cg_global_umap",
+        # "cg_global_umap",
         "cg_global_tsne",
-        "cg_local_umap",
+        # "cg_local_umap",
         "cg_local_tsne",
     ]
     parser.organism.remove("reproduce")
-    if parser.organism == "all":
+    if parser.organism == "all" or len(parser.organism) == 0:
         parser.organism = Organisms.all_organisms
+    flag = " ".join(
+        [
+            handle
+            for f, handle in zip(
+                [parser.overwrite, parser.overwrite_links], ["-ow", "-owl"]
+            )
+            if f
+        ]
+    )
+    # Download and construct graphs for all organisms
     for organism in parser.organism:
-        algo = parser.layout_algo[0]
+        base = ["-lu", organism, "-b"]
+        if flag:
+            base += flag.split(" ")
+        if not parser.download:
+            base[0] += "d"
+        if not parser.construct:
+            base[0] += "c"
+        main(base)
+    base += ["-lay"]
+    # calculate all respective layouts for the organisms
+    for organism in parser.organism:
+        base[1] = organism
         disabled = "-"
         if not parser.download:
             disabled += "d"
@@ -379,26 +400,22 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
             disabled += "l"
         if "u" not in disabled:
             disabled += "u"
-        base = [
-            disabled,
-            organism,
-            "-b",
-            "-lay",
-        ]
-        for idx, algo in enumerate(parser.layout_algo):
-            if idx == 0:
-                args = base + [algo]
-            else:
-                if "c" not in disabled:
-                    disabled += "c"
-                if "d" not in disabled:
-                    disabled += "d"
-                args = [disabled] + base[1:] + [algo]
+        for algo in parser.layout_algo:
+            if "c" not in disabled:
+                disabled += "c"
+            if "d" not in disabled:
+                disabled += "d"
+            args = [disabled] + base[1:] + [algo]
             for k, v in variables[organism][algo].items():
                 args += [f"{k}", f"{v}"]
+            print(args)
             main(args)
-    args = ["-dcl", "all", "-p", f"{parser.port}", "-ip", f"{parser.ip}"]
-    main(args)
+    if parser.upload:
+        org = " ".join(parser.organism)
+        args = (
+            ["-dcl"] + base[2:-1] + [org, "-p", f"{parser.port}", "-ip", f"{parser.ip}"]
+        )
+        main(args)
 
 
 def main(args=None):

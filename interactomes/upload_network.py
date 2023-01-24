@@ -1,6 +1,8 @@
 import glob
 import json
 import os
+import shutil
+from time import time
 
 import requests
 
@@ -19,7 +21,8 @@ def upload(organism: str, src: str, ip: str = "localhost", port: int = 5000) -> 
     """
     layouts = []
     link_layouts = []
-    for f in glob.glob(os.path.join(src, organism, "*")):
+    src_dir = os.path.join(src, organism)
+    for f in glob.glob(os.path.join(src_dir, "*")):
         if f.endswith("nodes.csv"):
             layouts.append(f)
         for l in [ev.value for ev in Evidences if ev.value != "any"]:
@@ -40,7 +43,9 @@ def upload(organism: str, src: str, ip: str = "localhost", port: int = 5000) -> 
         st.log.info(f"Uploaded network for {organism}.")
         st.log.debug(f"Response: {r}")
 
+        network = os.path.join(src_dir, "network.json.gzip")
         pfile_path = os.path.join(st._PROJECTS_PATH, project_name, "pfile.json")
+
         with open(pfile_path, "r") as pfile:
             tmp = json.load(pfile)
         tmp["network_type"] = "ppi"
@@ -49,5 +54,11 @@ def upload(organism: str, src: str, ip: str = "localhost", port: int = 5000) -> 
         tmp["linksRGB"] = [f"{ev.value}RGB" for ev in Evidences]
         with open(pfile_path, "w") as pfile:
             json.dump(tmp, pfile)
+
+        # Move network.json.gzip to project folder
+        shutil.copyfile(
+            network, os.path.join(st._PROJECTS_PATH, project_name, "network.json.gzip")
+        )
+
     except requests.exceptions.ConnectionError:
         st.log.error(f"Could not connect to {ip}:{port}. Upload failed.")
