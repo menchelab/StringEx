@@ -99,6 +99,8 @@ class Layouter:
             dict: node ids as keys and three dimensional positions as values.
         """
         k = algo_variables.get("opt_dist")
+        if k <= 0:
+            k = None
         iterations = algo_variables.get("iterations", 50)
         threshold = algo_variables.get("threshold", 0.0001)
         return nx.spring_layout(
@@ -265,26 +267,29 @@ class Layouter:
             layouts.append(layout)
         return layouts
 
-    def add_layout_to_vrnetz(self, layout: dict) -> None:
+    def add_layout_to_vrnetz(self, layout: dict, layout_name: str) -> None:
         """Adds the points of the generated layout to the underlying VRNetz
 
         Args:
             layout (dict): Dictionary containing node ids as keys and a 3-tuple of coordinates as values.
+            layout_name (str): Name of the layout to be added to the VRNetz.
         """
         if VRNE.node_layouts not in self.network:
             self.network[VRNE.node_layouts] = []
 
+        if LT.cy_layout not in self.network[VRNE.node_layouts]:
+            self.network[VRNE.node_layouts].append(LT.cy_layout)
+
         if LT.string_3d_no_z not in self.network[VRNE.node_layouts]:
             self.network[VRNE.node_layouts].append(LT.string_3d_no_z)
 
-        if LT.string_3d not in self.network[VRNE.node_layouts]:
-            self.network[VRNE.node_layouts].append(LT.string_3d)
+        if layout_name not in self.network[VRNE.node_layouts]:
+            self.network[VRNE.node_layouts].append(layout_name)
 
-        idx = 0
         cytoscape_nodes = []
         cy_points = []
         log.debug(f"Length of Layout {len(layout)}")
-        for node, pos in layout.items():
+        for idx, pos in layout.items():
             node = self.network[VRNE.nodes][idx]
             color = [
                 random.randint(0, 255),
@@ -317,7 +322,7 @@ class Layouter:
 
             node[NT.layouts].append(
                 {
-                    LT.name: LT.string_3d,
+                    LT.name: layout_name,
                     LT.position: tuple(pos),
                     LT.color: color,
                     LT.size: size,
@@ -406,10 +411,11 @@ class Layouter:
         """Set the link color for each STRING evidence type. Based on the score the link opacity is scaled.
 
         Args:
+            network (dict): Network dictionary.
             evidences (dict[str, tuple[float, float, float, float]] or None, optional): Contains all possible evidence types and their corresponding color. Defaults to None.
 
         Returns:
-            list: list of link dictionaries.
+            dict: Network dictionary with the link layout information.
         """
         # Set up the colors for each evidence type
         if evidences is None:
@@ -454,6 +460,32 @@ class Layouter:
                     {LT.name: ev, LT.color: color}
                 )
         return network
+
+    @staticmethod
+    def add_any_link_layout(network: dict) -> dict:
+        """Add the any Layout to the network.
+
+        Args:
+            network (dict): The network to add the layout to.
+        Returns:
+            dict: The network with the any layout added.
+        """
+        links = network[VRNE.links]
+        log.debug(f"links loaded.")
+        if VRNE.link_layouts not in network:
+            network[VRNE.link_layouts] = []
+        network[VRNE.link_layouts].append(Evidences.any.value)
+        links = {idx: link for idx, link in enumerate(network[VRNE.links])}
+        # Color each link with the color of the evidence
+        for idx, link in links.items():
+            color = Evidences.get_default_scheme()[Evidences.any.value]
+            if LiT.layouts not in network[VRNE.links][idx]:
+                network[VRNE.links][idx][LiT.layouts] = []
+            network[VRNE.links][idx][LiT.layouts].append(
+                {LT.name: Evidences.any.value, LT.color: color}
+            )
+        return network
+
 
 if __name__ == "__main__":
     import os

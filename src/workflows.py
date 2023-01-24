@@ -20,7 +20,9 @@ def VRNetzer_upload_workflow(
     algo: str = "string",
     tags: dict = None,
     algo_variables: dict = None,
+    layout_name: str = None,
     project_path: str = None,
+    overwrite_project: bool = False,
 ) -> str:
     """Used from the StringEX/uploadfiles route to upload VRNetz networks to the VRNetzer.
 
@@ -44,7 +46,6 @@ def VRNetzer_upload_workflow(
 
     if algo_variables is None:
         algo_variables = {}
-
     log.info("Starting upload of VRNetz...")
     start = time.time()
 
@@ -61,6 +62,7 @@ def VRNetzer_upload_workflow(
         stringify=tags.get("stringify"),
         gen_layout=tags.get("string_calc_lay"),
         algo_variables=algo_variables,
+        layout_name=layout_name,
     )
     log.debug(f"Applying layout algorithm in {time.time()-s1} seconds.")
     network = layouter.network
@@ -71,6 +73,7 @@ def VRNetzer_upload_workflow(
         p_path=project_path,
         p_name=project_name,
         stringify=tags.get("stringify"),
+        overwrite_project=overwrite_project,
     )
     s1 = time.time()
     state = uploader.upload_files(network)
@@ -164,6 +167,7 @@ def apply_layout_workflow(
     cy_layout: bool = True,
     stringify: bool = True,
     algo_variables: dict = {},
+    layout_name: str = None,
 ) -> Layouter:
     layouter = Layouter()
     if type(network) is dict:
@@ -178,7 +182,7 @@ def apply_layout_workflow(
     if gen_layout:
         log.info(f"Applying algorithm {layout_algo} ...")
         layout = layouter.apply_layout(layout_algo, algo_variables)[0]
-        layouter.add_layout_to_vrnetz(layout)
+        layouter.add_layout_to_vrnetz(layout, layout_name)
         if layout_algo is None:
             layout_algo = "spring"
         log.info(f"Layout algorithm {layout_algo} applied!")
@@ -190,6 +194,10 @@ def apply_layout_workflow(
         log.info("Will Stringify.")
         layouter.network = Layouter.gen_evidence_layouts(layouter.network)
         log.info(f"Layouts stringified!")
+    else:
+        log.info("Will NOT Stringify.")
+        layouter.network = Layouter.add_any_link_layout(layouter.network)
+        log.info(f"Layout Any added")
     return layouter
 
 

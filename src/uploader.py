@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import sys
 
 from .settings import _WORKING_DIR
@@ -33,7 +34,7 @@ class Uploader:
     """Uploader class to upload VRNetz files.
     network (dict): network to be uploaded
     p_name (str): project name
-    skip_exists (bool, optional): Skip existing the generation of out files if they already exi^ Defaults to False.
+    overwrite_project (bool, optional): Indicates whether to overwrite existing projects. Defaults to False.
     stringify (bool, optional): Is used to reflect STRING features, if the network is a string network. Defaults to True.
     p_path (str, optional): path to where the projects can be found. Defaults to None.
     """
@@ -42,7 +43,7 @@ class Uploader:
         self,
         network: dict,
         p_name: str,
-        skip_exists: bool = False,
+        overwrite_project: bool = False,
         stringify: bool = True,
         p_path: str = None,
     ) -> None:
@@ -52,11 +53,13 @@ class Uploader:
         self.network = network
         self.p_name = p_name  # Name of the project
         self.pf_path = p_path  # Path to the directory that contains all projects
-        self.skip_exists = skip_exists  # boolean that indicates whether to skip existing project files or to update them
+        self.overwrite_project = overwrite_project  # boolean that indicates whether to skip existing project files or to update them
         self.stringify = (
             stringify  # boolean that indicates whether a network should be stringified
         )
         self.p_path = os_join(_PROJECTS_PATH, self.p_name)
+        if self.overwrite_project:
+            shutil.rmtree(self.p_path, ignore_errors=True)
         pfile = {"network": "NA"}
         pfile = {"network_type": "ppi"}
         if self.stringify:
@@ -353,34 +356,37 @@ class Uploader:
             pathXYZ = os_join(path, "layouts", f"{layout}XYZ.bmp")
             pathXYZl = os_join(path, "layoutsl", f"{layout}XYZl.bmp")
             pathRGB = os_join(path, "layoutsRGB", f"{layout}RGB.png")
-            self.pfile["layouts"].append(f"{layout}XYZ")
-            self.pfile["layoutsRGB"].append(f"{layout}RGB")
+            xyz, rgb = f"{layout}XYZ", f"{layout}RGB"
+            if xyz not in self.pfile["layouts"]:
+                self.pfile["layouts"].append(xyz)
+            if rgb not in self.pfile["layoutsRGB"]:
+                self.pfile["layoutsRGB"].append(rgb)
 
-            if not self.skip_exists:
-                l_img[l][0].save(pathXYZ)
-                l_img[l][1].save(pathXYZl)
-                l_img[l][2].save(pathRGB, "PNG")
-                output += (
-                    '<a style="color:green;">SUCCESS </a>'
-                    + layout
-                    + " Node Textures Created"
-                )
-            else:
-                if os.path.exists(pathXYZ):
-                    output += (
-                        '<a style="color:red;">ERROR </a>'
-                        + layout
-                        + " Nodelist already in project"
-                    )
-                else:
-                    l_img[l][0].save(pathXYZ)
-                    l_img[l][1].save(pathXYZl)
-                    l_img[l][2].save(pathRGB, "PNG")
-                    output += (
-                        '<a style="color:green;">SUCCESS </a>'
-                        + layout
-                        + " Node Textures Created"
-                    )
+            # if self.overwrite_project:
+            l_img[l][0].save(pathXYZ)
+            l_img[l][1].save(pathXYZl)
+            l_img[l][2].save(pathRGB, "PNG")
+            output += (
+                '<a style="color:green;">SUCCESS </a>'
+                + layout
+                + " Node Textures Created"
+            )
+            # else:
+            #     if os.path.exists(pathXYZ):
+            #         output += (
+            #             '<a style="color:red;">ERROR </a>'
+            #             + layout
+            #             + " Nodelist already in project"
+            #         )
+            #     else:
+            #         l_img[l][0].save(pathXYZ)
+            #         l_img[l][1].save(pathXYZl)
+            #         l_img[l][2].save(pathRGB, "PNG")
+            #         output += (
+            #             '<a style="color:green;">SUCCESS </a>'
+            #             + layout
+            #             + " Node Textures Created"
+            #         )
         return output
 
     # TODO other name for variable filename. maybe Layout name
@@ -439,32 +445,35 @@ class Uploader:
             l_img[l][1].putdata(l_tex[l][1])  # new_imgc.putdata(texc)
             pathl = os_join(path, "links", f"{layout}XYZ.bmp")
             pathRGB = os_join(path, "linksRGB", f"{layout}RGB.png")
-            self.pfile["links"].append(f"{layout}XYZ")
-            self.pfile["linksRGB"].append(f"{layout}RGB")
+            xyz, rgb = f"{layout}XYZ", f"{layout}RGB"
+            if xyz not in self.pfile["links"]:
+                self.pfile["links"].append(xyz)
+            if rgb not in self.pfile["linksRGB"]:
+                self.pfile["linksRGB"].append(rgb)
 
-            if not self.skip_exists:
-                l_img[l][0].save(pathl, "PNG")
-                l_img[l][1].save(pathRGB, "PNG")
-                output += (
-                    '<a style="color:green;">SUCCESS </a>'
-                    + layout
-                    + " Link Textures Created"
-                )
-            else:
-                if os.path.exists(pathl):
-                    output += (
-                        '<a style="color:red;">ERROR </a>'
-                        + layout
-                        + " linklist already in project"
-                    )
-                else:
-                    l_img[l][0].save(pathl, "PNG")
-                    l_img[l][0].save(pathRGB, "PNG")
-                    output += (
-                        '<a style="color:green;">SUCCESS </a>'
-                        + layout
-                        + " Link Textures Created"
-                    )
+            # if not self.skip_exists:
+            l_img[l][0].save(pathl, "PNG")
+            l_img[l][1].save(pathRGB, "PNG")
+            output += (
+                '<a style="color:green;">SUCCESS </a>'
+                + layout
+                + " Link Textures Created"
+            )
+            # else:
+            #     if os.path.exists(pathl):
+            #         output += (
+            #             '<a style="color:red;">ERROR </a>'
+            #             + layout
+            #             + " linklist already in project"
+            #         )
+            #     else:
+            #         l_img[l][0].save(pathl, "PNG")
+            #         l_img[l][0].save(pathRGB, "PNG")
+            #         output += (
+            #             '<a style="color:green;">SUCCESS </a>'
+            #             + layout
+            #             + " Link Textures Created"
+            #         )
 
         return output
 
@@ -527,7 +536,7 @@ class Uploader:
         # Set up project directories
         prolist = self.listProjects(self.pf_path)
 
-        if not self.skip_exists:
+        if self.overwrite_project:
             self.makeProjectFolders()
         else:
             if project in prolist:

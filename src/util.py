@@ -31,15 +31,15 @@ def get_algo_variables(algo: str, form: dict) -> dict:
     if "cg" in algo:
         return {
             "prplxty": form.get("string_cg_prplxty", 50),
-            "density": form.get("string_cg_density", 0.5),
+            "density": form.get("string_cg_density", 12),
             "l_rate": form.get("string_cg_l_rate", 200),
-            "steps": form.get("string_cg_steps", 1000),
-            "n_neighbors": form.get("string_cg_n_neighbors", 15),
+            "steps": form.get("string_cg_steps", 250),
+            "n_neighbors": form.get("string_cg_n_neighbors", 10),
             "spread": form.get("string_cg_spread", 1.0),
-            "min_dist": form.get("string_cg_min_dist", 0.0),
+            "min_dist": form.get("string_cg_min_dist", 0.1),
         }
     if algo == LayoutAlgroithms.spring:
-        opt_dist = form.get("string_spring_opt_dist", 0)
+        opt_dist = form.get("string_spring_opt_dist", 0.0)
         if opt_dist == 0:
             opt_dist = None
 

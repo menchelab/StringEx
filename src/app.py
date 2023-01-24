@@ -173,10 +173,10 @@ def string_ex_upload_files() -> str:
         st.log.error(f"Invalid VRNetz file:{network_file.filename}")
         return '<a style="color:red;">ERROR invalid VRNetz file!</a>'
     project_name = ""
-    print(form.keys())
+    overwrite_project = False
     if form["string_namespace"] == "New":
         project_name = form["string_new_namespace_name"]
-
+        overwrite_project = True
     else:
         project_name = form["existing_namespace"]
     algo = form.get("string_algo")
@@ -189,9 +189,16 @@ def string_ex_upload_files() -> str:
         if key in form:
             tags[key] = True
     algo_variables = string_util.get_algo_variables(algo, form)
-
+    layout_name = form.get("string_layout_name")
     return wf.VRNetzer_upload_workflow(
-        network, network_file.filename, project_name, algo, tags, algo_variables
+        network,
+        network_file.filename,
+        project_name,
+        algo,
+        tags,
+        algo_variables,
+        layout_name,
+        overwrite_project=overwrite_project,
     )
 
 
