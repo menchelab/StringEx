@@ -137,8 +137,8 @@
     },
     "E.coli": {
         "spring": {
-            "-opd": 0,
-            "-it": 50,
+            "-opd": 0.2,
+            "-it": 100,
             "-spth": 0.0001
         },
         "cg_global_umap": {

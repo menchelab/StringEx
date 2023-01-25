@@ -8,7 +8,7 @@ _LOG_DEBUG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(li
 _LOG_DEFAULT_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 _LOG_LEVEL = DEBUG
 
-_LOG_FORMAT = _LOG_DEBUG_FORMAT
+_LOG_FORMAT = _LOG_DEFAULT_FORMAT
 F_LOG_LEVEL = _LOG_LEVEL
 C_LOG_LEVEL = _LOG_LEVEL
 

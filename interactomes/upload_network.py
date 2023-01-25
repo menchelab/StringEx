@@ -10,7 +10,12 @@ import src.settings as st
 from src.classes import Evidences
 
 
-def upload(organism: str, src: str, ip: str = "localhost", port: int = 5000) -> None:
+def upload(
+    organism: str,
+    src: str,
+    ip: str = "localhost",
+    port: int = 5000,
+) -> None:
     """Uploads the network using the internal upload route of the VRNetzer.
 
     Args:
