@@ -367,7 +367,7 @@ class Uploader:
             l_img[l][1].save(pathXYZl)
             l_img[l][2].save(pathRGB, "PNG")
             output += (
-                '<a style="color:green;">SUCCESS </a>'
+                '<br><a style="color:green;">SUCCESS </a>'
                 + layout
                 + " Node Textures Created"
             )
@@ -456,7 +456,7 @@ class Uploader:
             l_img[l][0].save(pathl, "PNG")
             l_img[l][1].save(pathRGB, "PNG")
             output += (
-                '<a style="color:green;">SUCCESS </a>'
+                '<br><a style="color:green;">SUCCESS </a>'
                 + layout
                 + " Link Textures Created"
             )

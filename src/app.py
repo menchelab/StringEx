@@ -1,13 +1,12 @@
 import json
 import os
-import random
 
 import flask
 import GlobalData as GD
+from flask_socketio import emit
 from PIL import Image
 
 import uploader
-import util
 
 from . import settings as st
 from . import util as string_util
@@ -224,6 +223,12 @@ def string_ex_map_files():
     project_name = form.get("string_map_project_name")
     src_filename = f_src_network.filename
     return wf.VRNetzer_map_workflow(src_network, src_filename, organism, project_name)
+
+
+@blueprint.route("/receiveNetwork", methods=["POST"])
+def string_ex_receive_network_json():
+    receiveNetwork = flask.request.get_json()
+    return wf.VRNetzer_send_network_workflow(receiveNetwork)
 
 
 # @blueprint.route("/upload", methods=["GET", "POST"])

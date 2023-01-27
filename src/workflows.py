@@ -6,6 +6,9 @@ import shutil
 import time
 import traceback
 
+import flask
+
+from . import util as string_util
 from .classes import Evidences, Organisms
 from .converter import VRNetzConverter
 from .layouter import Layouter
@@ -90,7 +93,7 @@ def VRNetzer_upload_workflow(
     log.debug(f"Total process took {time.time()-s1} seconds.")
     log.info("Project has been uploaded!")
     html = (
-        f'<a style="color:green;" href="/StringEx/preview?project={project_name}">SUCCESS: Network {filename} saved as project {project_name} </a><br>'
+        f'<a style="color:green;"href="/StringEx/preview?project={project_name}">SUCCESS: Network {filename} saved as project {project_name} </a><br>'
         + state
     )
 
@@ -162,6 +165,58 @@ def VRNetzer_map_workflow(
         log.error(error)
         html = f'<a style="color:red;">ERROR </a>: {error}', 500
     return html
+
+
+def VRNetzer_send_network_workflow(request: dict):
+    network = {
+        "nodes": request.pop("nodes"),
+        "links": request.pop("links"),
+        "layouts": request.pop("layouts"),
+    }
+    form = request.pop("form")
+    layout_name = form.get("layout")
+    to_running = form.get("load")
+    algo = form["algorithm"]["n"]
+    algo_variables = string_util.get_algo_variables(algo, form)
+
+    network_data = request.get("network")
+    # enrichments = request.get("enrichments")
+    # publications = request.get("publications")
+
+    project_name = form["project"]
+    overwrite_project = form["update"]
+
+    tags = {
+        "stringify": False,
+        "string_write": False,
+        "string_calc_lay": True,
+    }
+    if network_data.get("database") == "string":
+        tags["stringify"] = True
+
+    output = VRNetzer_upload_workflow(
+        network,
+        project_name,
+        project_name,
+        algo,
+        tags,
+        algo_variables,
+        layout_name,
+        overwrite_project=overwrite_project,
+    )
+    if to_running:
+        for i in range(2):
+            flask.current_app.socketio.emit(
+                "ex",
+                {"id": "projects", "opt": project_name, "fn": "sel"},
+                namespace="/chat",
+                room=flask.session.get("room"),
+            )
+    output = output.split("<br>")
+    output.pop(0)
+    data = {"html": "<br>".join(output)}
+
+    return json.dumps(data)
 
 
 def apply_layout_workflow(
