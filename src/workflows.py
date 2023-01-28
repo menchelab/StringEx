@@ -70,7 +70,7 @@ def VRNetzer_upload_workflow(
     )
     log.debug(f"Applying layout algorithm in {time.time()-s1} seconds.")
     network = layouter.network
-
+    
     # upload network
     uploader = Uploader(
         network,
@@ -177,15 +177,18 @@ def VRNetzer_send_network_workflow(request: dict):
     layout_name = form.get("layout")
     to_running = form.get("load")
     algo = form["algorithm"]["n"]
-    algo_variables = string_util.get_algo_variables(algo, form)
-
+    algo_variables = string_util.get_algo_variables(algo, form["algorithm"])
+    print(algo_variables)
     network_data = request.get("network")
     # enrichments = request.get("enrichments")
     # publications = request.get("publications")
 
     project_name = form["project"]
     overwrite_project = form["update"]
-
+    if overwrite_project == "Update":
+        overwrite_project = False
+    else:
+        overwrite_project = True
     tags = {
         "stringify": False,
         "string_write": False,
@@ -239,12 +242,17 @@ def apply_layout_workflow(
         log.info(f"Network extracted from: {network}")
 
     if gen_layout:
-        log.info(f"Applying algorithm {layout_algo} ...")
-        layout = layouter.apply_layout(layout_algo, algo_variables)[0]
-        layouter.add_layout_to_vrnetz(layout, layout_name)
         if layout_algo is None:
             layout_algo = "spring"
-        log.info(f"Layout algorithm {layout_algo} applied!")
+        log.info(f"Applying algorithm {layout_algo} ...")
+        layout, report = layouter.apply_layout(layout_algo, algo_variables)
+        for layout, message in zip(layout, report.items()):
+            key,value = message
+            if isinstance(value, ValueError):
+                log.error(f" {key} {value}")
+                continue
+            layouter.add_layout_to_vrnetz(layout, layout_name)
+            log.info(f"Layout algorithm {layout_algo} applied!")
     # Correct Cytoscape positions to be positive.
     # if cy_layout:
     #     layouter.correct_cytoscape_pos()

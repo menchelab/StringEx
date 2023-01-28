@@ -1,5 +1,6 @@
 import json
 import random
+import traceback
 
 import networkx as nx
 import numpy as np
@@ -140,9 +141,13 @@ class Layouter:
             l_rate = cg_variables.get("l_rate", 200)
             steps = cg_variables.get("steps", 250)
             if "local" in layout_algo:
-                return cg.layout_local_tsne(
-                    self.graph, dim, prplxty, density, l_rate, steps
-                )
+                try:
+                    return cg.layout_local_tsne(
+                        self.graph, dim, prplxty, density, l_rate, steps
+                    )
+                except Exception as e:
+                    print(e)
+                    return e
             elif "global" in layout_algo:
                 return cg.layout_global_tsne(
                     self.graph, dim, prplxty, density, l_rate, steps
@@ -240,6 +245,7 @@ class Layouter:
         layouts = []
         if isinstance(layout_algo, str):
             layout_algo = [layout_algo]
+        report = {k:"ok" for k in layout_algo}
         for algo in layout_algo:
             if algo is None:
                 """Select default layout algorithm"""
@@ -248,6 +254,10 @@ class Layouter:
             if LA.cartoGRAPH in algo:
                 log.debug(f"Applying layout: {algo}")
                 layout = self.create_cartoGRAPH_layout(algo, algo_variables)
+                if isinstance(layout, ValueError):
+                    report[algo] = layout
+                    log.debug("Error in executing cartoGRAPHs layout. Create a layout with spring instead.")
+                    layout = self.create_spring_layout(algo_variables)
             else:
                 lay_func = {
                     LA.spring: self.create_spring_layout,
@@ -266,7 +276,7 @@ class Layouter:
             for i, key in enumerate(layout):
                 layout[key] = points[i]
             layouts.append(layout)
-        return layouts
+        return layouts,report
 
     def add_layout_to_vrnetz(self, layout: dict, layout_name: str) -> None:
         """Adds the points of the generated layout to the underlying VRNetz
