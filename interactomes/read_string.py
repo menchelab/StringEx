@@ -2,11 +2,12 @@ import gzip
 import json
 import os
 import tarfile
+import pickle
 from time import time
 
 import networkx as nx
 import pandas
-
+import numpy
 import src.settings as st
 from src import map_uniprot
 from src.classes import Evidences
@@ -283,10 +284,8 @@ def gen_graph(
     # Map gene names to uniprot ids and add them to the nodes.
     G = map_gene_names_to_uniprot(G, map_gene_name, taxid)
 
-    graph_data = nx.node_link_data(G)
-    graph_data["link_layouts"] = l_lays
-    graph_data["all_links"] = all_links
-    write_network(clean_name, graph_data, _dir)
+    output = [G, l_lays, all_links]
+    write_network(clean_name, output, _dir)
 
     st.log.info(
         f"Network for {organism} has {len(G.nodes)} nodes and {len(G.edges)} edges."
@@ -335,7 +334,7 @@ def map_gene_names_to_uniprot(G: nx.Graph, map_gene_name: dict, taxid: str) -> n
     return G
 
 
-def write_network(organism: str, graph: dict, _dir: str) -> None:
+def write_network(organism: str, data: list, _dir: str) -> None:
     """Write the graph to a json file. And write the l_lays to a json file.
 
     Args:
@@ -343,15 +342,13 @@ def write_network(organism: str, graph: dict, _dir: str) -> None:
         G (nx.Graph): Graph of the network.
         l_lays (dict): Link layouts with ev as key and list of links as value.
     """
-    os.makedirs(os.path.join(_dir, organism), exist_ok=True)
-    json_str = json.dumps(graph) + "\n"
-    json_bytes = json_str.encode("utf-8")
-    file_name = os.path.join(_dir, organism, "network.json.gzip")
+    path = os.path.join(_dir, organism)
+    os.makedirs(path, exist_ok=True)
     t1 = time()
-    with gzip.open(file_name, "w") as fout:
-        fout.write(json_bytes)
-    st.log.debug(f"Zipping network to {file_name} took {time() - t1} seconds.")
-
+    pickle.dump(data[0], open(f'{path}/network.pickle', 'wb'))
+    pickle.dump(data[1], open(f'{path}/lays.pickle', 'wb'))
+    pickle.dump(data[2], open(f'{path}/links.pickle','wb'))
+    st.log.debug(f"Writing pickle data took {time() - t1} seconds.")
 
 def construct_layouts(
     organism: str,
@@ -383,7 +380,7 @@ def construct_layouts(
         """
         layouter = Layouter()
         layouter.graph = G
-        layouts = layouter.apply_layout(layout_algo, variables)
+        layouts,_ = layouter.apply_layout(layout_algo, variables)
         for idx, algo in enumerate(layout_algo):
             layouts[idx]["name"] = algo
         return layouts
@@ -397,17 +394,13 @@ def construct_layouts(
         Returns:
             tuple[nx.Graph, dict]: Graph representing the protein-protein interaction network and a dictionary containing the nodes of the graph.
         """
-        file_name = os.path.join(_dir, organism, "network.json.gzip")
         t1 = time()
-        with gzip.open(file_name, "r") as fin:
-            json_bytes = fin.read()
-        st.log.debug(f"Unzipping network from {file_name} took {time() - t1} seconds.")
-        json_str = json_bytes.decode("utf-8")
-        graph = json.loads(json_str)
-        l_lays = graph.pop("link_layouts")
-        all_links = graph.pop("all_links")
-        G = nx.node_link_graph(graph)
-        st.log.info(f"Read network from file {file_name}.")
+        path = os.path.join(_dir, organism)
+        G = pickle.load(open(f'{path}/network.pickle', 'rb'))
+        l_lays = pickle.load(open(f'{path}/lays.pickle', 'rb'))
+        all_links = pickle.load(open((f'{path}/links.pickle'), 'rb'))
+        st.log.debug(f"Loading data from pickles took {time() - t1}) seconds.") 
+        
         return G, l_lays, all_links
 
     def write_node_layout(
@@ -506,9 +499,3 @@ def construct_layouts(
     st.log.info(f"Generated layouts. Used algorithms: {layout_algo}.")
     write_link_layouts(organism, l_lays, all_links, _dir, overwrite_links)
     write_node_layout(organism, G, layouts, _dir, overwrite=overwrite)
-    # file_name = os.path.join(_dir, f"{organism}.tgz")
-    # organism_dir = os.path.join(_dir, organism)
-    # t1 = time()
-    # with tarfile.open(file_name, "w:gz") as tar:
-    #     tar.add(organism_dir, arcname=organism)
-    # st.log.info(f"Compressed layouts to {file_name} in {time() - t1} seconds.")
