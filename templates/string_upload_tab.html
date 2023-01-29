@@ -98,38 +98,33 @@
       <label>N O D E S</label><br>
       <input type=file name=nodes multiple><br><br>
       -->
-            <script>
-            </script>
             <div class="twelve columns">
                   <div class="six columns">
-                        <div class="frameBox">
-                              <div class="six columns">
-                                    <div class="two columns">
-                                          <input checked="" id="string_calc_lay" name="string_calc_lay" type="checkbox"
-                                                value="string_calc_lay">
-                                          </input>
-                                    </div>
-                                    <h4>
+                        <div class="frameBox twelve columns">
+                              <div class="twelve columns">
+                                    <input checked="" id="string_calc_lay" name="string_calc_lay" type="checkbox"
+                                          value="string_calc_lay" class="two columns">
+                                    </input>
+                                    <h4 class="ten columns">
                                           LAYOUT
                                           <br>
                                           ALGORITHM
                                           </br>
                                     </h4>
-                                    <br>
-                                    <div class="cornerBox" style="margin:20px">
+                              </div>
+                              <div class="ten columns" style="margin-left:5%">
+                                    <div class="cornerBox twelve column" style="margin-bottom:1vh">
                                           <select id="string_algo" name="string_algo">
                                                 {%include "string_algo_options.html"%}
                                           </select>
                                     </div>
-                                    <input class="stringInputBox" id="string_layout_name" placeholder="3d"
-                                          name="string_layout_name" type="text" style="margin-left: 20px;
-                                          max-width: 500px;
-                                          min-width: 440px;" />
-                                    </br>
+                                    <input class="stringInputBox twelve columns" id="string_layout_name"
+                                          placeholder="3d" name="string_layout_name" type="text" />
                               </div>
                         </div>
                   </div>
-                  <div class="six columns">
+
+                  <div class=" six columns" style="height: 100%;">
                         <div class="frameBox">
                               <div class="two columns">
                                     <input checked="" name="stringify" type="checkbox" value="stringify">
@@ -237,9 +232,9 @@
       <label>L A B E L S (optional) </label><br>
       <input type=file name=labels multiple><br><br>
       -->
-            <div class="frameBox">
+            <div class="frameBox" style="display: flex;">
                   <div class="twelve columns">
-                        <div class="two columns">
+                        <div class="two columns" style=" flex-grow: 1;">
                               <input class="swagSubmit" id="string_upload_button" type="submit" value="Upload">
                               </input>
                         </div>

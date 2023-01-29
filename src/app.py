@@ -11,7 +11,7 @@ import uploader
 from . import settings as st
 from . import util as string_util
 from . import workflows as wf
-
+import util
 url_prefix = "/StringEx"
 
 blueprint = flask.Blueprint(
@@ -188,7 +188,9 @@ def string_ex_upload_files() -> str:
         if key in form:
             tags[key] = True
     algo_variables = string_util.get_algo_variables(algo, form)
-    layout_name = form.get("string_layout_name")
+    layout_name = form.get("string_layout_name","3d")
+    if layout_name == "":
+        layout_name = "3d"
     return wf.VRNetzer_upload_workflow(
         network,
         network_file.filename,
@@ -228,9 +230,20 @@ def string_ex_map_files():
 @blueprint.route("/receiveNetwork", methods=["POST"])
 def string_ex_receive_network_json():
     receiveNetwork = flask.request.get_json()
-    return wf.VRNetzer_send_network_workflow(receiveNetwork)
+    out = wf.VRNetzer_send_network_workflow(receiveNetwork)
+    project = receiveNetwork["form"]["project"]
+    return json.dumps({"url": f"/StringEx/resultPage/{project}/{','.join(out)}"})
 
-
+@blueprint.route("/resultPage/<project>/<layouts>", methods=["GET"])
+def string_ex_result_page(project, layouts):
+    """Route to the results page project depended."""
+    username = util.generate_username()
+    layouts = layouts.split(",")
+    flask.session["username"] = username
+    flask.session["room"] = 1
+    return flask.render_template(
+        "string_send_result_page.html",project=project, layouts=layouts,pfile=json.dumps(GD.pfile), sessionData=json.dumps(GD.sessionData)
+    )
 # @blueprint.route("/upload", methods=["GET", "POST"])
 # def string_ex_upload():
 #     """Route to the STRING Uploader."""

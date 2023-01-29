@@ -335,7 +335,7 @@ class Uploader:
                 ]
             )
 
-        for idx, elem in enumerate(nodes):
+        for _, elem in enumerate(nodes):
             elem = self.change_to_universal_attr(elem)
 
             self.nodes[VRNE.nodes].append(
@@ -519,6 +519,18 @@ class Uploader:
         with open(self.pfile_file, "w") as json_file:
             json.dump(self.pfile, json_file)
 
+    def extract_nodes(self,nodes,skip_attr,layouts):
+        for _, elem in enumerate(nodes):
+            elem = self.change_to_universal_attr(elem)
+
+            self.nodes[VRNE.nodes].append(
+                {k: v for k, v in elem.items() if k not in skip_attr}
+            )
+            tex = self.extract_node_data(elem, layouts)
+            for l, _ in enumerate(layouts):
+                for d in range(3):
+                    l_tex[l][d][elem[NT.id]] = tex[l][d]
+
     def upload_files(
         self,
         network: dict,
@@ -552,7 +564,7 @@ class Uploader:
         links = network.get(VRNE.links)
         n_lay = network.get(VRNE.node_layouts, [])  # Node layouts
         l_lay = network.get(VRNE.link_layouts, [])  # Link layouts
-
+        
         with open(self.names_file, "r") as json_file:
             self.names = json.load(json_file)
 

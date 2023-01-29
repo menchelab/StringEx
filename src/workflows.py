@@ -93,7 +93,7 @@ def VRNetzer_upload_workflow(
     log.debug(f"Total process took {time.time()-s1} seconds.")
     log.info("Project has been uploaded!")
     html = (
-        f'<a style="color:green;"href="/StringEx/preview?project={project_name}">SUCCESS: Network {filename} saved as project {project_name} </a><br>'
+        f'<a style="color:green;"href="/StringEx/preview?project={project_name}" target="_blank" >SUCCESS: Network {filename} saved as project {project_name} </a><br>'
         + state
     )
 
@@ -173,12 +173,11 @@ def VRNetzer_send_network_workflow(request: dict):
         "links": request.pop("links"),
         "layouts": request.pop("layouts"),
     }
-    form = request.pop("form")
+    form = request.get("form")
     layout_name = form.get("layout")
     to_running = form.get("load")
     algo = form["algorithm"]["n"]
     algo_variables = string_util.get_algo_variables(algo, form["algorithm"])
-    print(algo_variables)
     network_data = request.get("network")
     # enrichments = request.get("enrichments")
     # publications = request.get("publications")
@@ -217,9 +216,11 @@ def VRNetzer_send_network_workflow(request: dict):
             )
     output = output.split("<br>")
     output.pop(0)
-    data = {"html": "<br>".join(output)}
-
-    return json.dumps(data)
+    for idx,line in enumerate(output):
+        string_start = line.find("</a>")
+        end_string = line.find("Texture")
+        output[idx] = line[string_start+4:end_string-1].replace(" ","_")  
+    return output[1:]
 
 
 def apply_layout_workflow(
@@ -245,14 +246,12 @@ def apply_layout_workflow(
         if layout_algo is None:
             layout_algo = "spring"
         log.info(f"Applying algorithm {layout_algo} ...")
-        layout, report = layouter.apply_layout(layout_algo, algo_variables)
-        for layout, message in zip(layout, report.items()):
-            key,value = message
-            if isinstance(value, ValueError):
-                log.error(f" {key} {value}")
-                continue
-            layouter.add_layout_to_vrnetz(layout, layout_name)
-            log.info(f"Layout algorithm {layout_algo} applied!")
+        layout = layouter.apply_layout(layout_algo, algo_variables)
+        algo,layout = next(iter(layout.items()))
+        if algo != layout_name:
+            layout_name = algo
+        layouter.add_layout_to_vrnetz(layout, layout_name)
+        log.info(f"Layout algorithm {layout_algo} applied!")
     # Correct Cytoscape positions to be positive.
     # if cy_layout:
     #     layouter.correct_cytoscape_pos()

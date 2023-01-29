@@ -30,75 +30,32 @@ function selectEvidenceVRNetzer(id, layout) {
         socket.emit('ex', { id: "links", opt: link_xyz, fn: "sel" });
     });
 }
-function stringForwardButton(id,data) {
-    $('#' + id).on("click", function() {
-        console.log(data)
-        // socket.emit('ex', { id: "linkcolors", opt: opt, fn: "sel" });
+// function layoutDropdown (id, data, active){
+//     console.log(id,data,active)
+//     $('#'+ id).selectmenu();
+  
+//     for (let i = 0; i < data.length; i++) {
+//       $('#'+ id).append(new Option(data[i]));
+//     }
+//     $('#'+ id).val(active);
+//     $('#'+ id).selectmenu("refresh");
+  
+//     $('#'+ id).on('selectmenuselect', function () {
+//       var name =  $('#'+ id).find(':selected').text();
+//       socket.emit('ex', {id: id, opt: name, fn: "sel"});
+//       ///logger($('#selectMode').val());
+//     });
+  
+//   }
+
+$(document).ready(function() {
+    $("input[type='button']").tooltip({
+        show: { duration: "fast" },
+        hide: { duration: "fast" },
+        position: {
+            my: "left bottom+31",
+            at: "left bottom",
+            collision: "flipfit",
+        }
     });
-}
-function layoutDropdown (id, data, active){
-    console.log(id,data,active)
-    $('#'+ id).selectmenu();
-  
-    for (let i = 0; i < data.length; i++) {
-      $('#'+ id).append(new Option(data[i]));
-    }
-    $('#'+ id).val(active);
-    $('#'+ id).selectmenu("refresh");
-  
-    $('#'+ id).on('selectmenuselect', function () {
-      var name =  $('#'+ id).find(':selected').text();
-      socket.emit('ex', {id: id, opt: name, fn: "sel"});
-      ///logger($('#selectMode').val());
-    });
-  
-  }
-
-/**
- * Will turn off the change of Link layouts if network is a string network
- */
-function deactiveLinkLayouts() {
-    var code =`
-    <div class="twelve columns" hidden="true">
-        <div class="slideTwo">
-            <input type="checkbox" value="false" id="chbLrgb" name="check" unchecked></checkbox>
-            <script>
-                initCheckbox("chbLrgb");
-            </script>
-        </div>
-    </div>
-
-    <div class="twelve columns" hidden="true">
-        <div class="slideTwo">
-            <input type="checkbox" value="false" id="chbLxyz" name="check" unchecked></checkbox>
-            <script>
-                initCheckbox("chbLxyz");
-            </script>
-        </div>
-    </div>`;
-    document.write(code)
-}
-/**
- * Will turn on the change of Link layouts if network isn't a string network
- */
-function activateLinkLayouts() {
-    var code =`
-    <div class="twelve columns" hidden="true">
-        <div class="slideTwo">
-            <input type="checkbox" value="false" id="chbLrgb" name="check" checked></checkbox>
-            <script>
-                initCheckbox("chbLrgb");
-            </script>
-        </div>
-    </div>
-
-    <div class="twelve columns" hidden="true">
-        <div class="slideTwo">
-            <input type="checkbox" value="false" id="chbLxyz" name="check" checked></checkbox>
-            <script>
-                initCheckbox("chbLxyz");
-            </script>
-        </div>
-    </div>`;
-    document.write(code)
-}
+});

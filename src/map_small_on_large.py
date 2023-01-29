@@ -250,7 +250,7 @@ def map_source_to_target(
     #         nb += 1
     uploader = Uploader(target, project_name)
     uploader.color_nodes(target_project, None)
-    return f'<a style="color:green;" href="/StringEx/preview?project={project_name}">SUCCESS: Saved as project {project_name} </a>'
+    return f'<a style="color:green;" href="/StringEx/preview?project={project_name}" target="_blank">SUCCESS: Saved as project {project_name} </a>'
 
 
 # def extract_link_data(

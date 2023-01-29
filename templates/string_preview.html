@@ -21,8 +21,19 @@
             selectEvidenceWebGL("evidence-all", "any");
         </script>
     </div>
-    <div class="frameBox" style="display:inline-block;">
-        <h6 style="margin-left: 10px;"> Known<br>interactions</h6>
+    <style>
+        .noPadding {
+            padding: 0px;
+            display: inline-block;
+        }
+
+        .noTopMargin {
+            margin-left: 10px;
+            margin-top: 0px;
+        }
+    </style>
+    <div class="frameBox noPadding">
+        <h6 class="noTopMargin"> Known<br>interactions</h6>
 
 
         <button class="stringEvidenceButton" style="background-color:#ff00ff;" id="evidence-experiments" type="WebGL">
@@ -38,8 +49,8 @@
         </script>
 
     </div>
-    <div class="frameBox" style="display:inline-block;">
-        <h6 style="margin-left: 10px;"> Predicted interactions</h6>
+    <div class="frameBox noPadding">
+        <h6 class="noTopMargin"> Predicted interactions</h6>
 
 
         <button class="stringEvidenceButton" style="background-color:#00ff00;
@@ -61,8 +72,8 @@
             selectEvidenceWebGL("evidence-cooccurrence", "stringdb_cooccurrence");
         </script>
     </div>
-    <div class="frameBox" style="display:inline-block;">
-        <h6 style="margin-left: 10px;"> Other Evidences</h6>
+    <div class="frameBox noPadding" style="display:inline-block;">
+        <h6 class="noTopMargin"> Other Evidences</h6>
 
 
         <button class="stringEvidenceButton" style="background-color:#c6ea46;color:black;" id="evidence-textmining"

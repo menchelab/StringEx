@@ -242,20 +242,17 @@ class Layouter:
         Returns:
             dict[str,list[float]]: with node ids as keys and three dimensional node positions as values.
         """
-        layouts = []
+        layouts = {}
         if isinstance(layout_algo, str):
             layout_algo = [layout_algo]
-        report = {k:"ok" for k in layout_algo}
         for algo in layout_algo:
             if algo is None:
                 """Select default layout algorithm"""
                 algo = LA.spring
-
             if LA.cartoGRAPH in algo:
                 log.debug(f"Applying layout: {algo}")
                 layout = self.create_cartoGRAPH_layout(algo, algo_variables)
                 if isinstance(layout, ValueError):
-                    report[algo] = layout
                     log.debug("Error in executing cartoGRAPHs layout. Create a layout with spring instead.")
                     layout = self.create_spring_layout(algo_variables)
             else:
@@ -275,8 +272,8 @@ class Layouter:
             # write points to node and add position to node data.
             for i, key in enumerate(layout):
                 layout[key] = points[i]
-            layouts.append(layout)
-        return layouts,report
+            layouts[algo] = layout
+        return layouts
 
     def add_layout_to_vrnetz(self, layout: dict, layout_name: str) -> None:
         """Adds the points of the generated layout to the underlying VRNetz
@@ -300,6 +297,7 @@ class Layouter:
         cytoscape_nodes = []
         cy_points = []
         log.debug(f"Length of Layout {len(layout)}")
+        log.debug(layout)
         for idx, pos in layout.items():
             node = self.network[VRNE.nodes][idx]
             color = [
