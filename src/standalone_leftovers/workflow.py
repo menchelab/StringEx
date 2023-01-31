@@ -7,12 +7,11 @@ def apply_style_workflow(graph: nx.Graph, style: str) -> nx.Graph:
     if color_mapping is None:
         return graph
     mapping_type = color_mapping["type"]
-    log.info(
-        f"Color mapping extracted from: {style}.xml. Mapping Type: {mapping_type}"
-    )
+    log.info(f"Color mapping extracted from: {style}.xml. Mapping Type: {mapping_type}")
     graph = colorize_nodes(graph, color_mapping)
     log.info(f"Colored nodes according to color mapping.")
     return graph
+
 
 def protein_query_workflow(
     parser: CytoscapeParser, p_query: list[str], **kwargs

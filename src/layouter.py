@@ -253,7 +253,9 @@ class Layouter:
                 log.debug(f"Applying layout: {algo}")
                 layout = self.create_cartoGRAPH_layout(algo, algo_variables)
                 if isinstance(layout, ValueError):
-                    log.debug("Error in executing cartoGRAPHs layout. Create a layout with spring instead.")
+                    log.debug(
+                        "Error in executing cartoGRAPHs layout. Create a layout with spring instead."
+                    )
                     layout = self.create_spring_layout(algo_variables)
             else:
                 lay_func = {
@@ -324,7 +326,6 @@ class Layouter:
                 {
                     LT.name: LT.string_3d_no_z,
                     LT.position: (pos[0], pos[1], 0.0),
-                    LT.color: color,
                     LT.size: size,
                 }
             )  # Add 2D coordinates
@@ -333,7 +334,6 @@ class Layouter:
                 {
                     LT.name: layout_name,
                     LT.position: tuple(pos),
-                    LT.color: color,
                     LT.size: size,
                 }
             )  # Add 3D coordinates
@@ -434,8 +434,8 @@ class Layouter:
         log.debug(f"links loaded.")
         if VRNE.link_layouts not in network:
             network[VRNE.link_layouts] = []
+        log.debug(f"Handling evidences...")
         for ev in evidences:
-            log.debug(f"Handling evidence: {ev}.")
             network[VRNE.link_layouts].append(ev)
             if not ev == Evidences.any.value:
                 cur_links = {idx: link for idx, link in enumerate(links) if ev in link}

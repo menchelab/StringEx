@@ -24,6 +24,7 @@ def construct_graph(
     tax_id: int,
     last_link: int or None = None,
     MAX_NUM_LINKS=st.MAX_NUM_LINKS,
+    score_threshold=0,
 ):
     """Extracts data from the STRING DB network files and constructs a nx.Graph afterwards.
 
@@ -45,56 +46,28 @@ def construct_graph(
     filtered = os.path.join(
         directory, f"{tax_id}.protein.links.detailed.v11.5.filtered.txt"
     )
-
     # if os.path.isfile(filtered):
     #     link_file = filtered
 
     alias_file = os.path.join(directory, f"{tax_id}.protein.aliases.v11.5.txt")
     description_file = os.path.join(directory, f"{tax_id}.protein.info.v11.5.txt")
 
-    rename_dict = {"protein1":LiT.start,
-        "protein2":LiT.end,
-        "neighborhood":Evidences.stringdb_neighborhood.value,
-        "fusion":Evidences.stringdb_fusion.value,
-        "cooccurence":Evidences.stringdb_cooccurrence.value,
-        "coexpression":Evidences.stringdb_coexpression.value,
-        "experimental":Evidences.stringdb_experiments.value,
-        "database":Evidences.stringdb_databases.value,
-        "textmining":Evidences.stringdb_textmining.value,
-        "combined_score":Evidences.any.value,
-        "homology":Evidences.stringdb_similarity.value,}
-    type_dict = {
-        LiT.start:str,
-        LiT.end:str,
-        Evidences.stringdb_neighborhood.value:numpy.int64,
-        Evidences.stringdb_fusion.value:numpy.int64,
-        Evidences.stringdb_cooccurrence.value:numpy.int64,
-        Evidences.stringdb_coexpression.value:numpy.int64,
-        Evidences.stringdb_experiments.value:numpy.int64,
-        Evidences.stringdb_databases.value:numpy.int64,
-        Evidences.stringdb_textmining.value:numpy.int64,
-        Evidences.any.value:numpy.int64,
-        Evidences.stringdb_similarity.value:numpy.int64,
-    }
-
     network_table = pandas.read_table(link_file, header=0, sep=" ")
-    for default_col, new_col in rename_dict.items():
-        if default_col in network_table.columns:
-            network_table = network_table.rename(columns={default_col:new_col})
-        elif new_col not in network_table.columns:
-            network_table[new_col] = [0 for _ in range(len(network_table))]
-    network_table = network_table.astype(type_dict)
-
+    network_table = network_table[
+        network_table["combined_score"] / 1000 > score_threshold
+    ]
     n = len(network_table)
     if n > MAX_NUM_LINKS:
         st.log.info(f"Too many links. Will filter them.")
-        network_table = network_table.sort_values(
-            [Evidences.stringdb_experiments.value, Evidences.any.value], ascending=False
+        network_table.sort_values(
+            ["experimental", "combined_score"], ascending=False, inplace=True
         )
         network_table = network_table.reset_index(drop=True)
         network_table = network_table.truncate(after=MAX_NUM_LINKS - 1)
         network_table.to_csv(filtered, sep=" ", index=False)
-        
+    elif n == 0:
+        st.log.info(f"No links found. Threshold is to small.")
+        return None, None
     alias_table = pandas.read_table(
         alias_file,
         header=0,
@@ -147,9 +120,8 @@ def gen_graph(
     """
 
     def extract_nodes(
-        # idx: int,
-        # identifier: str,
-        node:dict,
+        idx: int,
+        identifier: str,
         alias_table: pandas.DataFrame,
         description_table: pandas.DataFrame,
     ) -> tuple[dict, int, pandas.DataFrame, pandas.DataFrame]:
@@ -195,14 +167,12 @@ def gen_graph(
 
             return gene_name[0]
 
-        # node = {}
-        # node[NT.id] = int(idx)
-        # idx += 1
-        # node[NT.name] = identifier.split(".")[1]
+        node = {}
+        node[NT.id] = int(idx)
+        idx += 1
+        node[NT.name] = identifier.split(".")[1]
 
         # get uniprot id(s)
-        identifier = node[NT.name]
-        node[NT.name] = node[NT.name].split(".")[1]
         alias = alias_table.loc[alias_table.index == identifier]
         if not alias.empty:
             alias.drop(identifier, axis=0)
@@ -213,73 +183,126 @@ def gen_graph(
 
         gene_name = extract_gene_name(alias)
         if gene_name:
-            node["gene_name"] = gene_name
+            node[NT.name] = gene_name
+            if not uniprot:
+                map_gene_name[node[NT.id]] = gene_name
 
-        # node[NT.species] = species
+        node[NT.species] = species
         annotation = description_table.at[identifier, "annotation"]
-
+        description_table = description_table.drop(identifier, axis=0)
         if annotation != "annotation not available":
             node[NT.description] = annotation
 
-        return node
+        return node, idx, alias_table, description_table
 
     species = Organisms.get_scientific_name(organism)
     taxid = Organisms.get_tax_ids(organism)
 
+    ev_columns = [
+        "neighborhood",
+        "fusion",
+        "cooccurence",
+        "coexpression",
+        "experimental",
+        "database",
+        "textmining",
+    ]
     if last_link is None:
         last_link = len(network_table)
     else:
         if last_link > len(network_table):
             last_link = len(network_table)
 
+    color_scheme = Evidences.get_default_scheme()
+    l_lays = {
+        ev: [] for ev in color_scheme
+    }  # list for every link contained in this layout
+
+    all_links = []  # All links with a score over the threshold
+    map_gene_name = {}  # Map from node id to gene name
+
     nodes_in = {}  # Nodes to be considered for layout calculation
     links_in = []  # Links to be considered for layout calculation
+    next_id = 0  # Next id to be assigned to a node
+    link_idx = 0
     G = nx.Graph()
     mapping_time = 0
+    for idx, row in network_table.iterrows():
+        if idx >= last_link:
+            break
+        start = row.get("protein1")
+        end = row.get("protein2")
+        if start is None or end is None:
+            continue
 
-    network_table = network_table[
-        network_table[LiT.start].notna() & network_table[LiT.end].notna()
-    ]
-    network_table[[ev.value for ev in Evidences]] = network_table[[ev.value for ev in Evidences]].div(1000)
-    
-    network_table["in"] = network_table.apply(
-        lambda x: x[Evidences.stringdb_experiments.value] > 0, axis=1
-    )
+        for identifier in [start, end]:
+            if identifier not in nodes_in:
+                t1 = time()
+                node, next_id, alias_table, description_table = extract_nodes(
+                    next_id, identifier, alias_table, description_table
+                )
+                mapping_time += time() - t1
+                nodes_in[identifier] = node
 
+        link = {
+            LiT.id: link_idx,
+            LiT.start: nodes_in[start][NT.id],
+            LiT.end: nodes_in[end][NT.id],
+            "any": int(row.get("combined_score")) / 1000,
+        }
+        for key in ev_columns:
+            value = int(row.get(key))
+            if value / 1000 > 0.0:
+                if key == "experimental":
+                    key = Evidences.stringdb_experiments.value
+                elif key == "database":
+                    key = Evidences.stringdb_databases.value
+                else:
+                    key = f"stringdb_{key}"
+                link[key] = value / 1000
 
-    nodes = pandas.DataFrame(columns=[NT.name, NT.species, NT.description])
-    concat = pandas.concat([network_table[LiT.start], network_table[LiT.end]])
-    nodes[NT.name] = concat.unique()
-    nodes[NT.species] = species
-    nodes = nodes.apply(extract_nodes, axis=1,args=(alias_table, description_table))
-    def get_index(elem):
-        index = nodes.index[nodes[NT.name] == elem.split(".")[1]]
-        return index[0]
-    
-    network_table[LiT.start] = network_table[LiT.start].apply(get_index)
-    network_table[LiT.end]= network_table[LiT.end].apply(get_index)
+        # Only add experimental proven edges for layout calculation
+        if link.get(Evidences.stringdb_experiments.value):
+            links_in.append(
+                (
+                    link[LiT.start],
+                    link[LiT.end],
+                    link[Evidences.stringdb_experiments.value],
+                )
+            )
+            l_lays[Evidences.stringdb_experiments.value].append(idx)
+        # Add all edges the their respective ev list for link layouts.
+        for ev in [
+            e for e in l_lays if e not in [Evidences.stringdb_experiments.value]
+        ]:
+            if ev in link:
+                l_lays[ev].append(link_idx)
+
+        link_idx += 1
+
+        all_links.append(link)
 
     st.log.debug(f"Extracting node information took {mapping_time} seconds.")
 
+    nodes_in = {v[NT.id]: v for k, v in nodes_in.items()}
 
     G.add_weighted_edges_from(links_in)
-    G.add_nodes_from([(idx,node.dropna()) for idx, node in nodes.iterrows()])
+    G.add_nodes_from([(k, v) for k, v in nodes_in.items()])
 
     # Map gene names to uniprot ids and add them to the nodes.
-    no_uniprot = nodes[nodes["uniprot"].isna() & nodes["gene_name"].notna()]
+    G = map_gene_names_to_uniprot(G, map_gene_name, taxid)
 
-    G = map_gene_names_to_uniprot(G, no_uniprot, taxid)
-
-    write_network(clean_name, G, network_table, _dir)
+    output = [G, l_lays, all_links]
+    write_network(clean_name, output, _dir)
 
     st.log.info(
         f"Network for {organism} has {len(G.nodes)} nodes and {len(G.edges)} edges."
     )
 
-    return G
+    return G, l_lays
 
 
-def map_gene_names_to_uniprot(G: nx.Graph, missing_annot: dict, taxid: str) -> nx.Graph:
+def map_gene_names_to_uniprot(G: nx.Graph, map_gene_name: dict, taxid: str) -> nx.Graph:
     """Maps gene names to uniprot ids and adds them to the nodes.
 
     Args:
@@ -290,12 +313,12 @@ def map_gene_names_to_uniprot(G: nx.Graph, missing_annot: dict, taxid: str) -> n
     Returns:
         nx.Graph: Same graph as the input graph, but with updated uniprot ids.
     """
-    if not missing_annot.empty:
+    if len(map_gene_name) > 0:
         st.log.debug("Mapping gene names to uniprot ids...")
-        # invert_map = {v: k for k, v in map_gene_name.items()}
+        invert_map = {v: k for k, v in map_gene_name.items()}
 
         query_results = map_uniprot.query_gen_names_uniport(
-            taxid, list(missing_annot["gene_name"])
+            taxid, list(map_gene_name.values())
         )
         with open("query_results.json", "w") as f:
             json.dump(query_results, f)
@@ -313,15 +336,13 @@ def map_gene_names_to_uniprot(G: nx.Graph, missing_annot: dict, taxid: str) -> n
                     primaryAccession = entry["to"].get("primaryAccession")
             else:
                 primaryAccession = entry["to"]
-            idx = missing_annot.index[missing_annot["gene_name"] == gene_name]
-            G.nodes[idx]["uniprot"] = primaryAccession
+
+            G.nodes[invert_map[gene_name]]["uniprot"] = primaryAccession
 
     return G
 
 
-def write_network(
-    organism: str, graph: list, processed_network: pandas.DataFrame, _dir: str
-) -> None:
+def write_network(organism: str, data: list, _dir: str) -> None:
     """Write the graph to a json file. And write the l_lays to a json file.
 
     Args:
@@ -332,8 +353,9 @@ def write_network(
     path = os.path.join(_dir, organism)
     os.makedirs(path, exist_ok=True)
     t1 = time()
-    pickle.dump(graph, open(f"{path}/network.pickle", "wb"))
-    processed_network.to_pickle(f"{path}/links.pickle")
+    pickle.dump(data[0], open(f"{path}/network.pickle", "wb"))
+    pickle.dump(data[1], open(f"{path}/lays.pickle", "wb"))
+    pickle.dump(data[2], open(f"{path}/links.pickle", "wb"))
     st.log.debug(f"Writing pickle data took {time() - t1} seconds.")
 
 
@@ -344,7 +366,6 @@ def construct_layouts(
     variables: dict = None,
     overwrite: bool = False,
     overwrite_links: bool = False,
-    threshold: float = 0.4,
 ) -> None:
     """Constructs the layouts for the network and compress them into a tar file.
 
@@ -383,12 +404,11 @@ def construct_layouts(
         t1 = time()
         path = os.path.join(_dir, organism)
         G = pickle.load(open(f"{path}/network.pickle", "rb"))
-        # l_lays = pickle.load(open(f"{path}/lays.pickle", "rb"))
-        # all_links = pickle.load(open((f"{path}/links.pickle"), "rb"))
-        all_links = pandas.read_pickle(f"{path}/links.pickle")
+        l_lays = pickle.load(open(f"{path}/lays.pickle", "rb"))
+        all_links = pickle.load(open((f"{path}/links.pickle"), "rb"))
         st.log.debug(f"Loading data from pickles took {time() - t1}) seconds.")
 
-        return G, all_links
+        return G, l_lays, all_links
 
     def write_node_layout(
         organism: str, G: nx.Graph, layouts: dict, _dir: str, overwrite: bool = False
@@ -425,7 +445,7 @@ def construct_layouts(
             st.log.info(f"Node layout for {organism} has been written to {file_name}.")
 
     def write_link_layouts(
-        organism: str, all_links: pandas.DataFrame, _dir: str, overwrite: bool = False,threshold:float=0.4,
+        organism: str, l_lays: dict, all_links: list, _dir: str, overwrite: bool = False
     ) -> None:
         """Will write the link layouts to a csv file with the following format:
         start,end,r,g,b,a. File name is: {organism}_{ev}.csv located in projects folder.
@@ -439,44 +459,39 @@ def construct_layouts(
         color_scheme = Evidences.get_default_scheme()
         _directory = os.path.join(_dir, organism)
         os.makedirs(_directory, exist_ok=True)
-        for ev in color_scheme:
+        for ev in l_lays:
             file_name = os.path.join(_directory, f"{ev}.csv")
             if os.path.isfile(file_name) and not overwrite:
                 st.log.info(
                     f"link layout for evidence {ev} for {organism} already exists. Skipping."
                 )
                 continue
-
-            def get_link_colors(elem, ev):
+            output = ""
+            for l, idx in enumerate(l_lays[ev]):
+                try:
+                    link = all_links[idx]
+                except IndexError:
+                    print(l, idx)
+                    raise IndexError
+                start = link.get(LiT.start)
+                end = link.get(LiT.end)
                 color = color_scheme[ev]
 
-                if ev in elem:
-                    if elem[ev]> threshold:
-                        alpha = int(color[3] * elem.get(ev))
-                    else:
-                        alpha = 0
+                if ev in link:
+                    alpha = int(color[3] * link.get(ev))
                 else:
                     alpha = 255
 
                 color = color[:3] + tuple((alpha,))
-                elem[ev] = color
-                return elem
-            
-            all_links = all_links.apply(get_link_colors, axis=1,args=(ev,))
-            ev_text = all_links[all_links[ev].apply(lambda x: x[3] > 0)]
-            ev_text = ev_text[[ev, LiT.start, LiT.end]]
-            if not ev_text.empty:
-                ev_text["r"] = ev_text[ev].apply(lambda x: x[0])
-                ev_text["g"] = ev_text[ev].apply(lambda x: x[1])
-                ev_text["b"] = ev_text[ev].apply(lambda x: x[2])
-                ev_text["a"] = ev_text[ev].apply(lambda x: x[3])
-            ev_text = ev_text.drop(columns=ev)
-            ev_text.to_csv(file_name, index=False,header=False)
+                color = ",".join([str(c) for c in color])
+                output += f"{start},{end},{color}\n"
+            with open(file_name, "w") as f:
+                f.write(output)
             st.log.info(
                 f"link layout for evidence {ev} for {organism} has been written to {file_name}."
             )
 
-    G, all_links = read_network(organism, _dir)
+    G, l_lays, all_links = read_network(organism, _dir)
     tmp = layout_algo.copy()
     for layout in tmp:
         file_name = os.path.join(_dir, organism, f"{layout}_nodes.csv")
@@ -491,5 +506,5 @@ def construct_layouts(
             )
     layouts = gen_layout(G, layout_algo, variables)
     st.log.info(f"Generated layouts. Used algorithms: {layout_algo}.")
-    write_link_layouts(organism, all_links, _dir, overwrite_links,threshold)
+    write_link_layouts(organism, l_lays, all_links, _dir, overwrite_links)
     write_node_layout(organism, G, layouts, _dir, overwrite=overwrite)

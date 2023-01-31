@@ -2,7 +2,6 @@ import glob
 import json
 import os
 import shutil
-from time import time
 
 import requests
 
@@ -30,10 +29,9 @@ def upload(
     for f in glob.glob(os.path.join(src_dir, "*")):
         if f.endswith("nodes.csv"):
             layouts.append(f)
-        for l in [ev.value for ev in Evidences if ev.value != "any"]:
+        for l in [ev.value for ev in Evidences][::-1]:
             if f.endswith(f"{l}.csv"):
                 link_layouts.append(f)
-    link_layouts.append(os.path.join(src, organism, "any.csv"))
 
     project_name = organism
     data = {"namespace": "New", "new_name": project_name}
@@ -48,7 +46,7 @@ def upload(
         st.log.info(f"Uploaded network for {organism}.")
         st.log.debug(f"Response: {r}")
 
-        network = os.path.join(src_dir, "network.json.gzip")
+        network = os.path.join(src_dir, "links.pickle")
         pfile_path = os.path.join(st._PROJECTS_PATH, project_name, "pfile.json")
 
         with open(pfile_path, "r") as pfile:
@@ -62,7 +60,7 @@ def upload(
 
         # Move network.json.gzip to project folder
         shutil.copyfile(
-            network, os.path.join(st._PROJECTS_PATH, project_name, "network.json.gzip")
+            network, os.path.join(st._PROJECTS_PATH, project_name, "links.pickle")
         )
 
     except requests.exceptions.ConnectionError:

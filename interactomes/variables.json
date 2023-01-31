@@ -1,308 +1,356 @@
 {
-    "H.sapiens": {
-        "spring": {
-            "-opd": 0,
-            "-it": 50,
-            "-spth": 0.0001
-        },
-        "cg_global_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_gloabl_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_local_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_global_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        },
-        "cg_local_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        }
+  "H.sapiens": {
+    "spring": {
+      "-opd": 0,
+      "-it": 50,
+      "-spth": 0.0001,
+      "-thr": 0.4
     },
-    "A.thaliana": {
-        "spring": {
-            "-opd": 0,
-            "-it": 50,
-            "-spth": 0.0001
-        },
-        "cg_global_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_gloabl_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_local_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_global_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        },
-        "cg_local_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        }
+    "cg_global_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
     },
-    "D.melanogaster": {
-        "spring": {
-            "-opd": 0,
-            "-it": 50,
-            "-spth": 0.0001
-        },
-        "cg_global_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_gloabl_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_local_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_global_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        },
-        "cg_local_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        }
+    "cg_gloabl_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
     },
-    "C.elegans": {
-        "spring": {
-            "-opd": 0,
-            "-it": 50,
-            "-spth": 0.0001
-        },
-        "cg_global_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_gloabl_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_local_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_global_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        },
-        "cg_local_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        }
+    "cg_local_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
     },
-    "E.coli": {
-        "spring": {
-            "-opd": 0.2,
-            "-it": 100,
-            "-spth": 0.0001
-        },
-        "cg_global_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_gloabl_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_local_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_global_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        },
-        "cg_local_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        }
+    "cg_global_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
     },
-    "S.cerevisiae": {
-        "spring": {
-            "-opd": 0,
-            "-it": 50,
-            "-spth": 0.0001
-        },
-        "cg_global_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_gloabl_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_local_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_global_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        },
-        "cg_local_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        }
-    },
-    "D.rerio": {
-        "spring": {
-            "-opd": 0,
-            "-it": 50,
-            "-spth": 0.0001
-        },
-        "cg_global_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_gloabl_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_local_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_global_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        },
-        "cg_local_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        }
-    },
-    "M.musculus": {
-        "spring": {
-            "-opd": 0,
-            "-it": 50,
-            "-spth": 0.0001
-        },
-        "cg_global_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_gloabl_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_local_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_global_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        },
-        "cg_local_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        }
-    },
-    "R.norvegicus": {
-        "spring": {
-            "-opd": 0,
-            "-it": 50,
-            "-spth": 0.0001
-        },
-        "cg_global_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_gloabl_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_local_umap": {
-            "-nn": 10,
-            "-spr": 1.0,
-            "-md": 0.9
-        },
-        "cg_global_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        },
-        "cg_local_tsne": {
-            "-prp": 50,
-            "-den": 12,
-            "-lra": 200,
-            "-st": 250
-        }
+    "cg_local_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
     }
+  },
+  "A.thaliana": {
+    "spring": {
+      "-opd": 0,
+      "-it": 50,
+      "-spth": 0.0001,
+      "-thr": 0.4
+    },
+    "cg_global_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_gloabl_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_local_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_global_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    },
+    "cg_local_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    }
+  },
+  "D.melanogaster": {
+    "spring": {
+      "-opd": 0,
+      "-it": 50,
+      "-spth": 0.0001,
+      "-thr": 0.4
+    },
+    "cg_global_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_gloabl_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_local_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_global_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    },
+    "cg_local_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    }
+  },
+  "C.elegans": {
+    "spring": {
+      "-opd": 0,
+      "-it": 50,
+      "-spth": 0.0001,
+      "-thr": 0.4
+    },
+    "cg_global_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_gloabl_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_local_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_global_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    },
+    "cg_local_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    }
+  },
+  "E.coli": {
+    "spring": {
+      "-opd": 0.2,
+      "-it": 100,
+      "-spth": 0.0001,
+      "-thr": 0.4
+    },
+    "cg_global_umap": {
+      "-nn": 100,
+      "-spr": 1.0,
+      "-md": 0.4,
+      "-thr": 0.4
+    },
+    "cg_local_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_global_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    },
+    "cg_local_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    }
+  },
+  "S.cerevisiae": {
+    "spring": {
+      "-opd": 0,
+      "-it": 50,
+      "-spth": 0.0001,
+      "-thr": 0.4
+    },
+    "cg_global_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_gloabl_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_local_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_global_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    },
+    "cg_local_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    }
+  },
+  "D.rerio": {
+    "spring": {
+      "-opd": 0,
+      "-it": 50,
+      "-spth": 0.0001,
+      "-thr": 0.4
+    },
+    "cg_global_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_gloabl_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_local_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_global_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    },
+    "cg_local_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    }
+  },
+  "M.musculus": {
+    "spring": {
+      "-opd": 0,
+      "-it": 50,
+      "-spth": 0.0001,
+      "-thr": 0.4
+    },
+    "cg_global_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_gloabl_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_local_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_global_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    },
+    "cg_local_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    }
+  },
+  "R.norvegicus": {
+    "spring": {
+      "-opd": 0,
+      "-it": 50,
+      "-spth": 0.0001,
+      "-thr": 0.4
+    },
+    "cg_global_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_gloabl_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_local_umap": {
+      "-nn": 10,
+      "-spr": 1.0,
+      "-md": 0.9,
+      "-thr": 0.4
+    },
+    "cg_global_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    },
+    "cg_local_tsne": {
+      "-prp": 50,
+      "-den": 12,
+      "-lra": 200,
+      "-st": 250,
+      "-thr": 0.4
+    }
+  }
 }

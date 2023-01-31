@@ -69,13 +69,20 @@ def gen_name_suid_map(source_net: dict) -> tuple[dict, dict]:
     all_dis_names = {}
     all_canoncial_names = {}
     all_shared_names = {}
+    all_shorts = {}
     for s_node in source_net[VRNE.nodes]:
         all_dis_names[s_node[NT.name]] = s_node
         if ST.stringdb_canoncial_name in s_node:
             all_canoncial_names[s_node[ST.stringdb_canoncial_name]] = s_node
         if ST.stringdb_shared_name in s_node:
             all_shared_names[s_node[ST.stringdb_shared_name]] = s_node
-    return all_dis_names, all_canoncial_names, all_shared_names
+            try:
+                all_shorts[s_node[ST.stringdb_shared_name].split(".")[1]] = s_node
+            except Exception:
+                pass
+            # FIXME: this is a hack to get the short name of the protein
+        
+    return all_dis_names, all_canoncial_names, all_shared_names, all_shorts
 
 
 def gen_link_maps(source_net: dict, target_net: dict) -> tuple[dict, dict]:
@@ -102,6 +109,7 @@ def map_nodes(
     all_dis_names: dict[str, dict],
     all_canoncial_names: dict[str, dict],
     all_shared_names: dict[str, dict],
+    all_shorts: dict[str, dict],
     target: dict,
 ) -> tuple[dict, dict]:
     """Maps nodes from the target node to the source nodes. If a node is found, the target node receives the color of the source node. Furthermore, all annotation which the source nodes add, will be added to the target node.
@@ -119,27 +127,28 @@ def map_nodes(
         tuple: first element is the target network, second element is the source node.
     """
     t_node[NT.node_color] = _MAPPING_ARBITARY_COLOR
-    node_identifiers = t_node[NT.name].split(",")
     s_node = None
-    for identifier in node_identifiers:
-        if identifier != "NA":
-            if identifier in all_dis_names:
-                s_node = all_dis_names[identifier]
+    for identifier in  t_node["attrlist"]:
+        if identifier == "":
+            continue
+        if identifier in all_dis_names:
+            s_node = all_dis_names[identifier]
+        elif identifier in all_canoncial_names:
+            s_node = all_canoncial_names[identifier]
+        elif identifier in all_shared_names:
+            s_node = all_shared_names[identifier]
+        elif identifier in all_shorts:
+            s_node = all_shorts[identifier]
 
-            elif identifier in all_canoncial_names:
-                s_node = all_canoncial_names[identifier]
-            elif identifier in all_shared_names:
-                s_node = all_shared_names[identifier]
+        if s_node:
+            t_node[NT.node_color] = s_node[NT.layouts][0][LT.color]
 
-            if s_node:
-                t_node[NT.node_color] = s_node[NT.layouts][0][LT.color]
-
-                for k, v in s_node.items():
-                    if (
-                        k not in t_node
-                    ):  # Add all keys which are not yet in the node information
-                        t_node[k] = v
-                break
+            for k, v in s_node.items():
+                if (
+                    k not in t_node
+                ):  # Add all keys which are not yet in the node information
+                    t_node[k] = v
+            break
     target[VRNE.nodes][idx] = t_node
     return target, s_node
 
@@ -159,7 +168,7 @@ def map_source_to_target(
         target_project (_type_): project name from which the target network ordinates from.
         project_name (str, optional): Project name of the mapping. Defaults to "PPI_out.VRNetz".
     """
-    all_dis_names, all_canoncial_names, all_shared_names = gen_name_suid_map(source)
+    all_dis_names, all_canoncial_names, all_shared_names,all_shorts = gen_name_suid_map(source)
     all_source_links, all_target_links = gen_link_maps(source, target)
     updated_nodes = {}
     # ppi_to_suid = {}
@@ -167,7 +176,7 @@ def map_source_to_target(
     # log.debug(f"{all_canoncial_names.keys()}")
     for idx, t_node in enumerate(target[VRNE.nodes]):
         target, s_node = map_nodes(
-            idx, t_node, all_dis_names, all_canoncial_names, all_shared_names, target
+            idx, t_node, all_dis_names, all_canoncial_names, all_shared_names, all_shorts,target
         )
         if s_node:
             updated_nodes[s_node[NT.id]] = t_node

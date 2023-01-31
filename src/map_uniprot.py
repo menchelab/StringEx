@@ -229,23 +229,24 @@ def construct_nodes(results, nodes, nodes_map, nodes_f, secondary=False):
     return nodes
 
 
-def main(taxId, nodes_f,source_db="Gene_Name", target_db="UniProtKB"):
+def main(taxId, nodes_f, source_db="Gene_Name", target_db="UniProtKB"):
     with open(nodes_f, "r") as f:
         nodes = json.load(f)
     nodes_map = {}
     for idx, node in enumerate(nodes["nodes"]):
         nodes_map[node["n"]] = idx
-        results = query_gen_names_uniport(taxId,list(nodes_map.keys()))
+        results = query_gen_names_uniport(taxId, list(nodes_map.keys()))
         nodes = construct_nodes(results, nodes, nodes_map, nodes_f)
         return nodes
 
-def query_gen_names_uniport(taxId:str, ids:list[str]):
+
+def query_gen_names_uniport(taxId: str, ids: list[str]):
     job_id = submit_id_mapping(
-            from_db="Gene_Name",
-            to_db="UniProtKB",
-            ids=ids,
-            taxId=taxId,
-        )
+        from_db="Gene_Name",
+        to_db="UniProtKB",
+        ids=ids,
+        taxId=taxId,
+    )
     if check_id_mapping_results_ready(job_id):
         link = get_id_mapping_results_link(job_id)
         results = get_id_mapping_results_search(link)
@@ -254,7 +255,7 @@ def query_gen_names_uniport(taxId:str, ids:list[str]):
         # results = get_id_mapping_results_stream(link)
         print("Results are here!")
     return results
-    
+
 
 class Databases:
     gene_name = "Gene_Name"

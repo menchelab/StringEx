@@ -135,10 +135,14 @@ def string_preview():
         data=json.dumps(testNetwork),
         pfile=json.dumps(thispfile),
     )
+
+
 @string_pages.route("/string", methods=["GET"])
 def uploadString():
     prolist = SVRNetzer.uploader.listProjects()
     return render_template("string_upload.html", namespace=prolist)
+
+
 @string_pages.route("/evidences", methods=["GET"])
 def string_ev():
     username = request.args.get("usr")

@@ -69,6 +69,7 @@ class VRNetzElements:
     links = "links"
     node_layouts = "layouts"  # edge layout
     link_layouts = "l_layout"  # link layout
+    network = "network"
 
 
 class LayoutAlgroithms:

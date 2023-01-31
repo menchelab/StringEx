@@ -5,7 +5,7 @@ import os
 import shutil
 import time
 import traceback
-
+import pickle
 import flask
 
 from . import util as string_util
@@ -15,7 +15,7 @@ from .layouter import Layouter
 from .map_small_on_large import map_source_to_target
 from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, log
 from .uploader import Uploader
-
+from .classes import VRNetzElements as VRNE
 
 def VRNetzer_upload_workflow(
     network: dict,
@@ -70,7 +70,7 @@ def VRNetzer_upload_workflow(
     )
     log.debug(f"Applying layout algorithm in {time.time()-s1} seconds.")
     network = layouter.network
-    
+
     # upload network
     uploader = Uploader(
         network,
@@ -87,9 +87,6 @@ def VRNetzer_upload_workflow(
         with open(outfile, "w") as f:
             json.dump(network, f)
         log.info(f"Saved network as {outfile}")
-    if tags.get("stringify"):
-        uploader.stringify_project()
-        log.debug("Layouts of project has been stringified.")
     log.debug(f"Total process took {time.time()-s1} seconds.")
     log.info("Project has been uploaded!")
     html = (
@@ -124,15 +121,18 @@ def VRNetzer_map_workflow(
     f_organ = os.path.join(_PROJECTS_PATH, f_organ)
 
     nodes_file = os.path.join(f_organ, "nodes.json")
-    network_file = os.path.join(f_organ, "network.json.gzip")
+    links_file = os.path.join(f_organ, "links.pickle")
 
     with open(nodes_file, "r") as json_file:
         trg_network = json.load(json_file)
-    with gzip.open(network_file, "r") as fin:
-        json_bytes = fin.read()
-        json_str = json_bytes.decode("utf-8")
-        trg_network["links"] = json.loads(json_str)["all_links"]
+
+    trg_network["links"] = pickle.load(open(links_file, "rb"))
+    trg_network["links"]["id"] = trg_network["links"].index
+    # trg_network["links"] = trg_network["links"].to_dict("records")
+
+    # trg_network["link"] = trg_network["links"].drop("in",axis=0)
     src_network = Layouter.gen_evidence_layouts(src_network)
+    print(src_network[)
     if project_name is None or project_name == "":
         src_name = os.path.split(src_filename)[1].split(".")[0]
         trg_name = organism.replace(".", "_")
@@ -216,10 +216,10 @@ def VRNetzer_send_network_workflow(request: dict):
             )
     output = output.split("<br>")
     output.pop(0)
-    for idx,line in enumerate(output):
+    for idx, line in enumerate(output):
         string_start = line.find("</a>")
         end_string = line.find("Texture")
-        output[idx] = line[string_start+4:end_string-1].replace(" ","_")  
+        output[idx] = line[string_start + 4 : end_string - 1].replace(" ", "_")
     return output[1:]
 
 
@@ -247,7 +247,7 @@ def apply_layout_workflow(
             layout_algo = "spring"
         log.info(f"Applying algorithm {layout_algo} ...")
         layout = layouter.apply_layout(layout_algo, algo_variables)
-        algo,layout = next(iter(layout.items()))
+        algo, layout = next(iter(layout.items()))
         if algo != layout_name:
             layout_name = algo
         layouter.add_layout_to_vrnetz(layout, layout_name)
@@ -285,9 +285,6 @@ def create_project_workflow(
         with open(outfile, "w") as f:
             json.dump(network, f)
         log.info(f"Saved network as {outfile}")
-    if stringifiy and cy_layout:
-        uploader.stringify_project()
-        log.info(f"Layouts stringified: {project_name}")
     log.info(f"Project created: {project_name}")
     return state
 
