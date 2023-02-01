@@ -1,6 +1,7 @@
 import os
 from src.classes import Organisms,LayoutAlgroithms
 import argparse
+from src import settings as st
 
 _SOURCE_FILES = os.path.join(".", "string_interactomes")
 _OUTPUT_PATH = os.path.join(".", "csv", "string_interactomes")
@@ -205,7 +206,7 @@ def parse_args(args=None):
         "-ml",
         type=int,
         help="Filter out every links that is more than this based on experimental score and combined score.",
-        default=264144,
+        default=st.MAX_NUM_LINKS,
     )
     if args is None:
         return parser.parse_args()

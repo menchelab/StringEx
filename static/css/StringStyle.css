@@ -42,13 +42,15 @@ font-family: 'Venus', sans-serif;*/
 
 .stringEvidenceButton{
     width: 100%;
-    height: 7vh;
+    max-height: 7.5vh;
+    min-height: 6.5vh;
     border-width: 0.8vh;
     border-radius: 20px;
+    border-style: solid;
     border-color: rgba(2, 77, 114, 0.45);
     font-family: 'Michr', sans-serif;
-
-    font-size: 20px;
+    font-weight: bold;
+    font-size: 3.2vw;
     margin: 2px;
     font-style: normal;
     color: white;

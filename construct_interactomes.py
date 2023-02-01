@@ -104,6 +104,7 @@ def workflow(parser):
                     parser.overwrite,
                     parser.overwrite_links,
                     parser.threshold,
+                    parser.max_links,
                 )
 
             if parser.benchmark:

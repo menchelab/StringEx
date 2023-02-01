@@ -107,6 +107,14 @@ class Evidences(Enum):
     stringdb_similarity = "stringdb_similarity"
 
     @staticmethod
+    def get_all_evidences() -> list[str]:
+        return [e.value for e in Evidences]
+
+    @staticmethod
+    def get_all_evidences_except_any() -> list[str]:
+        return [e.value for e in Evidences if e != Evidences.any]
+
+    @staticmethod
     def get_default_scheme() -> dict:
         """Return a dictionary with the color scheme for each evidence.
 

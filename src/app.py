@@ -68,7 +68,7 @@ def string_ex_receive_network_json():
 
 
 @blueprint.route("/resultPage/<project>/<layouts>", methods=["GET"])
-def string_ex_result_page(project, layouts):
+def string_ex_result_page(project, layouts=None):
     """Route to the results page project depended."""
     username = util.generate_username()
     layouts = layouts.split(",")
@@ -81,21 +81,3 @@ def string_ex_result_page(project, layouts):
         pfile=json.dumps(GD.pfile),
         sessionData=json.dumps(GD.sessionData),
     )
-
-
-# @blueprint.route("/upload", methods=["GET", "POST"])
-# def string_ex_upload():
-#     """Route to the STRING Uploader."""
-#     return flask.render_template(
-#         "string_upload_tab.html",
-#         namespaces=uploader.listProjects(),
-#         sessionData=json.dumps(GD.sessionData),
-#     )
-
-
-# @blueprint.route("/map", methods=["GET", "POST"])
-# def string_ex_map():
-#     """Route to the STRING Uploader."""
-#     return flask.render_template(
-#         "string_map_tab.html", sessionData=json.dumps(GD.sessionData)
-#     )

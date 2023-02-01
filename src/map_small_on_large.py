@@ -2,6 +2,8 @@ import glob
 import json
 import os
 import shutil
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 from PIL import Image
 
@@ -20,26 +22,8 @@ from .settings import (
     log,
 )
 from .uploader import Uploader
+import pandas as pd
 
-# def process_edge(source, sink, target_edge, source_edges):
-#     edge_found = False
-#     for id, edge in source_edges.items():
-#         if (edge[EdgeTags.source] == source and edge[EdgeTags.sink] == sink) or (
-#             edge[EdgeTags.source] == sink and edge[EdgeTags.sink] == source
-#         ):
-#             edge_found = True
-#             for k, v in edge.items():
-#                 if k not in edge:
-#                     edge[k] = v
-#             target_edge = edge
-#             print("FOUND")
-#     if not edge_found:
-#         target_edge = None
-#         # next_id = len(edges)
-#         # source_edge[EdgeTags.source] = source
-#         # source_edge[EdgeTags.sink] = sink
-#         # target_net["edges"][next_id] = source_edge
-#     return target_edge
 
 
 def map_links(t_link: dict, s_link: dict) -> dict:
@@ -81,7 +65,7 @@ def gen_name_suid_map(source_net: dict) -> tuple[dict, dict]:
             except Exception:
                 pass
             # FIXME: this is a hack to get the short name of the protein
-        
+
     return all_dis_names, all_canoncial_names, all_shared_names, all_shorts
 
 
@@ -128,7 +112,7 @@ def map_nodes(
     """
     t_node[NT.node_color] = _MAPPING_ARBITARY_COLOR
     s_node = None
-    for identifier in  t_node["attrlist"]:
+    for identifier in t_node["attrlist"]:
         if identifier == "":
             continue
         if identifier in all_dis_names:
@@ -168,201 +152,126 @@ def map_source_to_target(
         target_project (_type_): project name from which the target network ordinates from.
         project_name (str, optional): Project name of the mapping. Defaults to "PPI_out.VRNetz".
     """
-    all_dis_names, all_canoncial_names, all_shared_names,all_shorts = gen_name_suid_map(source)
-    all_source_links, all_target_links = gen_link_maps(source, target)
-    updated_nodes = {}
-    # ppi_to_suid = {}
-    # log.debug(f"{all_dis_names.keys()}")
-    # log.debug(f"{all_canoncial_names.keys()}")
-    for idx, t_node in enumerate(target[VRNE.nodes]):
-        target, s_node = map_nodes(
-            idx, t_node, all_dis_names, all_canoncial_names, all_shared_names, all_shorts,target
-        )
-        if s_node:
-            updated_nodes[s_node[NT.id]] = t_node
-            target[VRNE.nodes][idx] = t_node
-    if len(updated_nodes) == 0:
+    source
+    target
+    # map all links from source to links on target and expand the target links
+    src_nodes = pd.DataFrame(source[VRNE.nodes])
+    target_nodes = pd.DataFrame(target[VRNE.nodes])
+
+    def get_short(x):
+        try:
+            return x.split(".")[1]
+        except:
+            return x
+
+    target_nodes["n"] = target_nodes["attrlist"].apply(
+        lambda x: x[0] if isinstance(x, list) else pd.NA
+    )
+    target_nodes["uniprot"] = target_nodes["attrlist"].apply(
+        lambda x: [x[1]] if isinstance(x, list) and len(x) > 1 else pd.NA
+    )
+    target_nodes["description"] = target_nodes["attrlist"].apply(
+        lambda x: x[2] if isinstance(x, list) and len(x) > 2 and x[2] != "" else pd.NA
+    )
+
+    if "stringdb_database identifier" in src_nodes:
+        src_nodes["short"] = src_nodes["stringdb_database identifier"].apply(get_short)
+    if "stringdb_description" in src_nodes:
+        src_nodes = src_nodes.rename(columns={"stringdb_description": "description"})
+
+    def get_id_on_taget(x, target_nodes):
+        tests = []
+        for identifier in [
+            "name",
+            "display_name",
+            "stringdb_database identifier",
+            "short",
+            "stringdb_canonical name",
+            "shared name",
+            "uniprot",
+        ]:
+            if identifier in x:
+                tests.append(identifier)
+        s_node = pd.NA
+        while s_node is pd.NA and len(tests) > 0:
+            query = tests.pop()
+            s_node = target_nodes["attrlist"].apply(lambda y: x[query] in y)
+            if s_node.any():
+                s_node = int(s_node[s_node == True].index[0])
+                return s_node
+            else:
+                s_node = pd.NA
+        return s_node
+
+    src_nodes["target_id"] = src_nodes.apply(
+        get_id_on_taget, axis=1, args=(target_nodes,)
+    )
+
+    src_nodes["c"] = src_nodes.apply(lambda x: x["layouts"][0][NT.node_color] if "layouts" in x else x[NT.node_color], axis=1)
+    if "layouts" in src_nodes.columns:
+        src_nodes = src_nodes.drop(columns="layouts")
+
+    # merge reindex into target_nodes 
+    updated = src_nodes[src_nodes["target_id"].notna()]
+    cols =[c for c in src_nodes.columns if c not in target_nodes.columns or c in ["uniprot,description"]]
+    new_cols = updated[cols]
+    new_cols.index = new_cols["target_id"]
+    target_nodes = target_nodes.merge(new_cols,how="outer",left_index=True,right_index=True)
+    target_nodes["c"] = target_nodes["c"].fillna({ i:_MAPPING_ARBITARY_COLOR for i in target_nodes.index})
+
+    if len(updated) == 0:
         log.error("No nodes could be mapped. Aborting")
         return (
             f'<a style="color:red;">ERROR </a>: No nodes could be mapped. Is this the correct organism you want to map on? Aborting',
             500,
         )
-    # # Used when all unmapped nodes are also added with a calculated layout
-    # next_idx = idx + 1
-    # new_nodes = {}
-    # for s_node in source[VRNE.nodes]:
-    #     if s_node[NT.id] not in updated_nodes:
-    #         old_id = s_node[NT.id]
-    #         s_node[NT.id] = next_idx
-    #         next_idx += 1
-    #         new_nodes[old_id] = s_node
-    log.debug(f"Updated {len(updated_nodes)} nodes")
-    # log.debug(f"Will add {len(all_source_links)} new nodes")     # Used when all unmapped nodes are also added with a calculated layout
 
-    # Check all links in the source network, whether they contain nodes that can also be found in the target network. If so, add the link to the target network and update the ids to the ids of the target network.
+    log.debug(f"Updated {len(updated)} nodes")
+    src_links = pd.DataFrame(source[VRNE.links])
+    if ST.stringdb_score in src_links:
+        src_links = src_links.rename(columns={ST.stringdb_score: EV.any.value})
+    drops = [c for c in ["s_suid", "e_suid","SUID"] if c in src_links]
+    if len(drops) > 0:
+        src_links = src_links.drop(columns=drops)
+    target_links = pd.DataFrame(target[VRNE.links])
 
-    links_to_consider = {}
-    # new_links = {} # Used when all unmapped nodes are also added with a calculated layout
-    for link, data in all_source_links.items():
-        if link[0] in updated_nodes or link[1] in updated_nodes:
-            if link[0] in updated_nodes:
-                t_node = updated_nodes[link[0]]  # Node in the target network
-                updated = t_node[NT.id]
-                link = tuple((updated, link[1]))
-                data[LiT.start] = updated
-            if link[1] in updated_nodes:
-                t_node = updated_nodes[link[1]]  # Node in the target network
-                updated = t_node[NT.id]
-                link = tuple((link[0], updated))
-                data[LiT.end] = updated
-            links_to_consider[link] = data
-        # # Used when all unmapped nodes are also added with a calculated layout
-        # elif link[0] in new_nodes and link[1] in new_nodes:
-        #     if link[0] in new_nodes:
-        #         s_node = new_nodes[link[0]]
-        #         updated = s_node[NT.id]
-        #         link = tuple((updated, link[1]))
-        #         data[LiT.start] = updated
-        #     if link[1] in new_nodes:
-        #         s_node = new_nodes[link[1]]
-        #         updated = s_node[NT.id]
-        #         link = tuple((link[0], updated))
-        #         data[LiT.end] = updated
-        #     new_links[link] = data
-    nxt_idx = len(target[VRNE.links])
-    for idx, s_link in enumerate(links_to_consider):
-        if s_link in all_target_links:
-            t_link = all_target_links[s_link]
-            l_idx = t_link[LiT.id]
-            s_link = links_to_consider[s_link]
-            target[VRNE.links][l_idx] = map_links(t_link, s_link)
-            # log.debug(f"updated link:{l_idx}")
-        else:
-            if nxt_idx >= MAX_NUM_LINKS:
-                continue
-            s_link = links_to_consider[s_link]
-            s_link[LiT.id] = nxt_idx
-            # log.debug(f"Added link:{nxt_idx}")
-            target[VRNE.links].append(s_link)
-            nxt_idx += 1
-    # # Used when all unmapped nodes are also added with a calculated layout
-    # for _, data in new_links.items:
-    #     data[LiT.id] = nxt_idx
-    #     # log.debug(f"Added link:{nxt_idx}")
-    #     target[VRNE.links].append(data)
-    #     nxt_idx += 1
-    target = {VRNE.nodes: target[VRNE.nodes], VRNE.links: target[VRNE.links]}
-    target = Layouter.gen_evidence_layouts(target)
-    # nb = 0
-    # for link in target[VRNE.links]:
-    #     if EV.stringdb_neighborhood.value in link:
-    #         nb += 1
+    def check_if_in_target(x, src_nodes):
+        start_node = src_nodes[src_nodes["id"] == x[LiT.start]]
+        end_node = src_nodes[src_nodes["id"] == x[LiT.end]]
+        if start_node["target_id"] is not pd.NA and end_node["target_id"] is not pd.NA:
+            x[LiT.start] = int(start_node["target_id"])
+            x[LiT.end] = int(end_node["target_id"])
+        return x
+
+    src_links = src_links.apply(check_if_in_target, axis=1, args=(src_nodes,))
+    def find_link_in_target(x, target_links):
+        index = target_links[
+            (target_links[LiT.start] == x[LiT.start])
+            & (target_links[LiT.end] == x[LiT.end])
+        ].index
+        if len(index) > 0:
+            return index[0]
+        return None
+    src_links["target_id"] = src_links.apply(find_link_in_target, axis=1, args=(target_links,))
+    add = src_links[src_links["target_id"].isna()]
+    updated = src_links[src_links["target_id"].notna()]
+    new_cols = updated[[c for c in src_links.columns if c not in target_links.columns]]
+
+    new_cols.index = new_cols["target_id"]
+    target_links = target_links.merge(new_cols,how="outer",left_index=True,right_index=True)
+
+    target_links = target_links.drop(columns=["target_id"])
+    target_links = pd.concat([target_links,add])
+    target_links = target_links.reset_index(drop=True)
+    target_links = Layouter.gen_evidence_layouts(target_links)
+
+
+    target = {VRNE.nodes: target_nodes, VRNE.links: target_links}
+
     uploader = Uploader(target, project_name)
-    uploader.color_nodes(target_project, None)
+    uploader.color_nodes(target_project)
+    log.info(f"Saving project {project_name}")
     return f'<a style="color:green;" href="/StringEx/preview?project={project_name}" target="_blank">SUCCESS: Saved as project {project_name} </a>'
-
-
-# def extract_link_data(
-#     x: int,
-#     y: int,
-#     rgb_x: int,
-#     rgb_y: int,
-#     tex: Image,
-#     links: dict,
-#     evidence: str or None,
-#     rgb: Image or None,
-#     next_idx: int,
-# ) -> dict[tuple, dict]:
-#     """Extracts the data for a link from an texture Image and its rgb Image.
-
-#     Args:
-#         x (int): horizontal pixel in the texture image.
-#         y (int): vertical pixel in the texture image.
-#         rgb_x (int): horizontal pixel in the rgb image.
-#         rgb_y (int): vertical pixel in the rgb image.
-#         tex (Image): texture image object.
-#         links (dict): dictionary containing all links with a tuple of start, and end as keys and the link itself as value.
-#         evidence (str o rNone): string evidence of the current layout.
-#         rgb (Image or None): rgb image object.
-#         next_idx (int): next index for the link id.
-#     Returns:
-#         dict[tuple, dict]: dictionary containing all links with a tuple of start, and end as keys and the link itself as value.
-#     """
-#     start_p = tex.getpixel((x, y))
-#     if x + 1 < tex.width:
-#         end_p = tex.getpixel((x + 1, y))
-#     else:
-#         end_p = tex.getpixel((0, y + 1))
-#     if start_p == (0, 0, 0) and end_p == (0, 0, 0):
-#         return True, next_idx, rgb_x, rgb_y, links
-#     start = start_p[0] + start_p[1] * 128 + start_p[2] * 128 * 128
-#     end = end_p[0] + end_p[1] * 128 + end_p[2] * 128 * 128
-#     if tuple((start, end)) not in links:
-#         link = {
-#             LiT.id: next_idx,
-#             LiT.start: start,
-#             LiT.end: end,
-#         }
-#         links[tuple((start, end))] = link
-#         next_idx += 1
-#     else:
-#         link = links[tuple((start, end))]
-#     link = links[tuple((start, end))]
-#     if rgb:
-#         color = rgb.getpixel((rgb_x, rgb_y))
-#         rgb_x += 1
-#         if rgb_x >= rgb.width:
-#             rgb_x = 0
-#             rgb_y += 1
-#         if evidence:
-#             score = color[3] / 255
-#             link[evidence] = score
-#     return False, next_idx, rgb_x, rgb_y, links
-
-# def extract_links_from_tex(link_texs: str, link_rgbs: str) -> list[dict]:
-#     """extract links from the links texture and the color from linkRGB.
-
-#     Args:
-#         link_texs (str): path to the directory which contains the link textures of the project.
-#         link_rgbs (str): path to the directory which contains the linkrgb textures of the project.
-
-#     Returns:
-#         list[dict]: contains all extracted links.
-#     """
-#     links = {}
-#     next_idx = 0
-#     for file in glob.glob(link_texs):
-#         evidence = None
-#         rgb = None
-#         rgb_file = None
-#         for ev in EV:
-#             ev = ev.value
-#             if ev in file:
-#                 evidence = ev
-#                 for rf in glob.glob(link_rgbs):
-#                     if evidence in rf:
-#                         rgb_file = rf
-#                         break
-#                 break
-#             tex = Image.open(file)
-#             if rgb_file:
-#                 rgb = Image.open(rgb_file)
-#             rgb_x, rgb_y = 0, 0
-#             all_links_done = False
-#             while not all_links_done:
-#                 for y in range(tex.height):
-#                     for x in range(0, tex.width, 2):
-#                         (
-#                             all_links_done,
-#                             next_idx,
-#                             rgb_x,
-#                             rgb_y,
-#                             links,
-#                         ) = extract_link_data(
-#                             x, y, rgb_x, rgb_y, tex, links, evidence, rgb, next_idx
-#                         )
-#     return list(links.values())
-
 
 if __name__ == "__main__":
     string_network = "/Users/till/Desktop/2000_alzheimer.VRNetz"

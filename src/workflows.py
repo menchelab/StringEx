@@ -16,7 +16,8 @@ from .map_small_on_large import map_source_to_target
 from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, log
 from .uploader import Uploader
 from .classes import VRNetzElements as VRNE
-
+import pandas as pd
+from .classes import LinkTags as LiT
 def VRNetzer_upload_workflow(
     network: dict,
     filename: str,
@@ -126,13 +127,10 @@ def VRNetzer_map_workflow(
     with open(nodes_file, "r") as json_file:
         trg_network = json.load(json_file)
 
-    trg_network["links"] = pickle.load(open(links_file, "rb"))
-    trg_network["links"]["id"] = trg_network["links"].index
-    # trg_network["links"] = trg_network["links"].to_dict("records")
+    trg_network[VRNE.links] = pickle.load(open(links_file, "rb"))[:200]
+    trg_network[VRNE.links]["id"] = trg_network["links"].index
+    trg_network[VRNE.links] = trg_network["links"].to_dict("records")
 
-    # trg_network["link"] = trg_network["links"].drop("in",axis=0)
-    src_network = Layouter.gen_evidence_layouts(src_network)
-    print(src_network[)
     if project_name is None or project_name == "":
         src_name = os.path.split(src_filename)[1].split(".")[0]
         trg_name = organism.replace(".", "_")
@@ -234,10 +232,10 @@ def apply_layout_workflow(
 ) -> Layouter:
     layouter = Layouter()
     if type(network) is dict:
+        network[VRNE.nodes] = pd.DataFrame(network[VRNE.nodes])
+        network[VRNE.links] = pd.DataFrame(network[VRNE.links])
         layouter.network = network
-        nodes = layouter.network["nodes"]
-        links = layouter.network["links"]
-        layouter.gen_graph(nodes, links)
+        layouter.graph = layouter.gen_graph(network[VRNE.nodes], network[VRNE.links] )
     else:
         layouter.read_from_vrnetz(network)
         log.info(f"Network extracted from: {network}")
@@ -250,20 +248,15 @@ def apply_layout_workflow(
         algo, layout = next(iter(layout.items()))
         if algo != layout_name:
             layout_name = algo
-        layouter.add_layout_to_vrnetz(layout, layout_name)
+        nodes = layouter.add_layout_to_vrnetz(layouter.network[VRNE.nodes],layout, layout_name)
+        layouter.network[VRNE.nodes] = nodes
         log.info(f"Layout algorithm {layout_algo} applied!")
-    # Correct Cytoscape positions to be positive.
-    # if cy_layout:
-    #     layouter.correct_cytoscape_pos()
-    #     log.info(f"2D layout created!")
-    if stringify:
-        log.info("Will Stringify.")
-        layouter.network = Layouter.gen_evidence_layouts(layouter.network)
-        log.info(f"Layouts stringified!")
-    else:
-        log.info("Will NOT Stringify.")
-        layouter.network = Layouter.add_any_link_layout(layouter.network)
-        log.info(f"Layout Any added")
+    links = Layouter.gen_evidence_layouts(layouter.network[VRNE.links],stringify=stringify)
+    drops = ["s_suid","e_suid"]
+    for c in drops:
+        if c in links.columns:
+            links = links.drop(columns=[c])
+    layouter.network[VRNE.links] = links
     return layouter
 
 

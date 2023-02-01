@@ -1,7 +1,7 @@
 import json
 import random
 import traceback
-
+import pandas as pd
 import networkx as nx
 import numpy as np
 
@@ -14,14 +14,15 @@ from .classes import NodeTags as NT
 from .classes import StringTags as ST
 from .classes import VRNetzElements as VRNE
 from .settings import log
-
+import pandas as pd
 
 class Layouter:
     """Simple class to apply a 3D layout algorithm to a networkx graph."""
 
     graph: nx.Graph = nx.Graph()
-
-    def gen_graph(self, nodes: dict, links: dict) -> nx.Graph:
+    
+    @staticmethod
+    def gen_graph(nodes: dict=None, links: dict=None) -> nx.Graph:
         """Generates a networkx graph based on a dict of nodes and links.
 
         Args:
@@ -31,14 +32,17 @@ class Layouter:
         Returns:
             networkx.Graph: Graph for which the layouts will be generated.
         """
-        for node_data in nodes:
-            self.graph.add_node(node_data[NT.id], data=node_data)
-            # self.node_map[node_data["id"]] = node_data
-        for link in links:
-            self.graph.add_edge(link[LiT.start], link[LiT.end], data=link)
-            # self.edge_map[(str(edge["s"]), str(edge["e"]))] = edge
-        self.network = {VRNE.nodes: nodes, VRNE.links: links}
-        return self.graph
+        G = nx.Graph()
+        G.add_nodes_from([(idx,node.dropna()) for idx, node in nodes.iterrows()])
+        G.add_edges_from([(start,end) for start, end in links[[LiT.start, LiT.end]].values.tolist()])
+        # for node_data in nodes:
+        #     self.graph.add_node(node_data[NT.id], data=node_data)
+        #     # self.node_map[node_data["id"]] = node_data
+        # for link in links:
+        #     self.graph.add_edge(link[LiT.start], link[LiT.end], data=link)
+        #     # self.edge_map[(str(edge["s"]), str(edge["e"]))] = edge
+        # self.network = {VRNE.nodes: nodes, VRNE.links: links}
+        return G
 
     def read_from_vrnetz(self, file: str) -> nx.Graph:
         """Reads a graph from a VRNetz file.
@@ -222,13 +226,6 @@ class Layouter:
             return cg.layout_geodesic(
                 self.graph, d_radius, n_neighbors, spread, min_dist, DM
             )
-        # except ImportError:
-        #     log.warning("cartoGRAPHs is not installed.")
-        #     use_spring = input("Use spring layout instead? [y/n]: ")
-        #     if use_spring == "y":
-        #         return self.create_spring_layout()
-        #     else:
-        #         exit()
 
     def apply_layout(
         self, layout_algo: str = None, algo_variables: dict = {}
@@ -266,156 +263,74 @@ class Layouter:
                 layout = lay_func[algo](
                     algo_variables
                 )  # Will use the desired layout algorithm
-
-            points = np.array(list(layout.values()))
-            points = self.to_positive(points, 3)
-            points = self.normalize_values(points, 3)
-
-            # write points to node and add position to node data.
-            for i, key in enumerate(layout):
-                layout[key] = points[i]
+            
+            lay = np.array(list(layout.values()))
+            x = lay[:,0]
+            y = lay[:,1]
+            z = lay[:,2]
+            def normalize_pos(x):
+                x += abs(min(x))
+                x /= max(x)
+                return x
+            pos = pd.DataFrame([x,y,z]).T
+            pos = pos.apply(normalize_pos)
             layouts[algo] = layout
         return layouts
 
-    def add_layout_to_vrnetz(self, layout: dict, layout_name: str) -> None:
+    @staticmethod
+    def normalize_pos(layout:dict):
+
+        x = layout[:,0]
+        y = layout[:,1]
+        z = layout[:,2]
+        def norm(x):
+            x += abs(min(x))
+            x /= max(x)
+            return x
+        pos = pd.DataFrame([x,y,z]).T
+        pos = pos.apply(norm)
+        return pos
+    
+    @staticmethod
+    def add_layout_to_vrnetz(nodes:pd.DataFrame,layout: dict, layout_name: str) -> None:
         """Adds the points of the generated layout to the underlying VRNetz
 
         Args:
             layout (dict): Dictionary containing node ids as keys and a 3-tuple of coordinates as values.
             layout_name (str): Name of the layout to be added to the VRNetz.
         """
-        if VRNE.node_layouts not in self.network:
-            self.network[VRNE.node_layouts] = []
+        if NT.layouts in nodes:
+            def extract_cy(x):
+                if NT.layouts not in x:
+                    return x
+                layout = x[NT.layouts][0]
+                x["cy_pos"] = layout["p"]
+                x["cy_col"] = layout["c"]
+                x["size"] = layout["s"]
+                return x
+            nodes = nodes.apply(extract_cy, axis=1)
+        layout = np.array(list(layout.values()))
+        pos = Layouter.normalize_pos(layout)
+        nodes[layout_name+"_col"] = [[random.randint(0, 255) for _ in range(3)] for i in range(len(layout))]
 
-        if LT.cy_layout not in self.network[VRNE.node_layouts]:
-            self.network[VRNE.node_layouts].append(LT.cy_layout)
+        nodes[layout_name+"2d_pos"] = pos.apply(lambda x: [x[0],x[1],0], axis=1)
+        nodes[layout_name+"_pos"] = pos.apply(lambda x: list(x), axis=1)
 
-        if LT.string_3d_no_z not in self.network[VRNE.node_layouts]:
-            self.network[VRNE.node_layouts].append(LT.string_3d_no_z)
 
-        if layout_name not in self.network[VRNE.node_layouts]:
-            self.network[VRNE.node_layouts].append(layout_name)
 
-        cytoscape_nodes = []
-        cy_points = []
-        log.debug(f"Length of Layout {len(layout)}")
-        log.debug(layout)
-        for idx, pos in layout.items():
-            node = self.network[VRNE.nodes][idx]
-            color = [
-                random.randint(0, 255),
-                random.randint(0, 255),
-                random.randint(0, 255),
-            ]
-            size = 1
-            # find the correct layout
-            cy_layout, layout_id = util.find_cy_layout(node)
-            if cy_layout:
-                cytoscape_nodes.append(node)
-                cy_pos = node[NT.layouts][layout_id][LT.position]
-                cy_points.append(cy_pos)
-                # extract color and (size) information
-                size = cy_layout[LT.size]
-                color = cy_layout[LT.color]
-                node[NT.layouts][layout_id][LT.color] = color
-
-            if NT.layouts not in node:
-                node[NT.layouts] = []
-
-            node[NT.layouts].append(
-                {
-                    LT.name: LT.string_3d_no_z,
-                    LT.position: (pos[0], pos[1], 0.0),
-                    LT.size: size,
-                }
-            )  # Add 2D coordinates
-
-            node[NT.layouts].append(
-                {
-                    LT.name: layout_name,
-                    LT.position: tuple(pos),
-                    LT.size: size,
-                }
-            )  # Add 3D coordinates
-
-            self.network[VRNE.nodes][idx] = node
-
-            idx += 1
-
-        self.correct_cytoscape_pos(cytoscape_nodes, cy_points, layout_id)
-
-    def correct_cytoscape_pos(
-        self, cytoscape_nodes: list, points: list[list[float]], layout_id: int
-    ) -> np.array:
-        """Corrects the Cytoscape positions to be positive and between 0 and 1.
-
-        Args:
-            cytoscape_nodes (list): list of nodes that are part of the cytoscape layout
-            points (list[list[float]]): 2d array that contains all positions for every node.
-            layout_id (int): id of the layout in each node dictionary.
-
-        Returns:
-            np.array: 2d Array contains all positions for every node but now normalized between 0 and 1.
-        """
-
-        if len(points) == 0:
-            return None
-        # normalize positions between in [0,1]
-        points = np.array(points)
-        points = self.to_positive(points, 2)
-        points = self.normalize_values(points, 2)
-
-        # Write new formatted node positions on the xz axis
-        for node, position in zip(cytoscape_nodes, points):
-            node[NT.layouts][layout_id][LT.position] = tuple(
-                (position[0], position[1], 0.0)
-            )
-            self.network[VRNE.nodes][node[NT.id]] = node  # Update node data
-
-        return points
-
-    @staticmethod
-    def to_positive(points: np.array, dims=3) -> np.array:
-        """Move every coordinate to positive space.
-
-        Args:
-            points (np.array):  2d array that contains all positions for every node.
-            dims (int, optional): Dimensions each node point has. Defaults to 3.
-
-        Returns:
-            np.array: 2d array that contains all positions for every node with only positive values.
-        """
-        min_values = [min(points[:, i]) for i in range(dims)]
-        # Move everything into positive space
-        for i, point in enumerate(points):
-            for d, _ in enumerate(point[:dims]):
-                points[i, d] += abs(min_values[d])
-        return points
-
-    @staticmethod
-    def normalize_values(points, dims=3) -> np.array:
-        """Scale every coordinate between 0 and 1
-
-        Args:
-            points (np.array):  2d array that contains all positions for every node.
-            dims (int, optional): Dimensions each node point has. Defaults to 3.
-
-        Returns:
-            np.array: 2d array that contains all positions for every node with values only between 0 and 1
-        """
-        # Normalize Values between 0 and 1
-        min_values = [min(points[:, i]) for i in range(dims)]
-        max_values = [max(points[:, i]) for i in range(dims)]
-        norms = [max_values[i] - min_values[i] for i in range(dims)]
-        for i, point in enumerate(points):
-            for d, _ in enumerate(point[:dims]):
-                points[i, d] /= norms[d]
-        return points
-
+        if "cy_pos" and "cy_col" in nodes:
+            nodes[layout_name+"_col"] = nodes["cy_col"]
+            coords = np.array([np.array(x) for x in nodes["cy_pos"]])
+            pos = Layouter.normalize_pos(coords)
+            
+            nodes["cy_pos"] = pos.apply(lambda x: [x[0],x[1],0], axis=1)
+        return nodes
+    
     @staticmethod
     def gen_evidence_layouts(
-        network: dict,
-        evidences: dict[str, tuple[float, float, float, float]] or None = None,
+        links:pd.DataFrame,
+        evidences:dict = None,
+        stringify:bool = False,
     ) -> list[dict[str, object]]:
         """Set the link color for each STRING evidence type. Based on the score the link opacity is scaled.
 
@@ -429,72 +344,42 @@ class Layouter:
         # Set up the colors for each evidence type
         if evidences is None:
             evidences = Evidences.get_default_scheme()
-        # log.debug(f"Evidence colors: {evidences}")
-        links = network[VRNE.links]
-        log.debug(f"links loaded.")
-        if VRNE.link_layouts not in network:
-            network[VRNE.link_layouts] = []
         log.debug(f"Handling evidences...")
-        for ev in evidences:
-            network[VRNE.link_layouts].append(ev)
-            if not ev == Evidences.any.value:
-                cur_links = {idx: link for idx, link in enumerate(links) if ev in link}
+
+        if ST.stringdb_score in links.columns:
+            links = links.rename(columns={ST.stringdb_score:Evidences.any.value})
+        
+        elif Evidences.any.value not in links.columns:
+            links[Evidences.any.value] = [1 for _ in range(len(links))]
+        
+
+        def extract_score(x):
+            evidences = [ev for ev in Evidences.get_all_evidences_except_any() if ev in x.keys()]
+            if len(evidences) == 0:
+                value = 0
             else:
-                cur_links = {idx: link for idx, link in enumerate(links)}
-            # Skip This evidence if there are not edges for this evidence
-            if len(cur_links) == 0:
-                continue
+                value = max(x[evidences])
+            x[Evidences.any.value] = value
+            return x
+        
+        links[Evidences.any.value].replace(0, np.nan, inplace=True)
+        to_replace = links[Evidences.any.value].isnull()
+        links[to_replace] = links[to_replace].apply(extract_score,axis=1)
 
-            # Color each link with the color of the evidence
-            for idx, link in cur_links.items():
-                scale_factor = 0
-                if ev == Evidences.any.value:
-                    scale_factor = link.get(ST.stringdb_score)
-                    if not scale_factor:
-                        scale_factor = 0
-                        for other_ev in [
-                            e.value for e in Evidences if e != Evidences.any
-                        ]:
-                            if other_ev in link:
-                                if link[other_ev] > scale_factor:
-                                    scale_factor = link[other_ev]
-                else:
-                    scale_factor = link[ev]
-                color = evidences[ev][:3] + (
-                    int(scale_factor * 255),
-                )  # Alpha scales with score
-                if LiT.layouts not in network[VRNE.links][idx]:
-                    network[VRNE.links][idx][LiT.layouts] = []
-                network[VRNE.links][idx][LiT.layouts].append(
-                    {LT.name: ev, LT.color: color}
-                )
-        return network
-
-    @staticmethod
-    def add_any_link_layout(network: dict) -> dict:
-        """Add the any Layout to the network.
-
-        Args:
-            network (dict): The network to add the layout to.
-        Returns:
-            dict: The network with the any layout added.
-        """
-        links = network[VRNE.links]
-        log.debug(f"links loaded.")
-        if VRNE.link_layouts not in network:
-            network[VRNE.link_layouts] = []
-        network[VRNE.link_layouts].append(Evidences.any.value)
-        links = {idx: link for idx, link in enumerate(network[VRNE.links])}
-        # Color each link with the color of the evidence
-        for idx, link in links.items():
-            color = Evidences.get_default_scheme()[Evidences.any.value]
-            if LiT.layouts not in network[VRNE.links][idx]:
-                network[VRNE.links][idx][LiT.layouts] = []
-            network[VRNE.links][idx][LiT.layouts].append(
-                {LT.name: Evidences.any.value, LT.color: color}
-            )
-        return network
-
+        def gen_color(x, color):
+            x = color[:3] + (int(x * 255),)
+            return x
+        
+        for ev in evidences:
+            if ev not in links.columns:
+                if stringify:
+                    links[ev] = [0 for _ in range(len(links))]
+            color = evidences[ev]
+            links[ev] = links[ev].replace(0, np.nan)
+            with_score = links[links[ev].notnull()][ev]
+            this = with_score.apply(gen_color, args=(color,))
+            links[ev+"_col"] = this
+        return links
 
 if __name__ == "__main__":
     import os

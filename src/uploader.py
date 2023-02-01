@@ -76,16 +76,20 @@ class Uploader:
         self.pfile = pfile
         self.nodes = {"nodes": []}
         self.links = {"links": []}
-        self.p_path = os_join(_PROJECTS_PATH, self.p_name) # Path to project dir
-        self.layout_dir = os_join(self.p_path,"layouts") # Path to layouts dir
-        self.layoutsl_dir = os_join(self.p_path,"layoutsl") # Path to layouts lower dir
-        self.layouts_rgb_dir = os_join(self.p_path,"layoutsRGB") # Path to layouts RGB dir
-        self.links_dir = os_join(self.p_path,"links") # Path to links dir
-        self.links_rgb_dir = os_join(self.p_path,"linksRGB") # Path to links RGB dir
-        self.pfile_file = os_join(self.p_path, "pfile.json") # Path to pfile
-        self.names_file = os_join(self.p_path, "names.json") # Path to names file
-        self.nodes_file = os_join(self.p_path, "nodes.json") # Path to nodes files
-        self.links_file = os_join(self.p_path, "links.json") # Path to links file
+        self.p_path = os_join(_PROJECTS_PATH, self.p_name)  # Path to project dir
+        self.layout_dir = os_join(self.p_path, "layouts")  # Path to layouts dir
+        self.layoutsl_dir = os_join(
+            self.p_path, "layoutsl"
+        )  # Path to layouts lower dir
+        self.layouts_rgb_dir = os_join(
+            self.p_path, "layoutsRGB"
+        )  # Path to layouts RGB dir
+        self.links_dir = os_join(self.p_path, "links")  # Path to links dir
+        self.links_rgb_dir = os_join(self.p_path, "linksRGB")  # Path to links RGB dir
+        self.pfile_file = os_join(self.p_path, "pfile.json")  # Path to pfile
+        self.names_file = os_join(self.p_path, "names.json")  # Path to names file
+        self.nodes_file = os_join(self.p_path, "nodes.json")  # Path to nodes files
+        self.links_file = os_join(self.p_path, "links.json")  # Path to links file
         self.MAX_NUM_LINKS = 262144
 
     def makeProjectFolders(self) -> None:
@@ -156,86 +160,63 @@ class Uploader:
         Returns:
             str: status message to report the status of the execution.
         """
-        links = pd.DataFrame(links)
-        for layout in layouts:
-            links[layout] = [None for _ in range(len(links))]
-        links["start_tex"] = [None for _ in range(len(links))]
-        links["end_tex"] = [None for _ in range(len(links))]
+        if not isinstance(links, pd.DataFrame):
+            links = pd.DataFrame(links)
+        # for layout in layouts:
+        #     links[layout] = [None for _ in range(len(links))]
+        # links["start_tex"] = [None for _ in range(len(links))]
+        # links["end_tex"] = [None for _ in range(len(links))]
 
-        filtered = links[[LiT.id, LiT.start, LiT.end]]
-        self.links[VRNE.links] += filtered.to_dict(orient="records")
+        # filtered = links[[LiT.id, LiT.start, LiT.end]]
+        # self.links[VRNE.links] += filtered.to_dict(orient="records")
 
         height = 512
         path = self.p_path
         n = len(links)
 
-        def get_textures(elem):
-            if LiT.layouts not in elem:
-                return
-            start = elem.get(LiT.start, None)
-            end = elem.get(LiT.end, None)
-            if start and end:
-                start = int(start)
-                end = int(end)
-                sx = start % 128
-                syl = start // 128 % 128
-                syh = start // 16384
-                start_tex = (sx, syl, syh)
-
-                ex = end % 128
-                eyl = end // 128 % 128
-                eyh = end // 16384
-                end_tex = (ex, eyl, eyh)
-
-                elem["start_tex"] = start_tex
-                elem["end_tex"] = end_tex
-
-            for idx, l in enumerate(elem[LiT.layouts]):
-                l_name = l.get(LT.name, None)
-                if l_name:
-                    color = l.get(LT.color, None)
-                    elem[l_name] = tuple(color)
-
+        def get_pixel(elem):
+            if pd.isnull(elem):
+                return (0, 0, 0)
+            sx = elem % 128
+            syl = elem // 128 % 128
+            syh = elem // 16384
+            elem = (int(sx), int(syl), int(syh))
             return elem
 
-        links = links.apply(get_textures, axis=1)
-        links = links.drop(columns=[LiT.layouts])
+        tmp = links.copy()
+        tmp["start_pix"] = links[LiT.start].apply(get_pixel)
+        tmp["end_pix"] = links[LiT.end].apply(get_pixel)
+        # links = links.drop(columns=[LiT.layouts])
         # print(nodes.iloc[0]["cy_color"])
         # exit()
 
         path = self.p_path
         output = ""
-
-        for l, layout in enumerate(layouts):
-            links_to_consider = links.copy()
+        for layout in [c for c in links.columns if c in EV.get_all_evidences()]:
+            links_to_consider = tmp.copy()
             # sort this data frame so that every element with none in column layout is at the end
-            colors = links_to_consider.sort_values(by=layout, ascending=False)
-            colors = links_to_consider.truncate(after=self.MAX_NUM_LINKS - 1)
+            if layout is not EV.any.value:
+                links_to_consider = links_to_consider[links_to_consider[layout+"_col"].notna()]
+            links_to_consider = links_to_consider.reset_index()
+            colors = links_to_consider[layout+"_col"][: self.MAX_NUM_LINKS]
             image = Image.new("RGBA", (512, height))
-            colors = colors.apply(
-                lambda x: (0, 0, 0, 0) if x[layout] is None else x[layout], axis=1
-            )
-
             rgb = f"{layout}RGB"
-            image.putdata(colors)
+            image.putdata(colors.to_numpy())
             image.save(os_join(path, "linksRGB", f"{rgb}.png"))
 
             if rgb not in self.pfile["linksRGB"]:
                 self.pfile["linksRGB"].append(rgb)
 
-            if links.start_tex.any() or links.end_tex.any():
-                starts = links_to_consider.apply(lambda x: x.start_tex, axis=1)
-                ends = links_to_consider.apply(lambda x: x.end_tex, axis=1)
+            if links_to_consider["start_pix"].any() or links_to_consider["end_pix"].any():
+                starts = links_to_consider["start_pix"].fillna(0)
+                ends = links_to_consider["end_pix"].fillna(0)
 
-                # Cut dataframe to max number of links
-                starts = starts.truncate(after=self.MAX_NUM_LINKS - 1)
-                ends = ends.truncate(after=self.MAX_NUM_LINKS - 1)
+                # Cut data frame to max number of links
+
                 texture = pd.concat([starts, ends]).sort_index(
-                    kind="merge"
-                )  # sort the entries in an alternating fashion
-
-                texture = [(0, 0, 0) if x is None else x for x in texture.tolist()]
-
+                    kind="stable"
+                )[:self.MAX_NUM_LINKS]  # sort the entries in an alternating fashion
+                texture = texture.to_numpy()
                 xyz = f"{layout}XYZ"
                 image = Image.new("RGB", (1024, height))
                 image.putdata(texture)
@@ -286,84 +267,64 @@ class Uploader:
             skip_attr (list[str]): Contains all attributes that should be skipped.
             layouts (list[str]): Contains all layouts for which positions should be extracted.
         """
-        nodes = pd.DataFrame(nodes)
-        nodes: pd.DataFrame
+        if not isinstance(nodes, pd.DataFrame):
+            nodes = pd.DataFrame(nodes)
         nodes = self.change_to_universal_attr(nodes)
-        filtered = nodes.drop(columns=skip_attr)
-        self.nodes[VRNE.nodes] += filtered.to_dict(orient="records")
+        # filtered = nodes.drop(columns=skip_attr)
+        # self.nodes[VRNE.nodes] += filtered.to_dict(orient="records")
         n = len(nodes)
-        for l in layouts:
-            nodes[l + "_color"] = [False for _ in range(n)]
-            nodes[l + "_pos"] = [False for _ in range(n)]
         nodes: pd.DataFrame
         if "names" not in self.names:
             self.names["names"] = []
+        self.names["names"] = nodes["name"].tolist()
 
-        def get_textures(elem):
-            self.names["names"].append(str(elem.get([NT.name])))
-            if NT.layouts not in elem:
-                return
-            for idx, l in enumerate(elem[NT.layouts]):
-                l_name = l.get(LT.name)
-                if l_name:
-                    pos = l.get(LT.position)
-                    if pos is None:
-                        pos = [0, 0, 0]
-                    else:
-                        elem[l_name + "_pos"] = True
-                    pos = [int(float(value) * 65280) for value in pos]
-                    elem[NT.layouts][idx]["high"] = tuple(value // 255 for value in pos)
-                    elem[NT.layouts][idx]["low"] = tuple(value % 255 for value in pos)
-
-                    color = l.get(LT.color, None)
-
-                    if color is None:
-                        color = [0, 255, 255, 255]  # r,g,b,a
-                    else:
-                        elem[l_name + "_color"] = True
-                        if len(color) == 3:
-                            color.append(255 // 2)
-                    elem[NT.layouts][idx][NT.node_color] = tuple(color)
-            return elem
-
-        nodes = nodes.apply(get_textures, axis=1)
-        # print(nodes.iloc[0]["cy_color"])
-        # exit()
 
         hight = 128 * (int(n / 16384) + 1)
 
         size = 128 * hight
         path = self.p_path
         output = ""
-        for l, layout in enumerate(layouts):
-            if nodes[layout + "_pos"].any():
 
-                t_high = nodes.apply(lambda x: x[NT.layouts][l]["high"], axis=1)
-                t_low = nodes.apply(lambda x: x[NT.layouts][l]["low"], axis=1)
+        for layout in [c for c in nodes.columns if c.endswith("_pos")]:
+            layout_name = layout.replace("_pos", "")
+            if not nodes[layout].any():
+                continue
+            pos = nodes[layout].apply(lambda x: [int(float(value) * 65280) for value in x])
+            
+            t_high = pos.apply(lambda x: tuple(value // 255 for value in x)).fillna(0)
+            t_low = pos.apply(lambda x: tuple(value % 255 for value in x)).fillna(0)
 
-                # t_high.append([0, 0, 0] * (size - len(t_high)))
-                # t_low.append([0, 0, 0] * (size - len(t_low)))
+            images = {k: Image.new("RGB", (128, hight)) for k in ["high", "low"]}
+            images["layoutsRGB"] = Image.new("RGBA", (128, hight))
 
-                images = {k: Image.new("RGB", (128, hight)) for k in ["high", "low"]}
-                images["layoutsRGB"] = Image.new("RGBA", (128, hight))
+            for key, data in zip(["high", "low"], [t_high, t_low]):
+                images[key].putdata(data)
+            images["high"]
 
-                for key, data in zip(["high", "low"], [t_high, t_low]):
-                    images[key].putdata(data)
-                images["high"]
+            xyz = f"{layout_name}XYZ"
+            images["high"].save(os_join(path, "layouts", f"{xyz}.bmp"))
+            images["low"].save(os_join(path, "layoutsl", f"{xyz}l.bmp"))
+            if xyz not in self.pfile["layouts"]:
+                self.pfile["layouts"].append(xyz)
 
-                xyz = f"{layout}XYZ"
-                images["high"].save(os_join(path, "layouts", f"{xyz}.bmp"))
-                images["low"].save(os_join(path, "layoutsl", f"{xyz}l.bmp"))
-                if xyz not in self.pfile["layouts"]:
-                    self.pfile["layouts"].append(xyz)
-
-            if nodes[layout + "_color"].any():
-
+            color = layout.replace("_pos", "_col")
+            if color in nodes.columns:
+                if not nodes[color].any():
+                    continue
+                color = nodes[color]
+                color = color.fillna(0)
+                def set_color(x):
+                    if len(x) == 4:
+                        return tuple(x,)
+                    elif x == 0:
+                        return x
+                    return tuple(x + [255//2,],)
+                color = color.apply(set_color)
                 images["layoutsRGB"].putdata(
-                    nodes.apply(lambda x: x[NT.layouts][l][NT.node_color], axis=1)
+                    color
                 )
 
-                rgb = f"{layout}RGB"
+                rgb = f"{layout_name}RGB"
                 images["layoutsRGB"].save(os_join(path, "layoutsRGB", f"{rgb}.png"))
 
                 if rgb not in self.pfile["layoutsRGB"]:
@@ -371,7 +332,7 @@ class Uploader:
 
             output += (
                 '<br><a style="color:green;">SUCCESS </a>'
-                + layout
+                + layout_name
                 + " Node Textures Created"
             )
         return output
@@ -419,7 +380,32 @@ class Uploader:
         state += self.make_node_tex(nodes, layouts=n_lay)
 
         state += self.make_link_tex(links, l_lay)
+        
+        nodes = self.network.get(VRNE.nodes, [])
+        if isinstance(nodes, pd.DataFrame):
+            drops = [c for c in nodes.columns if c.endswith("_pos")] + [c for c in nodes.columns if c.endswith("_col")] + ["size"]
+            for c in drops:
+                if c in nodes.columns:
+                    nodes = nodes.drop(columns = [c])
+        links = self.network.get(VRNE.links, [])
 
+        if isinstance(links, pd.DataFrame):
+            drops =[c for c in links.columns if c.endswith("_col")] + ["size"]
+            for c in drops:
+                if c in links.columns:
+                    links = links.drop(columns = [c])
+
+        # Sort layouts so that Cytoscape is first followed by 2d and then the rest
+        layouts = [c.strip("XYZ") for c in self.pfile["layouts"] if c.endswith("XYZ")]
+        cy = [c for c in layouts if "cy" in c]
+        two = [c for c in layouts if "2d" in c]
+        rest = [c for c in layouts if c not in cy and c not in two]
+        layouts= cy + two + rest
+        self.pfile["layouts"] = [f"{c}XYZ" for c in layouts]
+        self.pfile["layoutsRGB"] = [f"{c}RGB" for c in layouts]
+
+        self.nodes = {"nodes":[v.dropna().to_dict() for k,v in nodes.iterrows()]}
+        self.links = {"links":[v.dropna().to_dict() for k,v in links.iterrows()]}
         self.write_json_files()
 
         if self.stringify:
@@ -435,7 +421,6 @@ class Uploader:
     def color_nodes(
         self,
         target_project: str,
-        new_nodes: dict[str, dict],
         mapping_color: list[int, int, int] = _MAPPING_ARBITARY_COLOR,
         update_link_textures: bool = True,
         skip_attr=["layouts"],
@@ -471,10 +456,17 @@ class Uploader:
         self.nodes = {"nodes": []}  # Reset nodes
         nodes = pd.DataFrame(self.network.get(VRNE.nodes))
         nodes = self.change_to_universal_attr(nodes)
-        filtered = nodes.drop(columns=skip_attr)
-        self.nodes[VRNE.nodes] += filtered.to_dict(orient="records")
-        with open(self.links_file, "r") as json_file:
-            self.links = json.load(json_file)
+        filtered = nodes.copy()
+        for key in skip_attr:
+            if key in nodes.columns:
+                filtered = filtered.drop(columns=[key])
+
+        self.nodes = {"nodes":[v.dropna().to_dict() for k,v in filtered.iterrows()]}
+        
+        self.links = {"links":[v.dropna().to_dict() for k,v in links.iterrows()]}
+
+        # with open(self.links_file, "r") as json_file:
+        #     self.links = json.load(json_file)
 
         self.write_json_files()
         for l, layout in enumerate(layouts):

@@ -402,7 +402,7 @@ class Uploader:
         """
         height = 512
         path = self.p_path
-    
+
         l_tex = []
         l_img = []
         for l in layouts:

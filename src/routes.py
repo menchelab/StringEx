@@ -8,7 +8,9 @@ from PIL import Image
 from . import workflows as wf
 from . import util as string_util
 import pandas as pd
-from . classes import VRNetzElements as VRNE
+from .classes import VRNetzElements as VRNE
+
+
 def upload_files():
     form = flask.request.form.to_dict()
     vr_netz_files = flask.request.files.getlist("vrnetz")
@@ -38,6 +40,9 @@ def upload_files():
     for key, _ in tags.items():
         if key in form:
             tags[key] = True
+    if "database" in network[VRNE.network]:
+        if network[VRNE.network]["database"] == "string":
+            tags["stringify"] = True
     algo_variables = string_util.get_algo_variables(algo, form)
     layout_name = form.get("string_layout_name", "3d")
     if layout_name == "":
@@ -67,9 +72,9 @@ def map_files():
     except json.decoder.JSONDecodeError:
         st.log.error(f"Invalid VRNetz file:{f_src_network}")
         return '<a style="color:red;">ERROR invalid VRNetz file!</a>'
-    
-    # src_network[VRNE.nodes] = pd.DataFrame(src_network[VRNE.nodes])
-    # src_network[VRNE.links] = pd.DataFrame(src_network[VRNE.links])
+
+    src_network[VRNE.nodes] = pd.DataFrame(src_network[VRNE.nodes])
+    src_network[VRNE.links] = pd.DataFrame(src_network[VRNE.links])
 
     organism = form.get("string_organism")
     project_name = form.get("string_map_project_name")

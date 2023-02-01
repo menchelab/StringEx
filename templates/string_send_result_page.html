@@ -33,11 +33,23 @@
 
     <style>
         .frameBox.fancy {
-            background-image:url("{{ url_for('static', filename='css/images/lineglow3.gif')}}");
-            background-size: 100% 100%;
+
             padding: 0px;
-            background-position: center;
+
             max-width: 100%;
+        }
+
+        html {
+            -webkit-background-size: cover;
+            -moz-background-size: cover;
+            -o-background-size: cover;
+            background:url("{{ url_for('static', filename='css/images/lineglow3.gif')}}");
+            background-size: cover;
+            margin: 0px;
+        }
+
+        body {
+            background: transparent;
         }
     </style>
     <title>Project Created</title>
@@ -103,10 +115,10 @@
                 cursor: pointer;
             }
         </style>
-        <div class="frameBox twelve columns">
+        <div class="frameBox twelve columns" id="texture_framebox">
             <div class=" six columns" style="margin-left:9%">
                 <h4 style="padding-left:2%">Node Textures</h4>
-                <ul style="list-style-type: none;padding-left:6%">
+                <ul style="list-style-type: none;padding-left:6%" ,id="node_textures">
                     {% for x in layouts %}
 
                     {% if "Node" in x %}
@@ -119,9 +131,9 @@
                     {% endfor %}
                 </ul>
             </div>
-            <div class="five columns">
+            <div class="five columns" id="link_textures">
                 <h4 style="padding:2%">Link Textures</h4>
-                <ul style="list-style-type: none;padding-left:6%">
+                <ul style="list-style-type: none;padding-left:6%" id="link_textures">
                     {% for x in layouts %}
                     {% if "Link" in x %}
                     <li>
@@ -138,14 +150,16 @@
                 var id = this.id;
                 var type = this.getAttribute("type");
                 if (type.includes("Node")) {
-
                     socket.emit('ex', { id: "layouts", opt: id + "XYZ", fn: "sel" });
                     socket.emit('ex', { id: "layoutsRGB", opt: id + "RGB", fn: "sel" });
                 } else {
                     socket.emit('ex', { id: "linkcolors", opt: id + "RGB", fn: "sel" });
                     socket.emit('ex', { id: "links", opt: id + "XYZ", fn: "sel" });
                 }
+
             });
+
+            document.getElementById("navbar_div").style.background = "black";
         </script>
     </div>
 
