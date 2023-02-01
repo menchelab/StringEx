@@ -143,9 +143,16 @@
                               </label>
                         </div>
                   </div>
-                  <div class="six columns">
+                  <style>
+                        .paramaterBox {
+                              display: none;
+                              min-height: 70vh;
+                              min-width: 100%;
+                        }
+                  </style>
+                  <div class="six columns" style="min-height: 70vh;">
                         <div class="twelve columns">
-                              <div class="frameBox" id="string_cg_tsne" style="display:none">
+                              <div class="frameBox paramaterBox" id="string_cg_tsne">
                                     <h6>
                                           prplxty
                                     </h6>
@@ -168,8 +175,8 @@
                                           value="250" />
                               </div>
                         </div>
-                        <div class="six columns">
-                              <div class="frameBox" id="string_cg_umap" style="display:none">
+                        <div class="twelve columns">
+                              <div class="frameBox paramaterBox" id="string_cg_umap">
                                     <h6>
                                           NUMBER OF NEIGHBORS
                                     </h6>
@@ -187,8 +194,8 @@
                                           type="number" value="0.5" />
                               </div>
                         </div>
-                        <div class="six columns">
-                              <div class="frameBox" id="string_spring" style="display:none">
+                        <div class="twelve columns">
+                              <div class="frameBox paramaterBox" id="string_spring">
                                     <h6>
                                           OPTIMAL DISTANCE BETWEEN NODES
                                     </h6>
@@ -207,19 +214,8 @@
                                           type="number" value="0.0001" />
                               </div>
                         </div>
-                        <div class="six columns">
-                              <div class="frameBox" id="string_kamada_kawai" style="display:none">
-                                    <h6>
-                                          WEIGHT COLUMN
-                                    </h6>
-                                    <input class="stringInputBox" id="string_kamada_kawai_weight" type="text"
-                                          value="None" />
-                                    <p>If None, then all link weights are 1.</p>
-                                    <h6>
-                                          SCALE
-                                    </h6>
-                                    <input class="stringInputBox" id="string_kamada_kawai_scale" type="number" value="1"
-                                          min="0" />
+                        <div class="twelve columns">
+                              <div class="frameBox paramaterBox" id="string_kamada_kawai" style="display: none;">
                               </div>
                         </div>
                   </div>
@@ -232,19 +228,19 @@
       <label>L A B E L S (optional) </label><br>
       <input type=file name=labels multiple><br><br>
       -->
-            <div class="frameBox" style="display: flex;">
+            <div class="frameBox twelve columns" style="height: 19vh;overflow: hidden;">
                   <div class="twelve columns">
-                        <div class="two columns" style=" flex-grow: 1;">
-                              <input class="swagSubmit" id="string_upload_button" type="submit" value="Upload">
-                              </input>
+                        <div class="two columns" style="margin-top: 3vh;">
+                              <input class="swagSubmit twelve columns ui-button ui-corner-all ui-widget"
+                                    id="string_upload_button" type="submit" value="Upload" role="button">
+
                         </div>
                         <div class="six columns">
-                              <img id="string_upload_processing"
-                                    src="{{ url_for('static', filename='img/processing.gif') }}"
-                                    style="display:none;" />
-                              <div id="string_upload_message">
+                              <div class="twelve columns">
+                                    <img id="string_upload_processing" src="/static/img/processing.gif"
+                                          style="display: none;">
+                                    <div id="string_upload_message" style="margin-top: 5vh;"></div>
                               </div>
-                              <br />
                         </div>
                   </div>
             </div>

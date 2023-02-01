@@ -1,24 +1,23 @@
-$(document).ready(function() {
+$(document).ready(function () {
   document.getElementById("string_spring").style.display = "block";
   document.getElementById("string_new_namespace_name").readOnly = true;
   $(function () {
     $("#string_upload_namespaces").selectmenu({
-      classes:{
-          "ui-selectmenu-open": "twozerozero-open",
+      classes: {
+        "ui-selectmenu-open": "twozerozero-open",
       },
     });
   });
-  $('#string_upload_namespaces').on('selectmenuselect', function () {
-    var name = $('#string_upload_namespaces').find(':selected').text();
+  $("#string_upload_namespaces").on("selectmenuselect", function () {
+    var name = $("#string_upload_namespaces").find(":selected").text();
     console.log(name);
     //UpdateNamespace(name);
-
   });
   $(function () {
     $("#string_algo").selectmenu();
   });
 
-  $("#string_algo").on("selectmenuselect", function() {
+  $("#string_algo").on("selectmenuselect", function () {
     var name = $("#string_algo").find(":selected").text();
     console.log("22: name: " + name);
     if (name.includes("tsne")) {
@@ -40,19 +39,19 @@ $(document).ready(function() {
       document.getElementById("string_cg_umap").style.display = "none";
       document.getElementById("string_cg_tsne").style.display = "none";
       document.getElementById("string_spring").style.display = "none";
-      // document.getElementById("string_kamada_kawai").style.display = "block"; // might be confusing when you cannot directly select the columns for weights
+      document.getElementById("string_kamada_kawai").style.display = "block"; // might be confusing when you cannot directly select the columns for weights
     } else {
       document.getElementById("string_cg_umap").style.display = "none";
       document.getElementById("string_cg_tsne").style.display = "none";
       document.getElementById("string_spring").style.display = "none";
       document.getElementById("string_kamada_kawai").style.display = "none";
-    };
+    }
   });
 
-  $(function() {
-    const checkbox = document.getElementById('string_calc_lay')
+  $(function () {
+    const checkbox = document.getElementById("string_calc_lay");
 
-    checkbox.addEventListener('change', (event) => {
+    checkbox.addEventListener("change", (event) => {
       console.log("checkbox changed");
       if (event.currentTarget.checked) {
         $("#string_algo").selectmenu("enable");
@@ -73,30 +72,32 @@ $(document).ready(function() {
     }
     console.log("37: New namespace:" + $("#new_namespace_name").val());
   });
-  $("#string_new_namespace_name").on("click", function() {
+  $("#string_new_namespace_name").on("click", function () {
     this.readOnly = false;
     $("#string_upload_namespaces").selectmenu("disable");
     document.getElementById("string_radio_new_namespace").checked = true;
   });
-  $("#string_framebox_exisiting").on("click", function() {
+  $("#string_framebox_exisiting").on("click", function () {
     $("#string_new_namespace_name").readOnly = true;
     $("#string_upload_namespaces").selectmenu("enable");
     document.getElementById("string_radio_existing").checked = true;
   });
   $("#string_upload_form").on("change input", function () {
     console.log("changed!");
-    var string_formData = new FormData(document.getElementById("string_upload_form"));
+    var string_formData = new FormData(
+      document.getElementById("string_upload_form")
+    );
     for (var pair of string_formData.entries()) {
       console.log("47: pairs: " + pair[0] + ", " + pair[1]);
     }
   });
 
-  $("#string_upload_form").submit(function(event) {
-    console.log("Submitting")
+  $("#string_upload_form").submit(function (event) {
+    console.log("Submitting");
 
     // document.getElementById("upload_button").style.backgroundImage = "{{ url_for('static', filename = 'img/active_gears.png') }}";
     $("#string_upload_message").html("");
-    document.getElementById("string_upload_button").value = '...';
+    document.getElementById("string_upload_button").value = "...";
     document.getElementById("string_upload_button").disabled = true;
     document.getElementById("string_upload_processing").style.display = "block";
 
@@ -105,7 +106,10 @@ $(document).ready(function() {
     var form = $(this);
     var formData = new FormData(this);
     if (formData.get("string_namespace") == "existing") {
-      formData.append("existing_namespace", $("#string_upload_namespaces").val());
+      formData.append(
+        "existing_namespace",
+        $("#string_upload_namespaces").val()
+      );
     }
     let it = formData.keys();
 
@@ -131,16 +135,18 @@ $(document).ready(function() {
       success: function (data) {
         console.log("117: Data: " + data);
         $("#string_upload_message").html(data);
-        document.getElementById("string_upload_button").value = "Upload"; 
+        document.getElementById("string_upload_button").value = "Upload";
         document.getElementById("string_upload_button").disabled = false;
-        document.getElementById("string_upload_processing").style.display = "none";
+        document.getElementById("string_upload_processing").style.display =
+          "none";
       },
       error: function (err) {
         console.log("Uploaded failed!");
         $("#string_upload_message").html("Upload failed");
-        document.getElementById("string_upload_button").value = "Upload"; 
+        document.getElementById("string_upload_button").value = "Upload";
         document.getElementById("string_upload_button").disabled = false;
-        document.getElementById("string_upload_processing").style.display = "none";
+        document.getElementById("string_upload_processing").style.display =
+          "none";
       },
     });
   });

@@ -207,7 +207,7 @@ def map_source_to_target(
         get_id_on_taget, axis=1, args=(target_nodes,)
     )
 
-    src_nodes["c"] = src_nodes.apply(lambda x: x["layouts"][0][NT.node_color] if "layouts" in x else x[NT.node_color], axis=1)
+    src_nodes["c"] = src_nodes.apply(lambda x: x["layouts"][0][NT.node_color] if "layouts" in x else x["cy_col"], axis=1)
     if "layouts" in src_nodes.columns:
         src_nodes = src_nodes.drop(columns="layouts")
 
