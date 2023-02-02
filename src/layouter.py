@@ -374,6 +374,8 @@ class Layouter:
             if ev not in links.columns:
                 if stringify:
                     links[ev] = [0 for _ in range(len(links))]
+                else:
+                    continue
             color = evidences[ev]
             links[ev] = links[ev].replace(0, np.nan)
             with_score = links[links[ev].notnull()][ev]
