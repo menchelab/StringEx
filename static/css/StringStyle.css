@@ -1,20 +1,4 @@
-input[type="checkbox"] {
-    width: 1em;
-    height: 1em;
-    background: rgb(75, 114, 2);
-    margin-top: 17px;
-    /*-moz-padding-start: calc(10px - 3px);*/
-    font-family: 'Future', sans-serif;
-    font-size: 20px;
-    font-weight: 10;
-    color: rgb(255, 255, 255);
-    cursor: pointer;
-    background: rgb(0, 0, 0);
-    border: 1px solid transparent;
-    padding: 10px;
-    border-image: url("/static/css/images/frame1.png") 10 stretch;
-    visibility: visible;
-}
+
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Input Boxes
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -61,14 +45,19 @@ font-family: 'Venus', sans-serif;*/
 .strex_updateMessage{
     color:green;
     min-width: 20px;
-    height: 5vh;
+    line-height: 6vh;
+    height: 25vh;
     opacity: 0;
     transition: opacity 2s;
     transition-timing-function: cubic-bezier(0, 2, 1, 0.58);
     overflow: hidden;
+    font-size:5vh;
 }
 
 @media (max-width: 1920px) {
+    .stringEvidenceButton{
+        font-size: 2vw;
+    }
 
     .stringEvidenceButton[type="WebGL Button"] {
         font-size: 15px;
@@ -111,8 +100,6 @@ font-family: 'Venus', sans-serif;*/
     overflow: hidden;
     height: 4.5vh;
 }
-
-
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Scrollable Side Panel
@@ -177,4 +164,21 @@ Scrollable Side Panel
     border: 1px solid #333;
     min-width: fit-content;
     box-shadow: none;
+}
+
+.stringex_checkbox {
+    -webkit-appearance : none;
+    appearance         : none;
+    width              : 50px;
+    height             : 50px;
+    border             : 5px solid #ddd;
+    border-radius      : 4px;
+    background         : #ddd no-repeat center center;
+  }
+.stringex_checkbox:checked {
+    -webkit-appearance : none;
+    appearance         : none;
+    border             : 5px solid #ddd;
+    border-radius      : 4px;
+    background         : rgb(42, 113, 148) no-repeat center center;
 }

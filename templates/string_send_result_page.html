@@ -27,7 +27,7 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
     <script>
         var sessiondata = JSON.parse({{ sessionData| tojson}});
-        var pdata = JSON.parse({{ pfile| tojson}});
+        var pdata = JSON.parse({{ pdata| tojson}});
         var username = '{{session['username']}}';
     </script>
 
@@ -45,6 +45,7 @@
             -o-background-size: cover;
             background:url("{{ url_for('static', filename='css/images/lineglow3.gif')}}");
             background-size: cover;
+            background-position: center;
             margin: 0px;
         }
 
@@ -119,14 +120,12 @@
             <div class=" six columns" style="margin-left:9%">
                 <h4 style="padding-left:2%">Node Textures</h4>
                 <ul style="list-style-type: none;padding-left:6%" ,id="node_textures">
-                    {% for x in layouts %}
+                    {% for x in pfile["layouts"] %}
 
-                    {% if "Node" in x %}
                     <li>
-                        <h4 class="stringexClickLayout" id="{{x.strip('Node')[:-1]}}" type="Node">
-                            {{x.strip(" Node")[:-1]}} </h4>
+                        <h4 class="stringexClickLayout" id="{{x}}" type="Node">
+                            {{x.strip("XYZ")}} </h4>
                     </li>
-                    {%endif%}
 
                     {% endfor %}
                 </ul>
@@ -134,13 +133,11 @@
             <div class="five columns" id="link_textures">
                 <h4 style="padding:2%">Link Textures</h4>
                 <ul style="list-style-type: none;padding-left:6%" id="link_textures">
-                    {% for x in layouts %}
-                    {% if "Link" in x %}
+                    {% for x in pfile["links"]%}
                     <li>
-                        <h4 class="stringexClickLayout" id="{{x.strip('Link')[:-1]}}" type="Link">
-                            {{x.strip("Link")[:-1]}}</h4>
+                        <h4 class="stringexClickLayout" id="{{x}}" type="Link">
+                            {{x.strip("XYZ")}}</h4>
                     </li>
-                    {% endif%}
                     {% endfor %}
                 </ul>
             </div>
@@ -150,16 +147,16 @@
                 var id = this.id;
                 var type = this.getAttribute("type");
                 if (type.includes("Node")) {
-                    socket.emit('ex', { id: "layouts", opt: id + "XYZ", fn: "sel" });
-                    socket.emit('ex', { id: "layoutsRGB", opt: id + "RGB", fn: "sel" });
+                    socket.emit('ex', { id: "layouts", opt: id, fn: "sel" });
+                    socket.emit('ex', { id: "layoutsRGB", opt: id.replace("XYZ", "RGB"), fn: "sel" });
                 } else {
-                    socket.emit('ex', { id: "linkcolors", opt: id + "RGB", fn: "sel" });
-                    socket.emit('ex', { id: "links", opt: id + "XYZ", fn: "sel" });
+                    socket.emit('ex', { id: "linkcolors", opt: id.replace("XYZ", "RGB"), fn: "sel" });
+                    socket.emit('ex', { id: "links", opt: id, fn: "sel" });
+
                 }
 
             });
 
-            document.getElementById("navbar_div").style.background = "black";
         </script>
     </div>
 

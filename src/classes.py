@@ -33,6 +33,7 @@ class NodeTags:
     id = "id"
     attr_lst = "attrlist"
     uniprot = "uniprot"
+    display_name = "display name"
 
 
 class StringTags:

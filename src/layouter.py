@@ -16,13 +16,14 @@ from .classes import VRNetzElements as VRNE
 from .settings import log
 import pandas as pd
 
+
 class Layouter:
     """Simple class to apply a 3D layout algorithm to a networkx graph."""
 
     graph: nx.Graph = nx.Graph()
-    
+
     @staticmethod
-    def gen_graph(nodes: dict=None, links: dict=None) -> nx.Graph:
+    def gen_graph(nodes: dict = None, links: dict = None) -> nx.Graph:
         """Generates a networkx graph based on a dict of nodes and links.
 
         Args:
@@ -33,8 +34,10 @@ class Layouter:
             networkx.Graph: Graph for which the layouts will be generated.
         """
         G = nx.Graph()
-        G.add_nodes_from([(idx,node.dropna()) for idx, node in nodes.iterrows()])
-        G.add_edges_from([(start,end) for start, end in links[[LiT.start, LiT.end]].values.tolist()])
+        G.add_nodes_from([(idx, node.dropna()) for idx, node in nodes.iterrows()])
+        G.add_edges_from(
+            [(start, end) for start, end in links[[LiT.start, LiT.end]].values.tolist()]
+        )
         # for node_data in nodes:
         #     self.graph.add_node(node_data[NT.id], data=node_data)
         #     # self.node_map[node_data["id"]] = node_data
@@ -263,36 +266,42 @@ class Layouter:
                 layout = lay_func[algo](
                     algo_variables
                 )  # Will use the desired layout algorithm
-            
+
             lay = np.array(list(layout.values()))
-            x = lay[:,0]
-            y = lay[:,1]
-            z = lay[:,2]
+            x = lay[:, 0]
+            y = lay[:, 1]
+            z = lay[:, 2]
+
             def normalize_pos(x):
                 x += abs(min(x))
                 x /= max(x)
                 return x
-            pos = pd.DataFrame([x,y,z]).T
+
+            pos = pd.DataFrame([x, y, z]).T
             pos = pos.apply(normalize_pos)
             layouts[algo] = layout
         return layouts
 
     @staticmethod
-    def normalize_pos(layout:dict):
+    def normalize_pos(layout: dict):
 
-        x = layout[:,0]
-        y = layout[:,1]
-        z = layout[:,2]
+        x = layout[:, 0]
+        y = layout[:, 1]
+        z = layout[:, 2]
+
         def norm(x):
             x += abs(min(x))
             x /= max(x)
             return x
-        pos = pd.DataFrame([x,y,z]).T
+
+        pos = pd.DataFrame([x, y, z]).T
         pos = pos.apply(norm)
         return pos
-    
+
     @staticmethod
-    def add_layout_to_vrnetz(nodes:pd.DataFrame,layout: dict, layout_name: str) -> None:
+    def add_layout_to_vrnetz(
+        nodes: pd.DataFrame, layout: dict, layout_name: str
+    ) -> None:
         """Adds the points of the generated layout to the underlying VRNetz
 
         Args:
@@ -300,6 +309,7 @@ class Layouter:
             layout_name (str): Name of the layout to be added to the VRNetz.
         """
         if NT.layouts in nodes:
+
             def extract_cy(x):
                 if NT.layouts not in x:
                     return x
@@ -308,29 +318,28 @@ class Layouter:
                 x["cy_col"] = layout["c"]
                 x["size"] = layout["s"]
                 return x
+
             nodes = nodes.apply(extract_cy, axis=1)
         layout = np.array(list(layout.values()))
         pos = Layouter.normalize_pos(layout)
-        nodes[layout_name+"_col"] = [[random.randint(0, 255) for _ in range(3)] for i in range(len(layout))]
+        # nodes[layout_name+"_col"] = [[random.randint(0, 255) for _ in range(3)] for i in range(len(layout))]
 
-        nodes[layout_name+"2d_pos"] = pos.apply(lambda x: [x[0],x[1],0], axis=1)
-        nodes[layout_name+"_pos"] = pos.apply(lambda x: list(x), axis=1)
-
-
+        nodes[layout_name + "2d_pos"] = pos.apply(lambda x: [x[0], x[1], 0], axis=1)
+        nodes[layout_name + "_pos"] = pos.apply(lambda x: list(x), axis=1)
 
         if "cy_pos" and "cy_col" in nodes:
-            nodes[layout_name+"_col"] = nodes["cy_col"]
+            # nodes[layout_name+"_col"] = nodes["cy_col"]
             coords = np.array([np.array(x) for x in nodes["cy_pos"]])
             pos = Layouter.normalize_pos(coords)
-            
-            nodes["cy_pos"] = pos.apply(lambda x: [x[0],x[1],0], axis=1)
+
+            nodes["cy_pos"] = pos.apply(lambda x: [x[0], x[1], 0], axis=1)
         return nodes
-    
+
     @staticmethod
     def gen_evidence_layouts(
-        links:pd.DataFrame,
-        evidences:dict = None,
-        stringify:bool = False,
+        links: pd.DataFrame,
+        evidences: dict = None,
+        stringify: bool = False,
     ) -> list[dict[str, object]]:
         """Set the link color for each STRING evidence type. Based on the score the link opacity is scaled.
 
@@ -347,41 +356,41 @@ class Layouter:
         log.debug(f"Handling evidences...")
 
         if ST.stringdb_score in links.columns:
-            links = links.rename(columns={ST.stringdb_score:Evidences.any.value})
-        
+            links = links.rename(columns={ST.stringdb_score: Evidences.any.value})
+
         elif Evidences.any.value not in links.columns:
             links[Evidences.any.value] = [1 for _ in range(len(links))]
-        
 
         def extract_score(x):
-            evidences = [ev for ev in Evidences.get_all_evidences_except_any() if ev in x.keys()]
+            evidences = [
+                ev for ev in Evidences.get_all_evidences_except_any() if ev in x.keys()
+            ]
             if len(evidences) == 0:
-                value = 0
+                value = None
             else:
                 value = max(x[evidences])
             x[Evidences.any.value] = value
             return x
         
-        links[Evidences.any.value].replace(0, np.nan, inplace=True)
         to_replace = links[Evidences.any.value].isnull()
-        links[to_replace] = links[to_replace].apply(extract_score,axis=1)
+        links[to_replace] = links[to_replace].apply(extract_score, axis=1)
 
         def gen_color(x, color):
             x = color[:3] + (int(x * 255),)
             return x
-        
+
         for ev in evidences:
             if ev not in links.columns:
                 if stringify:
-                    links[ev] = [0 for _ in range(len(links))]
+                    links[ev] = [None for _ in range(len(links))]
                 else:
                     continue
             color = evidences[ev]
-            links[ev] = links[ev].replace(0, np.nan)
             with_score = links[links[ev].notnull()][ev]
             this = with_score.apply(gen_color, args=(color,))
-            links[ev+"_col"] = this
+            links[ev + "_col"] = this
         return links
+
 
 if __name__ == "__main__":
     import os

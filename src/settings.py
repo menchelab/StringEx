@@ -38,7 +38,7 @@ UNIPROT_MAP = os.path.join(_STATIC_PATH, "uniprot_mapping.csv")
 _MAPPING_ARBITARY_COLOR = [255, 255, 255]
 MAX_NUM_LINKS = 262144
 log = logger.get_logger(
-    level=_LOG_LEVEL, f_level=F_LOG_LEVEL, c_level=C_LOG_LEVEL, format=_LOG_FORMAT
+    level=_LOG_LEVEL, f_level=F_LOG_LEVEL, c_level=C_LOG_LEVEL, format=_LOG_FORMAT, c_format=_LOG_FORMAT
 )
 
 

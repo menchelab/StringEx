@@ -172,7 +172,6 @@ class Uploader:
 
         height = 512
         path = self.p_path
-        n = len(links)
 
         def get_pixel(elem):
             if pd.isnull(elem):
@@ -189,16 +188,13 @@ class Uploader:
         # links = links.drop(columns=[LiT.layouts])
         # print(nodes.iloc[0]["cy_color"])
         # exit()
-
+        tmp = tmp.fillna(0)
         path = self.p_path
         output = ""
         for layout in [c for c in links.columns if c in EV.get_all_evidences()]:
-            links_to_consider = tmp.copy()
-            # sort this data frame so that every element with none in column layout is at the end
-            if layout is not EV.any.value:
-                links_to_consider = links_to_consider[links_to_consider[layout+"_col"].notna()]
-            links_to_consider = links_to_consider.reset_index()
-            colors = links_to_consider[layout+"_col"][: self.MAX_NUM_LINKS]
+            
+            colors = tmp[layout + "_col"][: self.MAX_NUM_LINKS]
+            colors = colors.astype("object")
             image = Image.new("RGBA", (512, height))
             rgb = f"{layout}RGB"
             image.putdata(colors.to_numpy())
@@ -207,15 +203,18 @@ class Uploader:
             if rgb not in self.pfile["linksRGB"]:
                 self.pfile["linksRGB"].append(rgb)
 
-            if links_to_consider["start_pix"].any() or links_to_consider["end_pix"].any():
-                starts = links_to_consider["start_pix"].fillna(0)
-                ends = links_to_consider["end_pix"].fillna(0)
+            if (
+                tmp["start_pix"].any()
+                or tmp["end_pix"].any()
+            ):
+                starts = tmp["start_pix"].fillna(0)
+                ends = tmp["end_pix"].fillna(0)
 
                 # Cut data frame to max number of links
 
-                texture = pd.concat([starts, ends]).sort_index(
-                    kind="stable"
-                )[:self.MAX_NUM_LINKS]  # sort the entries in an alternating fashion
+                texture = pd.concat([starts, ends]).sort_index(kind="stable")[
+                    : self.MAX_NUM_LINKS
+                ]  # sort the entries in an alternating fashion
                 texture = texture.to_numpy()
                 xyz = f"{layout}XYZ"
                 image = Image.new("RGB", (1024, height))
@@ -276,8 +275,9 @@ class Uploader:
         nodes: pd.DataFrame
         if "names" not in self.names:
             self.names["names"] = []
-        self.names["names"] = nodes["name"].tolist()
-
+        self.names["names"] = [[n] for n in nodes[NT.name].tolist()]
+        if NT.display_name in self.names:
+            self.names[NT.display_name] = [[n] for n in nodes[NT.display_name].tolist()]
 
         hight = 128 * (int(n / 16384) + 1)
 
@@ -289,8 +289,10 @@ class Uploader:
             layout_name = layout.replace("_pos", "")
             if not nodes[layout].any():
                 continue
-            pos = nodes[layout].apply(lambda x: [int(float(value) * 65280) for value in x])
-            
+            pos = nodes[layout].apply(
+                lambda x: [int(float(value) * 65280) for value in x]
+            )
+
             t_high = pos.apply(lambda x: tuple(value // 255 for value in x)).fillna(0)
             t_low = pos.apply(lambda x: tuple(value % 255 for value in x)).fillna(0)
 
@@ -313,16 +315,23 @@ class Uploader:
                     continue
                 color = nodes[color]
                 color = color.fillna(0)
+
                 def set_color(x):
                     if len(x) == 4:
-                        return tuple(x,)
+                        return tuple(
+                            x,
+                        )
                     elif x == 0:
                         return x
-                    return tuple(x + [255//2,],)
+                    return tuple(
+                        x
+                        + [
+                            255 // 2,
+                        ],
+                    )
+
                 color = color.apply(set_color)
-                images["layoutsRGB"].putdata(
-                    color
-                )
+                images["layoutsRGB"].putdata(color)
 
                 rgb = f"{layout_name}RGB"
                 images["layoutsRGB"].save(os_join(path, "layoutsRGB", f"{rgb}.png"))
@@ -380,32 +389,42 @@ class Uploader:
         state += self.make_node_tex(nodes, layouts=n_lay)
 
         state += self.make_link_tex(links, l_lay)
-        
+
         nodes = self.network.get(VRNE.nodes, [])
         if isinstance(nodes, pd.DataFrame):
-            drops = [c for c in nodes.columns if c.endswith("_pos")] + [c for c in nodes.columns if c.endswith("_col")] + ["size"]
+            drops = (
+                [c for c in nodes.columns if c.endswith("_pos")]
+                + [c for c in nodes.columns if c.endswith("_col")]
+                + ["size"]
+            )
             for c in drops:
                 if c in nodes.columns:
-                    nodes = nodes.drop(columns = [c])
+                    nodes = nodes.drop(columns=[c])
         links = self.network.get(VRNE.links, [])
 
         if isinstance(links, pd.DataFrame):
-            drops =[c for c in links.columns if c.endswith("_col")] + ["size"]
+            drops = [c for c in links.columns if c.endswith("_col")] + ["size"]
             for c in drops:
                 if c in links.columns:
-                    links = links.drop(columns = [c])
+                    links = links.drop(columns=[c])
 
         # Sort layouts so that Cytoscape is first followed by 2d and then the rest
-        layouts = [c.strip("XYZ") for c in self.pfile["layouts"] if c.endswith("XYZ")]
+        layouts = [c for c in self.pfile["layouts"]]
         cy = [c for c in layouts if "cy" in c]
         two = [c for c in layouts if "2d" in c]
         rest = [c for c in layouts if c not in cy and c not in two]
-        layouts= cy + two + rest
-        self.pfile["layouts"] = [f"{c}XYZ" for c in layouts]
-        self.pfile["layoutsRGB"] = [f"{c}RGB" for c in layouts]
+        layouts = cy + two + rest
+        self.pfile["layouts"] = [f"{c}" for c in layouts]
 
-        self.nodes = {"nodes":[v.dropna().to_dict() for k,v in nodes.iterrows()]}
-        self.links = {"links":[v.dropna().to_dict() for k,v in links.iterrows()]}
+        layouts_rgb = [c for c in self.pfile["layoutsRGB"]]
+        cy = [c for c in layouts_rgb if "cy" in c]
+        two = [c for c in layouts_rgb if "2d" in c]
+        rest = [c for c in layouts_rgb if c not in cy and c not in two]
+        layouts_rgb = cy + two + rest
+        self.pfile["layoutsRGB"] = [f"{c}" for c in layouts_rgb]
+
+        self.nodes = {"nodes": [v.dropna().to_dict() for k, v in nodes.iterrows()]}
+        self.links = {"links": [v.dropna().to_dict() for k, v in links.iterrows()]}
         self.write_json_files()
 
         if self.stringify:
@@ -461,9 +480,9 @@ class Uploader:
             if key in nodes.columns:
                 filtered = filtered.drop(columns=[key])
 
-        self.nodes = {"nodes":[v.dropna().to_dict() for k,v in filtered.iterrows()]}
-        
-        self.links = {"links":[v.dropna().to_dict() for k,v in links.iterrows()]}
+        self.nodes = {"nodes": [v.dropna().to_dict() for k, v in filtered.iterrows()]}
+
+        self.links = {"links": [v.dropna().to_dict() for k, v in links.iterrows()]}
 
         # with open(self.links_file, "r") as json_file:
         #     self.links = json.load(json_file)

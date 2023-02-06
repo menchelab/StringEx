@@ -25,12 +25,10 @@ def download(tax_id: int, dest: str, clean_name: str, string_db_ver: str = "11.5
         [links, info, ali],
         [organism_links, organism_info, organism_aliases],
     ):
-        if not os.path.exists(os.path.join(directory, file.strip(".gz"))):
-            print(url + data + file)
+        if not os.path.exists(os.path.join(directory, file)):
             r = requests.get(url + data + file)
-            content = gzip.decompress(r.content)
-            with open(os.path.join(directory, file.strip(".gz")), "wb+") as f:
-                f.write(content)
+            with open(os.path.join(directory,file), "wb+") as f:
+                f.write(r.content)
 
 
 if __name__ == "__main__":

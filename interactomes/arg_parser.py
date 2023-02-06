@@ -1,10 +1,12 @@
 import os
-from src.classes import Organisms,LayoutAlgroithms
+from src.classes import Organisms, LayoutAlgroithms
 import argparse
 from src import settings as st
 
 _SOURCE_FILES = os.path.join(".", "string_interactomes")
 _OUTPUT_PATH = os.path.join(".", "csv", "string_interactomes")
+
+
 def parse_args(args=None):
     parser = argparse.ArgumentParser(description="Construct STRING interactomes")
     organisms = Organisms.all_organisms.copy()

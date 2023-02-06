@@ -10,19 +10,19 @@ import interactomes.read_string as read_string
 import interactomes.upload_network as upload_network
 import src.logger as logger
 import src.settings as st
-from src.classes import  Organisms
+from src.classes import Organisms
 import interactomes.arg_parser as arg_parser
 
 st.log = logger.get_logger(
-    "interactome_construction",
+    name="interactome_construction",
     level=st._LOG_LEVEL,
     f_level=st.F_LOG_LEVEL,
     c_level=st.C_LOG_LEVEL,
     format=st._LOG_FORMAT,
+    c_format=st._LOG_FORMAT,
     log_file="interactome_construction.log",
     runtimes_files="interactome_construction_runtimes.log",
 )
-
 
 def workflow(parser):
     runtimes = {}
@@ -159,11 +159,11 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
         variables = json.load(f)
 
     parser.layout_algo = [
-        # "spring",
+        "spring",
         "cg_global_umap",
-        # "cg_global_tsne",
-        # "cg_local_umap",
-        # "cg_local_tsne",
+        "cg_global_tsne",
+        "cg_local_umap",
+        "cg_local_tsne",
     ]
     parser.organism.remove("reproduce")
     if parser.organism == "all" or len(parser.organism) == 0:
@@ -186,6 +186,7 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
             base[0] += "d"
         if not parser.construct:
             base[0] += "c"
+        st.log.debug(base)
         main(base)
     base += ["-lay"]
     # calculate all respective layouts for the organisms
@@ -208,13 +209,16 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
             args = [disabled] + base[1:] + [algo]
             for k, v in variables[organism][algo].items():
                 args += [f"{k}", f"{v}"]
-            print(args)
+            st.log.debug(args)
             main(args)
     if parser.upload:
-        org = " ".join(parser.organism)
         args = (
-            ["-dcl"] + base[2:-1] + [org, "-p", f"{parser.port}", "-ip", f"{parser.ip}"]
+            ["-dcl"]
+            + base[2:-1]
+            + parser.organism
+            + ["-p", f"{parser.port}", "-ip", f"{parser.ip}"]
         )
+        st.log.debug(args)
         main(args)
 
 

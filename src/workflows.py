@@ -18,6 +18,8 @@ from .uploader import Uploader
 from .classes import VRNetzElements as VRNE
 import pandas as pd
 from .classes import LinkTags as LiT
+
+
 def VRNetzer_upload_workflow(
     network: dict,
     filename: str,
@@ -165,7 +167,7 @@ def VRNetzer_map_workflow(
     return html
 
 
-def VRNetzer_send_network_workflow(request: dict):
+def VRNetzer_send_network_workflow(request: dict, blueprint):
     network = {
         "nodes": request.pop("nodes"),
         "links": request.pop("links"),
@@ -206,18 +208,12 @@ def VRNetzer_send_network_workflow(request: dict):
     )
     if to_running:
         for i in range(2):
-            flask.current_app.socketio.emit(
+            blueprint.emit(
                 "ex",
                 {"id": "projects", "opt": project_name, "fn": "sel"},
                 namespace="/chat",
                 room=flask.session.get("room"),
             )
-    output = output.split("<br>")
-    output.pop(0)
-    for idx, line in enumerate(output):
-        string_start = line.find("</a>")
-        end_string = line.find("Texture")
-        output[idx] = line[string_start + 4 : end_string - 1].replace(" ", "_")
     return output[1:]
 
 
@@ -235,7 +231,7 @@ def apply_layout_workflow(
         network[VRNE.nodes] = pd.DataFrame(network[VRNE.nodes])
         network[VRNE.links] = pd.DataFrame(network[VRNE.links])
         layouter.network = network
-        layouter.graph = layouter.gen_graph(network[VRNE.nodes], network[VRNE.links] )
+        layouter.graph = layouter.gen_graph(network[VRNE.nodes], network[VRNE.links])
     else:
         layouter.read_from_vrnetz(network)
         log.info(f"Network extracted from: {network}")
@@ -248,11 +244,15 @@ def apply_layout_workflow(
         algo, layout = next(iter(layout.items()))
         if algo != layout_name:
             layout_name = algo
-        nodes = layouter.add_layout_to_vrnetz(layouter.network[VRNE.nodes],layout, layout_name)
+        nodes = layouter.add_layout_to_vrnetz(
+            layouter.network[VRNE.nodes], layout, layout_name
+        )
         layouter.network[VRNE.nodes] = nodes
         log.info(f"Layout algorithm {layout_algo} applied!")
-    links = Layouter.gen_evidence_layouts(layouter.network[VRNE.links],stringify=stringify)
-    drops = ["s_suid","e_suid"]
+    links = Layouter.gen_evidence_layouts(
+        layouter.network[VRNE.links], stringify=stringify
+    )
+    drops = ["s_suid", "e_suid"]
     for c in drops:
         if c in links.columns:
             links = links.drop(columns=[c])
