@@ -40,6 +40,7 @@ def upload(
         files.append(("layouts", open(file, "rb")))
     for file in link_layouts:
         files.append(("links", open(file, "rb")))
+    st.log.info(f"Trying to upload network for {organism}.", flush=True)
     try:
         r = requests.post(f"http://{ip}:{port}/delpro?project={project_name}")
         r = requests.post(f"http://{ip}:{port}/uploadfiles", data=data, files=files)

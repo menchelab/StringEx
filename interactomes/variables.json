@@ -1,5 +1,8 @@
 {
   "H.sapiens": {
+    "cg_importance_umap": {
+      "-md": 0.9
+    },
     "spring": {
       "-opd": 0,
       "-it": 50,
@@ -40,6 +43,9 @@
     }
   },
   "A.thaliana": {
+    "cg_importance_umap": {
+      "-md": 0.9
+    },
     "spring": {
       "-opd": 0,
       "-it": 50,
@@ -80,6 +86,9 @@
     }
   },
   "D.melanogaster": {
+    "cg_importance_umap": {
+      "-md": 0.9
+    },
     "spring": {
       "-opd": 0,
       "-it": 50,
@@ -120,6 +129,9 @@
     }
   },
   "C.elegans": {
+    "cg_importance_umap": {
+      "-md": 0.9
+    },
     "spring": {
       "-opd": 0,
       "-it": 50,
@@ -191,9 +203,15 @@
       "-lra": 200,
       "-st": 250,
       "-thr": 0.4
+    },
+    "cg_importance_umap": {
+      "-md": 0.9
     }
   },
   "S.cerevisiae": {
+    "cg_importance_umap": {
+      "-md": 0.9
+    },
     "spring": {
       "-opd": 0,
       "-it": 50,
@@ -234,6 +252,9 @@
     }
   },
   "D.rerio": {
+    "cg_importance_umap": {
+      "-md": 0.9
+    },
     "spring": {
       "-opd": 0,
       "-it": 50,
@@ -274,6 +295,9 @@
     }
   },
   "M.musculus": {
+    "cg_importance_umap": {
+      "-md": 0.9
+    },
     "spring": {
       "-opd": 0,
       "-it": 50,
@@ -314,6 +338,9 @@
     }
   },
   "R.norvegicus": {
+    "cg_importance_umap": {
+      "-md": 0.9
+    },
     "spring": {
       "-opd": 0,
       "-it": 50,

@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="{{ url_for('StringEx.static', filename='css/StringStyle.css') }}">
+<!-- <link rel="stylesheet" href="{{ url_for('StringEx.static', filename='css/StringStyle.css') }}">
 </link>
 <script src="{{ url_for('StringEx.static', filename='js/stringex_cytoscape_send.js') }}"></script>
 
@@ -10,10 +10,10 @@
             background-size: cover;
             background-clip: padding-box;
       }
-</style>
+</style> -->
 
 <!-- Tab containing STRING evidence buttons -->
-<div id="tab_to_add" class="container" style="display:none;">
+<!-- <div id="tab_to_add" class="container" style="display:none;">
       <div id="string_send_cytoscape_tab">
             <div id="stringex_client_ip" value="{{ request.remote_addr }}"></div>
             <div class="twelve columns">
@@ -75,6 +75,15 @@
 
 
             </div>
+
+      </div>
+</div> -->
+
+<div class="gradientBox">
+      <div class='swagBox' style="width:420px; background-color: rgba(7, 16, 0, 0.3);">
+            <mc-dropdown id="selectionsDD" class="GD" type="dropdown" fn="dropdown" name="SELECTIONS"></mc-dropdown>
+
+            <mc-scrollbox id='scrollbox1'></mc-scrollbox>
 
       </div>
 </div>

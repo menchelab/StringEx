@@ -322,7 +322,7 @@ class Layouter:
             nodes = nodes.apply(extract_cy, axis=1)
         layout = np.array(list(layout.values()))
         pos = Layouter.normalize_pos(layout)
-        # nodes[layout_name+"_col"] = [[random.randint(0, 255) for _ in range(3)] for i in range(len(layout))]
+
 
         nodes[layout_name + "2d_pos"] = pos.apply(lambda x: [x[0], x[1], 0], axis=1)
         nodes[layout_name + "_pos"] = pos.apply(lambda x: list(x), axis=1)
@@ -333,6 +333,14 @@ class Layouter:
             pos = Layouter.normalize_pos(coords)
 
             nodes["cy_pos"] = pos.apply(lambda x: [x[0], x[1], 0], axis=1)
+            def extract_color(x):
+                """Scale alpha channel (glowing effect) with node size (max size = 1"""
+                col = x["cy_col"] + [int(255*x["size"])]
+                return col
+            max_size = max(nodes["size"])
+            nodes["size"] = nodes["size"].apply(lambda x: x/max_size)
+            nodes["cy_col"] = nodes[["cy_col","size"]].apply(extract_color,axis=1)
+
         return nodes
 
     @staticmethod

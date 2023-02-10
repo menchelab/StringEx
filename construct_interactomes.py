@@ -78,8 +78,9 @@ def workflow(parser):
                 construct()
 
         if parser.layout:
-            if parser.opt_dist <= 0:
-                parser.opt_dist = None
+            if parser.opt_dist:
+                if parser.opt_dist <= 0:
+                    parser.opt_dist = None
             variables = {
                 "prplxty": parser.prplxty,
                 "density": parser.density,
@@ -159,15 +160,17 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
         variables = json.load(f)
 
     parser.layout_algo = [
-        "spring",
-        "cg_global_umap",
-        "cg_global_tsne",
-        "cg_local_umap",
-        "cg_local_tsne",
+        # "spring",
+        # "cg_global_umap",
+        # "cg_global_tsne",
+        # "cg_local_umap",
+        # "cg_local_tsne",
+        "cg_importance_umap"
     ]
     parser.organism.remove("reproduce")
     if parser.organism == "all" or len(parser.organism) == 0:
         parser.organism = Organisms.all_organisms
+        parser.organism.remove("D.melanogaster")
     flag = " ".join(
         [
             handle
