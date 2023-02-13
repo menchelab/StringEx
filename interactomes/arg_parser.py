@@ -1,7 +1,8 @@
-import os
-from src.classes import Organisms, LayoutAlgroithms
 import argparse
+import os
+
 from src import settings as st
+from src.classes import LayoutAlgroithms, Organisms
 
 _SOURCE_FILES = os.path.join(".", "string_interactomes")
 _OUTPUT_PATH = os.path.join(".", "csv", "string_interactomes")
@@ -99,7 +100,13 @@ def parse_args(args=None):
         help="Defines the score threshold for the interactome files.",
         default=0.4,
     )
-    # TODO: Ask christ about the parameters
+    parser.add_argument(
+        "--layout_name",
+        "-name",
+        type=str,
+        help="Defines the name of the layout files.",
+        nargs="*",
+    )
     ### CARTOGRAPH VARIABLES ###
     ### TSNE ###
     parser.add_argument(

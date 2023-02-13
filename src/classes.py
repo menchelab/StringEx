@@ -84,6 +84,7 @@ class LayoutAlgroithms:
     cartoGRAPH_importance = "importance"
     cartoGRAPH_tsne = "tsne"
     cartoGRAPH_umap = "umap"
+    cartoGRAPH_functional = "functional"
 
     if "cartoGRAPHs" in [module.split("=")[0] for module in list(freeze.freeze())]:
         all_algos += [
@@ -93,6 +94,7 @@ class LayoutAlgroithms:
             f"{cartoGRAPH}_{cartoGRAPH_global}_{cartoGRAPH_umap}",
             f"{cartoGRAPH}_{cartoGRAPH_importance}_{cartoGRAPH_tsne}",
             f"{cartoGRAPH}_{cartoGRAPH_importance}_{cartoGRAPH_umap}",
+            f"{cartoGRAPH}_{cartoGRAPH_functional}_{cartoGRAPH_umap}",
         ]
 
 

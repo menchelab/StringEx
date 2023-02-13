@@ -5,13 +5,13 @@ import os
 import timeit
 from datetime import timedelta
 
+import interactomes.arg_parser as arg_parser
 import interactomes.load_files as load_files
 import interactomes.read_string as read_string
 import interactomes.upload_network as upload_network
 import src.logger as logger
 import src.settings as st
 from src.classes import Organisms
-import interactomes.arg_parser as arg_parser
 
 st.log = logger.get_logger(
     name="interactome_construction",
@@ -23,6 +23,7 @@ st.log = logger.get_logger(
     log_file="interactome_construction.log",
     runtimes_files="interactome_construction_runtimes.log",
 )
+
 
 def workflow(parser):
     runtimes = {}
@@ -106,6 +107,7 @@ def workflow(parser):
                     parser.overwrite_links,
                     parser.threshold,
                     parser.max_links,
+                    parser.layout_name,
                 )
 
             if parser.benchmark:

@@ -1,9 +1,9 @@
 import json
-import random
-import traceback
-import pandas as pd
+
 import networkx as nx
 import numpy as np
+import pandas as pd
+import swifter
 
 from . import util
 from .classes import Evidences
@@ -14,7 +14,6 @@ from .classes import NodeTags as NT
 from .classes import StringTags as ST
 from .classes import VRNetzElements as VRNE
 from .settings import log
-import pandas as pd
 
 
 class Layouter:
@@ -126,7 +125,10 @@ class Layouter:
         return nx.kamada_kawai_layout(self.graph, dim=3)
 
     def create_cartoGRAPH_layout(
-        self, layout_algo: str, cg_variables: dict = None
+        self,
+        layout_algo: str,
+        cg_variables: dict = None,
+        feature_matrix: pd.DataFrame = None,
     ) -> dict:
         """Will pick the correct cartoGRAPHs layout algorithm and apply it to the graph. If cartoGRAPH is not installed an ImportError is raised.
 
@@ -164,6 +166,7 @@ class Layouter:
                     self.graph, dim, prplxty, density, l_rate, steps
                 )
             elif "functional" in layout_algo:
+                feature_matrix = self.get_feature_matrix(self.graph)
                 return cg.layout_functional_tsne(
                     self.graph, dim, prplxty, density, l_rate, steps
                 )
@@ -184,32 +187,10 @@ class Layouter:
                     self.graph, dim, n_neighbors, spread, min_dist
                 )
             elif "functional" in layout_algo:
-                "TODO: Implement functional"
-                MATRIX = cg.get_functional_matrix(self.graph)
-                rows = len(list(G.nodes()))
-                feat_one = [(val) if i % 3 else (scale) for i in range(rows)]
-                feat_two = [
-                    (val) if i % 2 or feat_one[i] == scale in feat_one else (scale)
-                    for i in range(rows)
-                ]
-                feat_three = [
-                    (scale)
-                    if feat_one[i] == val
-                    and feat_two[i] == val
-                    and i not in feat_one
-                    and i not in feat_two
-                    else val
-                    for i in range(rows)
-                ]
-
-                feat_matrix = np.vstack((feat_one, feat_two, feat_three))
-                FM = pd.DataFrame(feat_matrix)
-                FM.index = ["100", "101", "102"]
-                FM = FM.T
-                FM.index = list(G.nodes())
                 "Please specify a functional matrix of choice with N x rows with G.nodes and M x feature columns."
+                feature_matrix = self.get_feature_matrix(self.graph)
                 return cg.layout_functional_umap(
-                    self.graph, dim, n_neighbors, spread, min_dist
+                    self.graph, feature_matrix, dim, n_neighbors, spread, min_dist
                 )
         elif "topographic" in layout_algo:
             # d_z = a dictionary with keys=G.nodes and values=any int/float assigned to a node
@@ -231,7 +212,10 @@ class Layouter:
             )
 
     def apply_layout(
-        self, layout_algo: str = None, algo_variables: dict = {}
+        self,
+        layout_algo: str = None,
+        algo_variables: dict = {},
+        feature_matrix: pd.DataFrame = None,
     ) -> dict[str, list[float]]:
         """Applies a layout algorithm and adds the node positions to nodes in the self.network[VRNE.nodes] list.
 
@@ -240,7 +224,7 @@ class Layouter:
             algo_variables (dict, optional): Contains algorithm variables. Defaults to None.. Defaults to {}.
 
         Returns:
-            dict[str,list[float]]: with node ids as keys and three dimensional node positions as values.
+            dict[str,list[float]]: with node ids as keys and three dimensional xnode positions as values.
         """
         layouts = {}
         if isinstance(layout_algo, str):
@@ -251,7 +235,9 @@ class Layouter:
                 algo = LA.spring
             if LA.cartoGRAPH in algo:
                 log.debug(f"Applying layout: {algo}")
-                layout = self.create_cartoGRAPH_layout(algo, algo_variables)
+                layout = self.create_cartoGRAPH_layout(
+                    algo, algo_variables, feature_matrix
+                )
                 if isinstance(layout, ValueError):
                     log.debug(
                         "Error in executing cartoGRAPHs layout. Create a layout with spring instead."
@@ -278,7 +264,7 @@ class Layouter:
                 return x
 
             pos = pd.DataFrame([x, y, z]).T
-            pos = pos.apply(normalize_pos)
+            pos = pos.swifter.apply(normalize_pos)
             layouts[algo] = layout
         return layouts
 
@@ -295,7 +281,7 @@ class Layouter:
             return x
 
         pos = pd.DataFrame([x, y, z]).T
-        pos = pos.apply(norm)
+        pos = pos.swifter.apply(norm)
         return pos
 
     @staticmethod
@@ -319,27 +305,32 @@ class Layouter:
                 x["size"] = layout["s"]
                 return x
 
-            nodes = nodes.apply(extract_cy, axis=1)
+            nodes = nodes.swifter.apply(extract_cy, axis=1)
         layout = np.array(list(layout.values()))
         pos = Layouter.normalize_pos(layout)
 
-
-        nodes[layout_name + "2d_pos"] = pos.apply(lambda x: [x[0], x[1], 0], axis=1)
-        nodes[layout_name + "_pos"] = pos.apply(lambda x: list(x), axis=1)
+        nodes[layout_name + "2d_pos"] = pos.swifter.apply(
+            lambda x: [x[0], x[1], 0], axis=1
+        )
+        nodes[layout_name + "_pos"] = pos.swifter.apply(lambda x: list(x), axis=1)
 
         if "cy_pos" and "cy_col" in nodes:
             # nodes[layout_name+"_col"] = nodes["cy_col"]
             coords = np.array([np.array(x) for x in nodes["cy_pos"]])
             pos = Layouter.normalize_pos(coords)
 
-            nodes["cy_pos"] = pos.apply(lambda x: [x[0], x[1], 0], axis=1)
+            nodes["cy_pos"] = pos.swifter.apply(lambda x: [x[0], x[1], 0], axis=1)
+
             def extract_color(x):
                 """Scale alpha channel (glowing effect) with node size (max size = 1"""
-                col = x["cy_col"] + [int(255*x["size"])]
+                col = x["cy_col"] + [int(255 * x["size"])]
                 return col
+
             max_size = max(nodes["size"])
-            nodes["size"] = nodes["size"].apply(lambda x: x/max_size)
-            nodes["cy_col"] = nodes[["cy_col","size"]].apply(extract_color,axis=1)
+            nodes["size"] = nodes["size"].swifter.apply(lambda x: x / max_size)
+            nodes["cy_col"] = nodes[["cy_col", "size"]].swifter.apply(
+                extract_color, axis=1
+            )
 
         return nodes
 
@@ -379,9 +370,9 @@ class Layouter:
                 value = max(x[evidences])
             x[Evidences.any.value] = value
             return x
-        
+
         to_replace = links[Evidences.any.value].isnull()
-        links[to_replace] = links[to_replace].apply(extract_score, axis=1)
+        links[to_replace] = links[to_replace].swifter.apply(extract_score, axis=1)
 
         def gen_color(x, color):
             x = color[:3] + (int(x * 255),)
@@ -395,9 +386,36 @@ class Layouter:
                     continue
             color = evidences[ev]
             with_score = links[links[ev].notnull()][ev]
-            this = with_score.apply(gen_color, args=(color,))
+            this = with_score.swifter.apply(gen_color, args=(color,))
             links[ev + "_col"] = this
         return links
+
+    @staticmethod
+    def get_feature_matrix(G: nx.Graph):
+        nodes = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient="index")
+        all_columns = list(nodes.columns)
+        while True:
+            column = all_columns.pop()
+            if hasattr(nodes.at[0, column], "__iter__"):
+                new_cols = {}
+                for idx, row in nodes.iterrows():
+                    for val in row[column]:
+                        if val not in nodes.columns:
+                            if val not in new_cols:
+                                new_cols[val] = []
+                            new_cols[val].append(idx)
+                new_cols = sorted(
+                    new_cols.items(), key=lambda x: len(x[1]), reverse=True
+                )
+                for col in new_cols[:50]:
+                    nodes[col[0]] = [1 if idx in col[1] else 0 for idx in nodes.index]
+                nodes = nodes.drop(columns=[column])
+            elif isinstance(nodes.at[0, column], str):
+                nodes = nodes.drop(columns=[column])
+
+            if len(nodes.columns) >= 50:
+                break
+        return nodes
 
 
 if __name__ == "__main__":

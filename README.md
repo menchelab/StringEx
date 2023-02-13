@@ -28,32 +28,20 @@ Furthermore, in combination with the [VRNetzerApp](https://github.com/menchelab/
 
 ## Usage
 
-### Upload STRING network
+### Upload network from Cytoscape
 
-1. Export a STRING network with the VRNetzerApp from Cytoscape. For further instructions see [here](https://github.com/menchelab/STRING-VRNetzer).
+1. Export a network with the VRNetzerApp from Cytoscape. For further instructions see [here](https://github.com/menchelab/STRING-VRNetzer).
 2. Start the VRNetzer backend using the script applicable to your operating system.
 3. Navigate in your Browser to http://127.0.0.1:5000/upload (Windows/Linux) / http://127.0.0.1:3000/upload (mac)
-4. If the StringEx is correctly installed, you should now see two new tabs. The first is the a VRNetz designated uploader
+4. If the StringEx is correctly installed, you should now see two new tabs. The first is the VRNetz designated uploader
 
    <img src="https://raw.githubusercontent.com/menchelab/STRING-VRNetzer/main/pictures/uploader_tabs_1.png?token=GHSAT0AAAAAABY6FADQ6JNPWKJBGDUBW6HEY356G5Q" alt="Picture that visualizes the location of the StringEx uploader tab">
 
-5. On this tab, define a project name, select the VRNetz file of your exported String network, and select the desired layout algorithm.
-6. If you are using a cartoGRAPHs layout algorithm, you can also define the respective variables.
-7. Click on the "Upload" button to upload the network to the VRNetzer platform.
-8. If the upload was successful, you'll be prompted with a success message and a link to preview the project in the designated WebGL previewer.
-
----
-
-### Upload some other network from Cytoscape
-
-Do the first six steps as mentioned [above](#upload-string-network).
-
-7. Uncheck the checkbox `STRING NETWORK`
-
-<img src="https://raw.githubusercontent.com/menchelab/STRING-VRNetzer/main/pictures/non_string.png?token=GHSAT0AAAAAABY6FADRLDGI7NWYYVV4YRTOY356L4Q" alt="Picture that visualizes the where the checkbox can be found">
-
-1. Click on the "Upload" button to upload the network to the VRNetzer platform.
-2. If the upload was successful, you'll be prompted with a success message and a link to preview the project in the designated WebGL previewer.
+5. On this tab, define a project name, select the VRNetz file of your exported network, and select the desired layout algorithm.
+6. You can also define the respective variables.
+7. You can provide a name for the generated node layout.
+8. Click on the "Upload" button to upload the network to the VRNetzer platform.
+9. If the upload was successful, you'll be prompted with a success message and a link to preview the project in the designated WebGL previewer.
 
 ---
 

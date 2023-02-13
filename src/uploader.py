@@ -2,9 +2,13 @@ import json
 import os
 import shutil
 import sys
-import uploader as main_uploader
-from .settings import _WORKING_DIR
+
 import pandas as pd
+import swifter
+
+import uploader as main_uploader
+
+from .settings import _WORKING_DIR
 
 sys.path.append(os.path.join(_WORKING_DIR, "..", ".."))
 
@@ -183,8 +187,8 @@ class Uploader:
             return elem
 
         tmp = links.copy()
-        tmp["start_pix"] = links[LiT.start].apply(get_pixel)
-        tmp["end_pix"] = links[LiT.end].apply(get_pixel)
+        tmp["start_pix"] = links[LiT.start].swifter.apply(get_pixel)
+        tmp["end_pix"] = links[LiT.end].swifter.apply(get_pixel)
         # links = links.drop(columns=[LiT.layouts])
         # print(nodes.iloc[0]["cy_color"])
         # exit()
@@ -192,7 +196,7 @@ class Uploader:
         path = self.p_path
         output = ""
         for layout in [c for c in links.columns if c in EV.get_all_evidences()]:
-            
+
             colors = tmp[layout + "_col"][: self.MAX_NUM_LINKS]
             colors = colors.astype("object")
             image = Image.new("RGBA", (512, height))
@@ -203,10 +207,7 @@ class Uploader:
             if rgb not in self.pfile["linksRGB"]:
                 self.pfile["linksRGB"].append(rgb)
 
-            if (
-                tmp["start_pix"].any()
-                or tmp["end_pix"].any()
-            ):
+            if tmp["start_pix"].any() or tmp["end_pix"].any():
                 starts = tmp["start_pix"].fillna(0)
                 ends = tmp["end_pix"].fillna(0)
 
@@ -289,12 +290,16 @@ class Uploader:
             layout_name = layout.replace("_pos", "")
             if not nodes[layout].any():
                 continue
-            pos = nodes[layout].apply(
+            pos = nodes[layout].swifter.apply(
                 lambda x: [int(float(value) * 65280) for value in x]
             )
 
-            t_high = pos.apply(lambda x: tuple(value // 255 for value in x)).fillna(0)
-            t_low = pos.apply(lambda x: tuple(value % 255 for value in x)).fillna(0)
+            t_high = pos.swifter.apply(
+                lambda x: tuple(value // 255 for value in x)
+            ).fillna(0)
+            t_low = pos.swifter.apply(
+                lambda x: tuple(value % 255 for value in x)
+            ).fillna(0)
 
             images = {k: Image.new("RGB", (128, hight)) for k in ["high", "low"]}
             images["layoutsRGB"] = Image.new("RGBA", (128, hight))
@@ -330,7 +335,7 @@ class Uploader:
                         ],
                     )
 
-                color = color.apply(set_color)
+                color = color.swifter.apply(set_color)
                 images["layoutsRGB"].putdata(color)
 
                 rgb = f"{layout_name}RGB"
@@ -498,7 +503,7 @@ class Uploader:
                 else:
                     return tuple(elem[NT.node_color] + [255 // 2])
 
-            data = nodes.apply(get_color, axis=1)
+            data = nodes.swifter.apply(get_color, axis=1)
             img.putdata(data)
 
             img.save(os_join(self.p_path, "layoutsRGB", f"{layout}.png"))

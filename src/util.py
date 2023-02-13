@@ -1,14 +1,18 @@
 import glob
-import logging
+import json
 import os
 import shutil
-import json
+
+import swifter
 
 try:
     import GlobalData as GD
 except ModuleNotFoundError:
     pass
+import random
+
 import networkx as nx
+import pandas as pd
 from PIL import Image
 
 from . import settings as st
@@ -17,8 +21,6 @@ from .classes import LayoutTags as LT
 from .classes import NodeTags as NT
 from .classes import Organisms
 from .settings import log
-import pandas as pd
-import random
 
 
 def get_algo_variables(algo: str, form: dict) -> dict:
@@ -189,7 +191,9 @@ def extract_node_data(selected_nodes: list[int], project: str, layout: str, colo
         return "#{:02x}{:02x}{:02x}".format(r, g, b)
 
     nodes_data["color"] = node_colors
-    nodes_data["color"] = nodes_data["color"].apply(lambda x: rgb_to_hex(*x[:3]))
+    nodes_data["color"] = nodes_data["color"].swifter.apply(
+        lambda x: rgb_to_hex(*x[:3])
+    )
 
     node_pos_h = [map(lambda x: x * 255, pixel) for pixel in node_pos_h]
     pos = [[], [], []]
@@ -202,13 +206,13 @@ def extract_node_data(selected_nodes: list[int], project: str, layout: str, colo
         # print(tuple(map(lambda x: sum(x), pixel)))
     for col, dim in zip(["x", "y", "z"], pos):
         nodes_data[col] = dim
-        nodes_data[col] = nodes_data[col].apply(lambda x: int(x * 1000))
+        nodes_data[col] = nodes_data[col].swifter.apply(lambda x: int(x * 1000))
         # def norm(x, dim_max):
         #     x /= dim_max
         #     return int(x)
         # dim_max = nodes_data[col].max()
         # if dim_max > 0:
-        #     nodes_data[col] = nodes_data[col].apply(norm, args=(dim_max,))
+        #     nodes_data[col] = nodes_data[col].swifter.apply(norm, args=(dim_max,))
 
     nodes_data = nodes_data.astype({"id": str})
     return nodes_data, selected_nodes

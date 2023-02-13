@@ -1,11 +1,10 @@
-import glob
-import json
-import os
-import shutil
 import warnings
+
+import swifter
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+import pandas as pd
 from PIL import Image
 
 from .classes import Evidences as EV
@@ -23,7 +22,6 @@ from .settings import (
     log,
 )
 from .uploader import Uploader
-import pandas as pd
 
 
 def map_nodes(
@@ -38,25 +36,28 @@ def map_nodes(
         tuple[pd.DataFrame,pd.DataFrame]: Mapped nodes and target nodes with additional attributes from the source network.
     """
 
-
-    target_nodes["n"] = target_nodes["attrlist"].apply(
+    target_nodes["n"] = target_nodes["attrlist"].swifter.apply(
         lambda x: x[0] if isinstance(x, list) else pd.NA
     )
-    target_nodes["uniprot"] = target_nodes["attrlist"].apply(
+    target_nodes["uniprot"] = target_nodes["attrlist"].swifter.apply(
         lambda x: [x[1]] if isinstance(x, list) and len(x) > 1 else pd.NA
     )
-    target_nodes["description"] = target_nodes["attrlist"].apply(
+    target_nodes["description"] = target_nodes["attrlist"].swifter.apply(
         lambda x: x[2] if isinstance(x, list) and len(x) > 2 and x[2] != "" else pd.NA
     )
 
     # Split identifier into taxid and gene name
     if "stringdb_database identifier" in src_nodes:
+
         def get_short(x):
             splitted = x.split(".")
             if len(splitted) > 1:
                 return splitted[1]
             return x
-        src_nodes["short"] = src_nodes["stringdb_database identifier"].apply(get_short)
+
+        src_nodes["short"] = src_nodes["stringdb_database identifier"].swifter.apply(
+            get_short
+        )
         log.debug("Split identifier into taxid and gene name!")
 
     # rename to general key name
@@ -104,10 +105,12 @@ def map_nodes(
             res[i] = a
         return res
 
-    attribute = target_nodes["attrlist"].apply(extract_attributes)
-    src_nodes["target_id"] = src_nodes.apply(get_id_on_taget, axis=1, args=(attribute,))
+    attribute = target_nodes["attrlist"].swifter.apply(extract_attributes)
+    src_nodes["target_id"] = src_nodes.swifter.apply(
+        get_id_on_taget, axis=1, args=(attribute,)
+    )
 
-    src_nodes["c"] = src_nodes.apply(
+    src_nodes["c"] = src_nodes.swifter.apply(
         lambda x: x["layouts"][0][NT.node_color] if "layouts" in x else x["cy_col"],
         axis=1,
     )
@@ -162,7 +165,7 @@ def map_links(
     if len(drops) > 0:
         src_links = src_links.drop(columns=drops)
 
-    def check_if_in_target(x:pd.Series, src_nodes:pd.DataFrame) -> pd.Series:
+    def check_if_in_target(x: pd.Series, src_nodes: pd.DataFrame) -> pd.Series:
         """Looks whether the link is in the target network. If so, the start and end id of the link are updated to match the ones in the target network.
 
         Args:
@@ -186,7 +189,7 @@ def map_links(
     ]
     log.debug(f"Considering {len(src_links)} links.")
 
-    src_links = src_links.apply(check_if_in_target, axis=1, args=(src_nodes,))
+    src_links = src_links.swifter.apply(check_if_in_target, axis=1, args=(src_nodes,))
 
     log.debug(f"Filtering target links to only consider mapped nodes...")
 
@@ -218,7 +221,7 @@ def map_links(
             return index[0]
         return None
 
-    src_links["target_id"] = src_links.apply(
+    src_links["target_id"] = src_links.swifter.apply(
         find_link_in_target, axis=1, args=(links_to_consider,)
     )
     log.debug(f"All indices found!")

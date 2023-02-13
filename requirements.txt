@@ -6,3 +6,4 @@ requests
 Pillow
 flask
 py4cytoscape
+swifter

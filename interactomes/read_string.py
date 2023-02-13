@@ -3,8 +3,10 @@ import os
 from time import time
 
 import networkx as nx
-import pandas
 import numpy as np
+import pandas
+import swifter
+
 import src.settings as st
 from src import map_uniprot
 from src.classes import Evidences
@@ -12,6 +14,8 @@ from src.classes import LinkTags as LiT
 from src.classes import NodeTags as NT
 from src.classes import Organisms
 from src.layouter import Layouter
+
+
 def construct_graph(
     networks_directory: str,
     organism: str,
@@ -32,111 +36,149 @@ def construct_graph(
     Returns:
         tuple[nx.Graph, dict]: Graph representing the protein-protein interaction network and a dictionary containing the nodes of the graph.
     """
-    st.log.debug("Reading raw data...",flush=True)
-    link_table, alias_table, description_table = read_raw_data(networks_directory,tax_id,clean_name,MAX_NUM_LINKS)
-    st.log.debug("Generating graph...",flush=True)
-    G,links = gen_graph(
+    st.log.debug("Reading raw data...", flush=True)
+    link_table, alias_table, description_table, ont_table = read_raw_data(
+        networks_directory, tax_id, clean_name, MAX_NUM_LINKS
+    )
+    st.log.debug("Generating graph...", flush=True)
+    G, links = gen_graph(
         link_table,
         alias_table,
         description_table,
+        ont_table,
         organism,
         clean_name,
         networks_directory,
         last_link,
     )
-    return G,links
+    return G, links
+
 
 def extract_nodes(
-        # idx: int,
-        # identifier: str,
-        node: pandas.Series,
-        alias_table: pandas.DataFrame,
-        description_table: pandas.DataFrame,
-    ) -> pandas.Series:
-        """Extract nodes from the STRING DB network files.
+    # idx: int,
+    # identifier: str,
+    node: pandas.Series,
+    alias_table: pandas.DataFrame,
+    description_table: pandas.DataFrame,
+    ont_table: pandas.DataFrame,
+) -> pandas.Series:
+    """Extract nodes from the STRING DB network files.
+
+    Args:
+        node (pandas.Series): Row of the nodes DataFrame.
+        alias_table (pandas.DataFrame): DataFrame containing all aliases for all nodes.
+        description_table (pandas.DataFrame): DataFrame containing all descriptions for all nodes.
+
+    Returns:
+        pandas.Series: Updated node with aliases.
+    """
+
+    def extract_uniprot_id(alias: pandas.DataFrame) -> list:
+        """Extracts possible uniprot ids from the alias column of a node.
 
         Args:
-            node (pandas.Series): Row of the nodes DataFrame.
-            alias_table (pandas.DataFrame): DataFrame containing all aliases for all nodes.
-            description_table (pandas.DataFrame): DataFrame containing all descriptions for all nodes.
+            alias (pd.DataFrame): Dataframe containing only data for a single node.
 
         Returns:
-            pandas.Series: Updated node with aliases.
-        """        
-        def extract_unirot_id(alias: pandas.DataFrame) -> list:
-            """Extracts possible uniprot ids from the alias column of a node.
+            list: contains all uniprot ids for a node.
+        """
+        for tag in ["Ensembl_UniProt_AC", "BLAST_UniProt_AC"]:
+            row = alias["source"] == tag
+            if isinstance(row, bool):
+                continue
 
-            Args:
-                alias (pd.DataFrame): Dataframe containing only data for a single node.
+            row = alias.loc[alias["source"] == tag]
+            if row.empty:
+                continue
+            uniprot = list(alias.loc[alias["source"] == tag].get("alias"))
+            if len(uniprot) > 0:
+                return uniprot[0]
+        return None
 
-            Returns:
-                list: contains all uniprot ids for a node.
-            """
-            for tag in ["Ensembl_UniProt_AC", "BLAST_UniProt_AC"]:
-                row = alias["source"] == tag
-                if isinstance(row, bool):
-                    continue
+    def extract_gene_name(alias: pandas.DataFrame):
+        """Extracts possible gene names from the alias column of a node.
 
-                row = alias.loc[alias["source"] == tag]
-                if row.empty:
-                    continue
-                uniprot = list(alias.loc[alias["source"] == tag].get("alias"))
-                if len(uniprot) > 0:
-                    return uniprot[0]
+        Args:
+            alias (pd.DataFrame): Dataframe containing only data for a single node.
+
+        Returns:
+            list: contains all gene names for a node.
+        """
+        row = alias["source"] == "BLAST_UniProt_GN_Name"
+        if isinstance(row, bool):
+            return None
+        gene_name = list(
+            alias.loc[alias["source"] == "BLAST_UniProt_GN_Name"].get("alias")
+        )
+        if len(gene_name) == 0:
             return None
 
-        def extract_gene_name(alias: pandas.DataFrame):
-            """Extracts possible gene names from the alias column of a node.
+        return gene_name[0]
 
-            Args:
-                alias (pd.DataFrame): Dataframe containing only data for a single node.
+    def extract_go_terms(
+        ont_table: pandas.DataFrame, node: pandas.Series, identifier: str, column: str
+    ) -> pandas.Series:
+        """Extracts GO terms from the ontology table.
 
-            Returns:
-                list: contains all gene names for a node.
-            """
-            row = alias["source"] == "BLAST_UniProt_GN_Name"
-            if isinstance(row, bool):
-                return None
-            gene_name = list(
-                alias.loc[alias["source"] == "BLAST_UniProt_GN_Name"].get("alias")
-            )
-            if len(gene_name) == 0:
-                return None
+        Args:
+            ont_table (pandas.DataFrame): Data Frame containing all ontology terms.
+            node (pandas.Series): Node to be updated.
+            identifier (str): Identifier of the node.
+            column (str): Column to search for the identifier.
 
-            return gene_name[0]
+        Returns:
+            pandas.Series: Updated Node
+        """
+        rows = ont_table[ont_table[column] == identifier]
+        for entry in rows.itertuples():
+            qualifier = entry.qualifier
+            if qualifier not in node:
+                node[qualifier] = set({})
+            if "go" not in node:
+                node["go"] = set({})
+            node[qualifier].add(entry.go)
+            node["go"].add(entry.go)
+        # ont_table = ont_table.drop(index=rows.index)
+        return node  # , ont_table
 
-        # get uniprot id(s)
-        identifier = node[NT.name]
-        node[NT.name] = node[NT.name].split(".")[1]
-        alias = alias_table.loc[alias_table.index == identifier]
-        if not alias.empty:
-            alias_table = alias_table.drop(identifier, axis=0)
-            uniprot = extract_unirot_id(alias)
-        else:
-            uniprot = None
-        node["uniprot"] = uniprot
+    # get uniprot id(s)
+    identifier = node[NT.name]
+    node[NT.name] = node[NT.name].split(".")[1]
+    alias = alias_table[alias_table.index == identifier]
+    if not alias.empty:
+        # alias_table = alias_table.drop(index=alias.index)
+        uniprot = extract_uniprot_id(alias)
+        if uniprot:
+            # node, ont_table = extract_go_terms(ont_table, node, uniprot, "id")
+            node = extract_go_terms(ont_table, node, uniprot, "id")
+    else:
+        uniprot = None
+    node["uniprot"] = uniprot
 
-        gene_name = extract_gene_name(alias)
-        if gene_name:
-            node["gene_name"] = gene_name
-        else:
-            node["gene_name"] = None
+    gene_name = extract_gene_name(alias)
+    if gene_name:
+        node["gene_name"] = gene_name
+        # node, ont_table = extract_go_terms(ont_table, node, gene_name, "symbol")
+        node = extract_go_terms(ont_table, node, gene_name, "symbol")
 
+    else:
+        node["gene_name"] = None
 
+    # node[NT.species] = species
+    annotation = description_table.at[identifier, "annotation"]
 
-        # node[NT.species] = species
-        annotation = description_table.at[identifier, "annotation"]
+    if annotation != "annotation not available":
+        node[NT.description] = annotation.replace(";", "")
+        # description_table = description_table.drop(index=identifier)
 
-        if annotation != "annotation not available":
-            node[NT.description] = annotation.replace(";", "")
-            description_table = description_table.drop(identifier)
+    return node  # , alias_table, description_table, ont_table
 
-        return node, alias, description_table
 
 def gen_graph(
     link_table: pandas.DataFrame,
     alias_table: pandas.DataFrame,
     description_table: pandas.DataFrame,
+    ont_table: pandas.DataFrame,
     organism: str,
     clean_name: str,
     _dir: str,
@@ -172,39 +214,36 @@ def gen_graph(
         [ev.value for ev in Evidences]
     ].div(1000)
 
-    st.log.debug("Extracting nodes...", flush = True)
+    st.log.debug("Extracting nodes...", flush=True)
     nodes = pandas.DataFrame()
     concat = pandas.concat([link_table[LiT.start], link_table[LiT.end]])
     nodes[NT.name] = concat.unique()
     nodes[NT.species] = species
-    for idx, node in nodes.iterrows():
-        node = node.copy()
-        node, alias_table, description_table = extract_nodes(
-            node, alias_table, description_table
-        )
-        for col in node.index:
-            if col == NT.species:
-                continue
-            nodes.at[idx, col] = node[col]
 
-    st.log.debug("Nodes extracted!", flush = True)
+    nodes = nodes.swifter.apply(
+        extract_nodes, axis=1, args=(alias_table, description_table, ont_table)
+    )
+    st.log.debug("Nodes extracted!", flush=True)
+
     def get_short(x):
         splitted = x.split(".")
         if len(splitted) > 1:
             return splitted[1]
         return x
-    
-    st.log.debug("Preparing short names...",flush = True)
-    link_table[LiT.start] = link_table[LiT.start].apply(get_short)
-    link_table[LiT.end] = link_table[LiT.end].apply(get_short)
 
-    st.log.debug("Setting link ids...", flush = True)
+    st.log.debug("Preparing short names...", flush=True)
+    link_table[LiT.start] = link_table[LiT.start].swifter.apply(get_short)
+    link_table[LiT.end] = link_table[LiT.end].swifter.apply(get_short)
+
+    st.log.debug("Setting link ids...", flush=True)
     #     return link
 
     names = nodes[NT.name].tolist()
-    link_table[[LiT.start,LiT.end]] = link_table[[LiT.start,LiT.end]].applymap(lambda x: names.index(x) if x in names else None)
+    link_table[[LiT.start, LiT.end]] = link_table[
+        [LiT.start, LiT.end]
+    ].swifter.applymap(lambda x: names.index(x) if x in names else None)
 
-    st.log.debug("Mapped updated link start and end to node indices!", flush = True)
+    st.log.debug("Mapped updated link start and end to node indices!", flush=True)
 
     no_uniprot = nodes[nodes["uniprot"].isna() & nodes["gene_name"].notna()]
     nodes = map_gene_names_to_uniprot(nodes, no_uniprot, taxid)
@@ -231,7 +270,7 @@ def map_gene_names_to_uniprot(
         nx.Graph: Same graph as the input graph, but with updated uniprot ids.
     """
     if not missing_annot.empty:
-        st.log.debug("Mapping gene names to uniprot ids...", flush = True)
+        st.log.debug("Mapping gene names to uniprot ids...", flush=True)
         # invert_map = {v: k for k, v in map_gene_name.items()}
 
         query_results = map_uniprot.query_gen_names_uniport(
@@ -277,7 +316,7 @@ def write_network(
     t1 = time()
     nodes.to_pickle(f"{path}/nodes.pickle")
     processed_network.to_pickle(f"{path}/links.pickle")
-    st.log.debug(f"Writing pickle data took {time() - t1} seconds." ,flush = True)
+    st.log.debug(f"Writing pickle data took {time() - t1} seconds.", flush=True)
 
 
 def construct_layouts(
@@ -289,6 +328,7 @@ def construct_layouts(
     overwrite_links: bool = False,
     threshold: float = 0.4,
     max_links: int = st.MAX_NUM_LINKS,
+    layout_name: str = None,
 ) -> None:
     """Constructs the layouts for the network and compress them into a tar file.
 
@@ -332,12 +372,19 @@ def construct_layouts(
         path = os.path.join(_dir, organism)
         nodes = pandas.read_pickle(f"{path}/nodes.pickle")
         all_links = pandas.read_pickle(f"{path}/links.pickle")
-        st.log.debug(f"Loading data from pickles took {time() - t1}) seconds." ,flush = True)
+        st.log.debug(
+            f"Loading data from pickles took {time() - t1} seconds.", flush=True
+        )
 
         return nodes, all_links
 
     def write_node_layout(
-        organism: str, G: nx.Graph, layouts: dict, _dir: str, overwrite: bool = False
+        organism: str,
+        G: nx.Graph,
+        layouts: dict,
+        _dir: str,
+        overwrite: bool = False,
+        layout_name: str = None,
     ) -> None:
         """Will write the node layout to a csv file with the following format:
         x,y,r,g,b,a,name;uniprot_id;description. File name is: {organism}_node.csv located in projects folder.
@@ -358,10 +405,13 @@ def construct_layouts(
             lambda x: f"{x.get(NT.name)};{x.get(NT.uniprot)};{x.get(NT.description)}",
             axis=1,
         )
-        for name, layout in layouts.items():
+        for idx, entry in enumerate(layouts.items()):
+            name, layout = entry
             nodes["x"] = layout.loc[:, 0]
             nodes["y"] = layout.loc[:, 1]
             nodes["z"] = layout.loc[:, 2]
+            if layout_name and len(layout_name) >= idx:
+                name = layout_name[idx]
             file_name = os.path.join(_directory, f"{name}_nodes.csv")
             if os.path.isfile(file_name) and not overwrite:
                 st.log.info(
@@ -378,7 +428,6 @@ def construct_layouts(
         all_links: pandas.DataFrame,
         _dir: str,
         overwrite: bool = False,
-        threshold: float = 0.4,
     ) -> None:
         """Will write the link layouts to a csv file with the following format:
         start,end,r,g,b,a. File name is: {organism}_{ev}.csv located in projects folder.
@@ -428,9 +477,18 @@ def construct_layouts(
         LiT.end,
         edge_attr=True,
     )
+    layout_graph = G.copy()
 
     nodes = nodes.fillna(value="")
-    nx.set_node_attributes(G, nodes.to_dict(orient="index"))
+    # nx.set_node_attributes(G, nodes.to_dict(orient="index"))
+    G.add_nodes_from(
+        (idx, {k: v for k, v in row.items()}) for idx, row in nodes.iterrows()
+    )
+    layout_graph.add_nodes_from(
+        (idx, {k: v for k, v in row.items() if k == "go"})
+        for idx, row in nodes.iterrows()
+    )
+
     not_ind = [idx for idx in nodes.index if idx not in G.nodes]
     missing_nodes = nodes.loc[not_ind]
     if len(missing_nodes) > 0:
@@ -451,12 +509,17 @@ def construct_layouts(
             st.log.info(
                 f"{file_name} does not exist or overwrite is allowed. Generating layout."
             )
-    layouts = gen_layout(G, layout_algo, variables)
+    layouts = gen_layout(layout_graph, layout_algo, variables)
     st.log.info(f"Generated layouts. Used algorithms: {layout_algo}.")
-    write_link_layouts(organism, all_links, _dir, overwrite_links, threshold)
-    write_node_layout(organism, G, layouts, _dir, overwrite=overwrite)
+    write_link_layouts(organism, all_links, _dir, overwrite_links)
+    write_node_layout(
+        organism, G, layouts, _dir, overwrite=overwrite, layout_name=layout_name
+    )
 
-def read_raw_data(networks_directory: str, tax_id: str, clean_name: str,MAX_NUM_LINKS:int) -> tuple[pandas.DataFrame, pandas.DataFrame, pandas.DataFrame]:
+
+def read_raw_data(
+    networks_directory: str, tax_id: str, clean_name: str, MAX_NUM_LINKS: int
+) -> tuple[pandas.DataFrame, pandas.DataFrame, pandas.DataFrame]:
     directory = os.path.join(networks_directory, clean_name)
 
     link_file = os.path.join(directory, f"{tax_id}.protein.links.detailed.v11.5.txt.gz")
@@ -470,6 +533,7 @@ def read_raw_data(networks_directory: str, tax_id: str, clean_name: str,MAX_NUM_
 
     alias_file = os.path.join(directory, f"{tax_id}.protein.aliases.v11.5.txt.gz")
     description_file = os.path.join(directory, f"{tax_id}.protein.info.v11.5.txt.gz")
+    ontologies_file = os.path.join(directory, f"{tax_id}.gaf.gz")
 
     rename_dict = {
         "protein1": LiT.start,
@@ -498,7 +562,7 @@ def read_raw_data(networks_directory: str, tax_id: str, clean_name: str,MAX_NUM_
         Evidences.stringdb_similarity.value: np.int64,
     }
 
-    link_table = pandas.read_table(link_file,header=0, sep=" ")
+    link_table = pandas.read_table(link_file, header=0, sep=" ")
     for default_col, new_col in rename_dict.items():
         if default_col in link_table.columns:
             link_table = link_table.rename(columns={default_col: new_col})
@@ -512,17 +576,20 @@ def read_raw_data(networks_directory: str, tax_id: str, clean_name: str,MAX_NUM_
         link_table = link_table.sort_values(
             [Evidences.stringdb_experiments.value, Evidences.any.value], ascending=False
         )
-        st.log.debug("Sorted link list first based on experimental value and secondly on total score." , flush=True)
+        st.log.debug(
+            "Sorted link list first based on experimental value and secondly on total score.",
+            flush=True,
+        )
         link_table = link_table[
-        link_table[LiT.start].notna() & link_table[LiT.end].notna()
+            link_table[LiT.start].notna() & link_table[LiT.end].notna()
         ]
-        st.log.debug("Dropped links where start or end is NA." , flush=True)
+        st.log.debug("Dropped links where start or end is NA.", flush=True)
 
         link_table = link_table.reset_index(drop=True)
-        
+
         link_table = link_table.truncate(after=MAX_NUM_LINKS - 1)
-        link_table.to_csv(filtered,compression="gzip", sep=" ", index=False)
-    
+        link_table.to_csv(filtered, compression="gzip", sep=" ", index=False)
+
     st.log.debug("Filtered and sorted...", flush=True)
     alias_table = pandas.read_table(
         alias_file,
@@ -539,4 +606,18 @@ def read_raw_data(networks_directory: str, tax_id: str, clean_name: str,MAX_NUM_
     description_table = pandas.read_table(
         description_file, header=0, sep="\t", index_col=0
     )
-    return link_table, alias_table, description_table
+    ont = pandas.read_table(ontologies_file, comment="!", header=None, sep="\t")
+    ont = ont.drop(columns=[0, 7, 11, 12, 13, 14, 15, 16])
+    ont.columns = [
+        "id",
+        "symbol",
+        "qualifier",
+        "go",
+        "db_reference",
+        "evidence",
+        "aspect",
+        "name",
+        "synonym",
+    ]
+    ont.index = ont["id"]
+    return link_table, alias_table, description_table, ont
