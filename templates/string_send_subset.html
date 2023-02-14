@@ -70,6 +70,20 @@
                               <div class="elven columns strex_updateMessage" id="stringex_SM">
                               </div>
                         </div>
+                        <div class="twelve columns">
+                              <div class="four columns">
+                                    <h4># Nodes:</h4>
+                              </div>
+                              <div class="six columns">
+                                    <h4 id="stirngex_num_nodes" style:>
+                                          <script>
+                                                console.log(sessiondata["selected"].length)
+                                                document.write(sessiondata["selected"].length);
+                                          </script>
+                                    </h4>
+                              </div>
+                        </div>
+                        <input type="button" id="stringex_reset_selection" value="Reset Selection"></input>
 
                   </div>
 

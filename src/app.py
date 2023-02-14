@@ -3,20 +3,19 @@ import os
 
 import flask
 import GlobalData as GD
-from flask_socketio import emit
-from PIL import Image
 import py4cytoscape as p4c
+import requests
+from flask_socketio import emit
+from io_blueprint import IOBlueprint
+from PIL import Image
 
 import uploader
+import util
 
+from . import routes
 from . import settings as st
 from . import util as string_util
 from . import workflows as wf
-from . import routes
-import util
-import requests
-
-from io_blueprint import IOBlueprint
 
 url_prefix = "/StringEx"
 
@@ -100,7 +99,14 @@ def string_ex_get_selection(message):
     """Get the selected Nodes of the current open network. and provide it as a raw tab separated is of edges"""
     selected = GD.sessionData["selected"]
     if len(selected) == 0:
-        selected = None
+        blueprint.emit(
+            "status",
+            {
+                "message": f"No node is selected.",
+                "status": "error",
+            },
+        )
+        return
     project = GD.sessionData["actPro"]
     ip = flask.request.remote_addr
     port = 1234
@@ -173,6 +179,19 @@ def string_ex_get_selection(message):
         },
     )
     st.log.debug(f"Created new network in Cytoscape at client {ip}:{port}")
+
+
+@blueprint.on("reset_selection")
+def string_ex_reset_selection():
+    GD.sessionData["selected"] = []
+    print("Selection reset.")
+    blueprint.emit(
+        "reset",
+        {
+            "message": f"Selection reset.",
+            "status": "success",
+        },
+    )
 
 
 @blueprint.on("delete")

@@ -329,6 +329,7 @@ def construct_layouts(
     threshold: float = 0.4,
     max_links: int = st.MAX_NUM_LINKS,
     layout_name: str = None,
+    max_num_features: int = None,
 ) -> None:
     """Constructs the layouts for the network and compress them into a tar file.
 
@@ -340,7 +341,10 @@ def construct_layouts(
     """
 
     def gen_layout(
-        G: nx.Graph, layout_algo: str = None, variables: dict = None
+        G: nx.Graph,
+        layout_algo: str = None,
+        variables: dict = None,
+        max_num_features: int = None,
     ) -> dict:
         """Generates a 3D layout for the graph.
 
@@ -352,11 +356,11 @@ def construct_layouts(
         """
         layouter = Layouter()
         layouter.graph = G
-        layouts = layouter.apply_layout(layout_algo, variables)
-        for algo, layout in layouts.items():
-            layout = np.array(list(layout.values()))
-            pos = Layouter.normalize_pos(layout)
-            layouts[algo] = pos
+        layouts = layouter.apply_layout(layout_algo, variables, max_num_features)
+        # for algo, layout in layouts.items():
+        #     layout = np.array(list(layout.values()))
+        #     pos = Layouter.normalize_pos(layout)
+        #     layouts[algo] = pos
         return layouts
 
     def read_network(organism: str, _dir: str) -> tuple[nx.Graph, dict]:
@@ -394,7 +398,7 @@ def construct_layouts(
             G (nx.Graph): Graph of the network.
             layout (dict): calculated layout of the graph. With the node id as key and the position as value.
         """
-        _directory = os.path.join(_dir, organism)
+        _directory = os.path.join(_dir, organism, "nodes")
         os.makedirs(_directory, exist_ok=True)
         nodes = pandas.DataFrame.from_dict(dict(G.nodes(data=True)), orient="index")
         nodes["r"] = 255
@@ -412,7 +416,7 @@ def construct_layouts(
             nodes["z"] = layout.loc[:, 2]
             if layout_name and len(layout_name) >= idx:
                 name = layout_name[idx]
-            file_name = os.path.join(_directory, f"{name}_nodes.csv")
+            file_name = os.path.join(_directory, f"{name}.csv")
             if os.path.isfile(file_name) and not overwrite:
                 st.log.info(
                     f"Node layout for {name} for {organism} already exists. Skipping."
@@ -439,7 +443,7 @@ def construct_layouts(
             dir (str): Directory to write the files to.
         """
         color_scheme = Evidences.get_default_scheme()
-        _directory = os.path.join(_dir, organism)
+        _directory = os.path.join(_dir, organism, "links")
         os.makedirs(_directory, exist_ok=True)
         for ev in color_scheme:
             file_name = os.path.join(_directory, f"{ev}.csv")
@@ -471,6 +475,7 @@ def construct_layouts(
 
     nodes, all_links = read_network(organism, _dir)
     all_links = all_links[:max_links]
+
     G = nx.from_pandas_edgelist(
         all_links[all_links[Evidences.any.value] > threshold],
         LiT.start,
@@ -509,7 +514,7 @@ def construct_layouts(
             st.log.info(
                 f"{file_name} does not exist or overwrite is allowed. Generating layout."
             )
-    layouts = gen_layout(layout_graph, layout_algo, variables)
+    layouts = gen_layout(layout_graph, layout_algo, variables, max_num_features)
     st.log.info(f"Generated layouts. Used algorithms: {layout_algo}.")
     write_link_layouts(organism, all_links, _dir, overwrite_links)
     write_node_layout(

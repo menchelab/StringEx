@@ -108,6 +108,7 @@ def workflow(parser):
                     parser.threshold,
                     parser.max_links,
                     parser.layout_name,
+                    parser.max_num_features,
                 )
 
             if parser.benchmark:

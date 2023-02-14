@@ -159,6 +159,14 @@ def parse_args(args=None):
         help="Defines the min_dist parameter of cartoGRAPHs umap algorithms.",
         default=0.1,
     )
+    ### Functional Layouts ###
+    parser.add_argument(
+        "--max_num_features",
+        "-maxf",
+        type=int,
+        help="Defines the maximum number of features to be used for the functional layouts.",
+        default=30,
+    )
     ### SPRING VARIABLES ###
     parser.add_argument(
         "--opt_dist",

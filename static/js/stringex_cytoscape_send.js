@@ -41,4 +41,17 @@ $(document).ready(function () {
     console.log(message);
     stringExSocket.emit("send_to_cytoscape", message);
   });
+  $("#stringex_reset_selection").on("click", function () {
+    sessiondata["selected"] = [];
+    stringExSocket.emit("reset_selection");
+    document.getElementById("stirngex_num_nodes").innerHTML =
+      sessiondata["selected"].length;
+    console.log("reset selection");
+  });
+  stringExSocket.on("reset", function (message) {
+    sessiondata["selected"] = [];
+    document.getElementById("stirngex_num_nodes").innerHTML =
+      sessiondata["selected"].length;
+    console.log("reset selection");
+  });
 });

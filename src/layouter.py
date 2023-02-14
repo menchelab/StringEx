@@ -128,7 +128,7 @@ class Layouter:
         self,
         layout_algo: str,
         cg_variables: dict = None,
-        feature_matrix: pd.DataFrame = None,
+        max_num_features: int = None,
     ) -> dict:
         """Will pick the correct cartoGRAPHs layout algorithm and apply it to the graph. If cartoGRAPH is not installed an ImportError is raised.
 
@@ -166,7 +166,9 @@ class Layouter:
                     self.graph, dim, prplxty, density, l_rate, steps
                 )
             elif "functional" in layout_algo:
-                feature_matrix = self.get_feature_matrix(self.graph)
+                feature_matrix = self.get_feature_matrix(self.graph, max_num_features)
+                if feature_matrix is None:
+                    return ValueError("Unable to construct feature matrix!")
                 return cg.layout_functional_tsne(
                     self.graph, dim, prplxty, density, l_rate, steps
                 )
@@ -188,7 +190,9 @@ class Layouter:
                 )
             elif "functional" in layout_algo:
                 "Please specify a functional matrix of choice with N x rows with G.nodes and M x feature columns."
-                feature_matrix = self.get_feature_matrix(self.graph)
+                feature_matrix = self.get_feature_matrix(self.graph, max_num_features)
+                if feature_matrix is None:
+                    return ValueError("Unable to construct feature matrix!")
                 return cg.layout_functional_umap(
                     self.graph, feature_matrix, dim, n_neighbors, spread, min_dist
                 )
@@ -215,7 +219,7 @@ class Layouter:
         self,
         layout_algo: str = None,
         algo_variables: dict = {},
-        feature_matrix: pd.DataFrame = None,
+        max_num_features: int = None,
     ) -> dict[str, list[float]]:
         """Applies a layout algorithm and adds the node positions to nodes in the self.network[VRNE.nodes] list.
 
@@ -236,7 +240,7 @@ class Layouter:
             if LA.cartoGRAPH in algo:
                 log.debug(f"Applying layout: {algo}")
                 layout = self.create_cartoGRAPH_layout(
-                    algo, algo_variables, feature_matrix
+                    algo, algo_variables, max_num_features
                 )
                 if isinstance(layout, ValueError):
                     log.debug(
@@ -264,8 +268,8 @@ class Layouter:
                 return x
 
             pos = pd.DataFrame([x, y, z]).T
-            pos = pos.swifter.apply(normalize_pos)
-            layouts[algo] = layout
+            pos = pos.apply(normalize_pos, axis=0)
+            layouts[algo] = pos
         return layouts
 
     @staticmethod
@@ -306,13 +310,11 @@ class Layouter:
                 return x
 
             nodes = nodes.swifter.apply(extract_cy, axis=1)
-        layout = np.array(list(layout.values()))
-        pos = Layouter.normalize_pos(layout)
 
-        nodes[layout_name + "2d_pos"] = pos.swifter.apply(
+        nodes[layout_name + "2d_pos"] = layout.swifter.apply(
             lambda x: [x[0], x[1], 0], axis=1
         )
-        nodes[layout_name + "_pos"] = pos.swifter.apply(lambda x: list(x), axis=1)
+        nodes[layout_name + "_pos"] = layout.swifter.apply(lambda x: list(x), axis=1)
 
         if "cy_pos" and "cy_col" in nodes:
             # nodes[layout_name+"_col"] = nodes["cy_col"]
@@ -391,10 +393,12 @@ class Layouter:
         return links
 
     @staticmethod
-    def get_feature_matrix(G: nx.Graph):
+    def get_feature_matrix(G: nx.Graph, max_num_features: int = None) -> pd.DataFrame:
+        if max_num_features is None:
+            max_num_features = 100
         nodes = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient="index")
         all_columns = list(nodes.columns)
-        while True:
+        while len(all_columns) > 0:
             column = all_columns.pop()
             if hasattr(nodes.at[0, column], "__iter__"):
                 new_cols = {}
@@ -407,14 +411,21 @@ class Layouter:
                 new_cols = sorted(
                     new_cols.items(), key=lambda x: len(x[1]), reverse=True
                 )
-                for col in new_cols[:50]:
-                    nodes[col[0]] = [1 if idx in col[1] else 0 for idx in nodes.index]
-                nodes = nodes.drop(columns=[column])
+                new_cols = new_cols[:max_num_features]
+                columns = [col[0] for col in new_cols]
+                nodes = nodes.reindex(columns=columns, fill_value=0)
+                for entry in new_cols:
+                    col, indices = entry
+                    true = nodes.index.isin(indices)
+                    nodes[col] = nodes[col].where(true, 1)
             elif isinstance(nodes.at[0, column], str):
                 nodes = nodes.drop(columns=[column])
 
-            if len(nodes.columns) >= 50:
+            if len(nodes.columns) >= max_num_features:
                 break
+        if len(nodes.columns) == 0:
+            return None
+        log.debug(f"The feature matrix consists of {len(nodes.columns)} new features.")
         return nodes
 
 

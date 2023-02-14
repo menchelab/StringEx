@@ -45,13 +45,13 @@ font-family: 'Venus', sans-serif;*/
 .strex_updateMessage{
     color:green;
     min-width: 20px;
-    line-height: 6vh;
-    height: 25vh;
+    line-height: 2.5vh;
+    height: 12vh;
     opacity: 0;
     transition: opacity 2s;
     transition-timing-function: cubic-bezier(0, 2, 1, 0.58);
     overflow: hidden;
-    font-size:5vh;
+    font-size:2vh;
 }
 
 @media (max-width: 1920px) {

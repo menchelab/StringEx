@@ -26,12 +26,16 @@ def upload(
     layouts = []
     link_layouts = []
     src_dir = os.path.join(src, organism)
-    for f in glob.glob(os.path.join(src_dir, "*")):
-        if f.endswith("nodes.csv"):
-            layouts.append(f)
-        for l in [ev.value for ev in Evidences][::-1]:
-            if f.endswith(f"{l}.csv"):
-                link_layouts.append(f)
+    nodes_dir = os.path.join(src_dir, "nodes")
+    links_dir = os.path.join(src_dir, "links")
+    layouts = [os.path.join(nodes_dir, file) for file in os.listdir(nodes_dir)]
+    link_layouts = [os.path.join(links_dir, file) for file in os.listdir(links_dir)]
+    for link_layout in link_layouts:
+        if link_layout.endswith("any.csv"):
+            tmp = link_layout
+            link_layouts.remove(link_layout)
+            link_layouts.append(tmp)
+            break
 
     project_name = organism
     data = {"namespace": "New", "new_name": project_name}
