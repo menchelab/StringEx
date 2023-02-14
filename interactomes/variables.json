@@ -1,8 +1,5 @@
 {
   "H.sapiens": {
-    "cg_importance_umap": {
-      "-md": 0.9
-    },
     "spring": {
       "-opd": 0.4,
       "-it": 200,
@@ -20,13 +17,15 @@
     "cg_global_umap": {
       "-nn": 20,
       "-md": 0.99,
-      "-thr": 0.9
+      "-thr": 0.9,
+      "-name": "global"
     },
     "cg_local_umap": {
       "-nn": 10,
       "-spr": 1.0,
       "-md": 0.9,
-      "-thr": 0.4
+      "-thr": 0.4,
+      "-name": "local"
     }
   },
   "A.thaliana": {
@@ -160,30 +159,31 @@
   },
   "E.coli": {
     "spring": {
-      "-opd": 0.6,
+      "-opd": 0.4,
       "-it": 200,
-      "-thr": 0.9
+      "-thr": 0.9,
+      "-spth": 0.001,
+      "-name": "spring"
+    },
+    "cg_functional_umap": {
+      "-md": 0.99,
+      "-mm": 10,
+      "-maxf": 1000,
+      "-thr": 0.9,
+      "-name": "functional"
     },
     "cg_global_umap": {
-      "-nn": 100,
-      "-spr": 1.0,
-      "-md": 0.4,
-      "-thr": 0.4
+      "-nn": 20,
+      "-md": 0.99,
+      "-thr": 0.9,
+      "-name": "global"
     },
     "cg_local_umap": {
       "-nn": 10,
       "-spr": 1.0,
       "-md": 0.9,
-      "-thr": 0.4
-    },
-    "cg_importance_umap": {
-      "-md": 0.9
-    },
-    "cg_functional_umap": {
-      "-md": 0.99,
-      "-nn": 10,
-      "-maxf": 1000,
-      "-thr": 0.9
+      "-thr": 0.4,
+      "-name": "local"
     }
   },
   "S.cerevisiae": {
@@ -273,46 +273,32 @@
     }
   },
   "M.musculus": {
-    "cg_importance_umap": {
-      "-md": 0.9
-    },
     "spring": {
-      "-opd": 0,
-      "-it": 50,
-      "-spth": 0.0001,
-      "-thr": 0.4
+      "-opd": 0.4,
+      "-it": 200,
+      "-thr": 0.9,
+      "-spth": 0.001,
+      "-name": "spring"
+    },
+    "cg_functional_umap": {
+      "-md": 0.99,
+      "-mm": 10,
+      "-maxf": 1000,
+      "-thr": 0.9,
+      "-name": "functional"
     },
     "cg_global_umap": {
-      "-nn": 10,
-      "-spr": 1.0,
-      "-md": 0.9,
-      "-thr": 0.4
-    },
-    "cg_gloabl_umap": {
-      "-nn": 10,
-      "-spr": 1.0,
-      "-md": 0.9,
-      "-thr": 0.4
+      "-nn": 20,
+      "-md": 0.99,
+      "-thr": 0.9,
+      "-name": "global"
     },
     "cg_local_umap": {
       "-nn": 10,
       "-spr": 1.0,
       "-md": 0.9,
-      "-thr": 0.4
-    },
-    "cg_global_tsne": {
-      "-prp": 50,
-      "-den": 12,
-      "-lra": 200,
-      "-st": 250,
-      "-thr": 0.4
-    },
-    "cg_local_tsne": {
-      "-prp": 50,
-      "-den": 12,
-      "-lra": 200,
-      "-st": 250,
-      "-thr": 0.4
+      "-thr": 0.4,
+      "-name": "local"
     }
   },
   "R.norvegicus": {

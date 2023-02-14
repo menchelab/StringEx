@@ -161,15 +161,6 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
     )
     with open(variables_file) as f:
         variables = json.load(f)
-
-    parser.layout_algo = [
-        # "spring",
-        # "cg_global_umap",
-        # "cg_global_tsne",
-        # "cg_local_umap",
-        # "cg_local_tsne",
-        "cg_importance_umap"
-    ]
     parser.organism.remove("reproduce")
     if parser.organism == "all" or len(parser.organism) == 0:
         parser.organism = Organisms.all_organisms
@@ -207,7 +198,9 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
             disabled += "l"
         if "u" not in disabled:
             disabled += "u"
-        for algo in parser.layout_algo:
+        # TODO: Parallelize the layout calculation
+        for algo in variables[organism]:
+            print(f"Calculating layout for {organism} with {algo} algorithm")
             if "c" not in disabled:
                 disabled += "c"
             if "d" not in disabled:
@@ -217,6 +210,7 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
                 args += [f"{k}", f"{v}"]
             st.log.debug(args)
             main(args)
+    # TODO: Parallelize the upload
     if parser.upload:
         args = (
             ["-dcl"]
