@@ -9,7 +9,7 @@
     },
     "cg_functional_umap": {
       "-md": 0.99,
-      "-mm": 10,
+      "-nn": 10,
       "-maxf": 1000,
       "-thr": 0.9,
       "-name": "functional"
@@ -167,7 +167,7 @@
     },
     "cg_functional_umap": {
       "-md": 0.99,
-      "-mm": 10,
+      "-nn": 10,
       "-maxf": 1000,
       "-thr": 0.9,
       "-name": "functional"
@@ -282,7 +282,7 @@
     },
     "cg_functional_umap": {
       "-md": 0.99,
-      "-mm": 10,
+      "-nn": 10,
       "-maxf": 1000,
       "-thr": 0.9,
       "-name": "functional"

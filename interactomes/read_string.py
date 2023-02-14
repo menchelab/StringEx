@@ -503,8 +503,8 @@ def construct_layouts(
         )
     # Map gene names to uniprot ids and add them to the nodes.
     tmp = layout_algo.copy()
-    for layout in tmp:
-        file_name = os.path.join(_dir, organism, f"{layout}_nodes.csv")
+    for idx, layout in enumerate(tmp):
+        file_name = os.path.join(_dir, organism, "nodes", f"{layout_name[idx]}.csv")
         if os.path.isfile(file_name) and not overwrite:
             st.log.info(
                 f"Node layout for layout {layout} for {organism} already exists. Skipping."
