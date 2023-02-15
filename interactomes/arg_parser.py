@@ -225,6 +225,12 @@ def parse_args(args=None):
         help="Filter out every links that is more than this based on experimental score and combined score.",
         default=st.MAX_NUM_LINKS,
     )
+    parser.add_argument(
+        "--no_lay",
+        "-nl",
+        action="store_true",
+        help="Turns off the layout construction.",
+    )
     if args is None:
         return parser.parse_args()
     return parser.parse_args(args)

@@ -236,6 +236,7 @@ def map_links(
     target_links = target_links.merge(
         new_cols, how="outer", left_index=True, right_index=True
     )
+
     log.debug(f"Links updated!")
 
     target_links = target_links.drop(columns=["target_id"])

@@ -330,6 +330,7 @@ def construct_layouts(
     max_links: int = st.MAX_NUM_LINKS,
     layout_name: str = None,
     max_num_features: int = None,
+    debug: bool = False,
 ) -> None:
     """Constructs the layouts for the network and compress them into a tar file.
 
@@ -405,8 +406,11 @@ def construct_layouts(
         nodes["g"] = 255
         nodes["b"] = 255
         nodes["a"] = 255 // 2
+        has_gene_name = nodes["gene_name"].notna()
+        nodes["ensembl"] = nodes[NT.name].copy()
+        nodes.loc[has_gene_name, NT.name] = nodes.loc[has_gene_name, "gene_name"]
         nodes["attr"] = nodes.apply(
-            lambda x: f"{x.get(NT.name)};{x.get(NT.uniprot)};{x.get(NT.description)}",
+            lambda x: f"{x.get(NT.name)};{x.get(NT.uniprot)};{x.get(NT.description)};{x.get('ensembl')}",
             axis=1,
         )
         for idx, entry in enumerate(layouts.items()):
@@ -502,6 +506,8 @@ def construct_layouts(
             for idx, row in missing_nodes.iterrows()
         )
     # Map gene names to uniprot ids and add them to the nodes.
+    if layout_name is None:
+        layout_name = layout_algo
     tmp = layout_algo.copy()
     for idx, layout in enumerate(tmp):
         file_name = os.path.join(_dir, organism, "nodes", f"{layout_name[idx]}.csv")
@@ -515,6 +521,16 @@ def construct_layouts(
                 f"{file_name} does not exist or overwrite is allowed. Generating layout."
             )
     layouts = gen_layout(layout_graph, layout_algo, variables, max_num_features)
+    if debug:
+        st.log.debug("DEBUG IS ON RANDOM LAYOUT")
+        import random
+
+        def pos():
+            return [random.random() for _ in range(len(G.nodes))]
+
+        layouts = {
+            lay: pandas.DataFrame({0: pos(), 1: pos(), 2: pos()}) for lay in layout_algo
+        }
     st.log.info(f"Generated layouts. Used algorithms: {layout_algo}.")
     write_link_layouts(organism, all_links, _dir, overwrite_links)
     write_node_layout(

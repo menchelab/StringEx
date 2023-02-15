@@ -155,7 +155,7 @@ class Layouter:
                         self.graph, dim, prplxty, density, l_rate, steps
                     )
                 except Exception as e:
-                    print(e)
+                    log.error(e)
                     return e
             elif "global" in layout_algo:
                 return cg.layout_global_tsne(
@@ -206,7 +206,7 @@ class Layouter:
         elif "geodesic" in layout_algo:
             d_radius = 1
             n_neighbors = 8
-            spraed = 1.0
+            spread = 1.0
             min_dist = 0.0
             DM = None
             # radius_list_norm = preprocessing.minmax_scale((list(d_radius.values())), feature_range=(0, 1.0), axis=0, copy=True)
@@ -383,11 +383,11 @@ class Layouter:
         for ev in evidences:
             if ev not in links.columns:
                 if stringify:
-                    links[ev] = [None for _ in range(len(links))]
+                    links[ev] = [int(0) for _ in range(len(links))]
                 else:
                     continue
             color = evidences[ev]
-            with_score = links[links[ev].notnull()][ev]
+            with_score = links[links[ev] > 0.0][ev]
             this = with_score.swifter.apply(gen_color, args=(color,))
             links[ev + "_col"] = this
         return links

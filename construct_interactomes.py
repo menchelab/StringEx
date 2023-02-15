@@ -109,6 +109,7 @@ def workflow(parser):
                     parser.max_links,
                     parser.layout_name,
                     parser.max_num_features,
+                    parser.no_lay,
                 )
 
             if parser.benchmark:
@@ -200,7 +201,7 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
             disabled += "u"
         # TODO: Parallelize the layout calculation
         for algo in variables[organism]:
-            print(f"Calculating layout for {organism} with {algo} algorithm")
+            st.log.info(f"Calculating layout for {organism} with {algo} algorithm")
             if "c" not in disabled:
                 disabled += "c"
             if "d" not in disabled:

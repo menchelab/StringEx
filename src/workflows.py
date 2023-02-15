@@ -2,22 +2,24 @@ import glob
 import gzip
 import json
 import os
+import pickle
 import shutil
 import time
 import traceback
-import pickle
+
 import flask
+import pandas as pd
 
 from . import util as string_util
-from .classes import Evidences, Organisms
+from .classes import Evidences
+from .classes import LinkTags as LiT
+from .classes import Organisms
+from .classes import VRNetzElements as VRNE
 from .converter import VRNetzConverter
 from .layouter import Layouter
 from .map_small_on_large import map_source_to_target
 from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, log
 from .uploader import Uploader
-from .classes import VRNetzElements as VRNE
-import pandas as pd
-from .classes import LinkTags as LiT
 
 
 def VRNetzer_upload_workflow(
@@ -129,7 +131,7 @@ def VRNetzer_map_workflow(
     with open(nodes_file, "r") as json_file:
         trg_network = json.load(json_file)
 
-    trg_network[VRNE.links] = pickle.load(open(links_file, "rb"))[:200]
+    trg_network[VRNE.links] = pickle.load(open(links_file, "rb"))
     trg_network[VRNE.links]["id"] = trg_network["links"].index
     trg_network[VRNE.links] = trg_network["links"].to_dict("records")
 

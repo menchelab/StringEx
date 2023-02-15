@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 
+import numpy as np
 import pandas as pd
 import swifter
 
@@ -189,14 +190,13 @@ class Uploader:
         tmp = links.copy()
         tmp["start_pix"] = links[LiT.start].swifter.apply(get_pixel)
         tmp["end_pix"] = links[LiT.end].swifter.apply(get_pixel)
-        # links = links.drop(columns=[LiT.layouts])
-        # print(nodes.iloc[0]["cy_color"])
-        # exit()
-        tmp = tmp.fillna(0)
         path = self.p_path
         output = ""
-        for layout in [c for c in links.columns if c in EV.get_all_evidences()]:
 
+        for layout in [c for c in links.columns if c in EV.get_all_evidences()]:
+            tmp[layout + "_col"][: self.MAX_NUM_LINKS] = tmp[layout + "_col"][
+                : self.MAX_NUM_LINKS
+            ].swifter.apply(lambda x: 0 if x is np.nan or x == 0.0 else x)
             colors = tmp[layout + "_col"][: self.MAX_NUM_LINKS]
             colors = colors.astype("object")
             image = Image.new("RGBA", (512, height))
