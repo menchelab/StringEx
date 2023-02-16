@@ -194,14 +194,19 @@ class Uploader:
         output = ""
 
         for layout in [c for c in links.columns if c in EV.get_all_evidences()]:
-            tmp[layout + "_col"][: self.MAX_NUM_LINKS] = tmp[layout + "_col"][
-                : self.MAX_NUM_LINKS
-            ].swifter.apply(lambda x: 0 if x is np.nan or x == 0.0 else x)
-            colors = tmp[layout + "_col"][: self.MAX_NUM_LINKS]
-            colors = colors.astype("object")
+            consider = tmp[: self.MAX_NUM_LINKS].copy()
+            colors = consider[layout + "_col"].swifter.apply(
+                lambda x: x
+                if x != (0, 0, 0, 0)
+                and x != "<NA>"
+                and x != np.nan
+                and not isinstance(x, float)
+                else pd.NA
+            )
+            colors = colors.fillna(0)
             image = Image.new("RGBA", (512, height))
             rgb = f"{layout}RGB"
-            image.putdata(colors.to_numpy())
+            image.putdata(colors)
             image.save(os_join(path, "linksRGB", f"{rgb}.png"))
 
             if rgb not in self.pfile["linksRGB"]:
