@@ -34,6 +34,7 @@ class NodeTags:
     attr_lst = "attrlist"
     uniprot = "uniprot"
     display_name = "display name"
+    size = "size"
 
 
 class StringTags:

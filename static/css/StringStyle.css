@@ -58,7 +58,6 @@ font-family: 'Venus', sans-serif;*/
     .stringEvidenceButton{
         font-size: 2vw;
     }
-
     .stringEvidenceButton[type="WebGL Button"] {
         font-size: 15px;
     }
@@ -75,6 +74,17 @@ font-family: 'Venus', sans-serif;*/
     }
 }
 @media (max-width: 800px) {
+    .stringEvidenceButton [type="WebGL Button"]{
+        font-size: 8px;
+    }
+    .noTopMargin {
+        font-size: 8px;
+    }
+}
+@media (max-width: 550) {
+    .stringEvidenceButton{
+        font-size: 0.2vw;
+    }
     .stringEvidenceButton [type="WebGL Button"]{
         font-size: 8px;
     }
@@ -164,21 +174,4 @@ Scrollable Side Panel
     border: 1px solid #333;
     min-width: fit-content;
     box-shadow: none;
-}
-
-.stringex_checkbox {
-    -webkit-appearance : none;
-    appearance         : none;
-    width              : 50px;
-    height             : 50px;
-    border             : 5px solid #ddd;
-    border-radius      : 4px;
-    background         : #ddd no-repeat center center;
-  }
-.stringex_checkbox:checked {
-    -webkit-appearance : none;
-    appearance         : none;
-    border             : 5px solid #ddd;
-    border-radius      : 4px;
-    background         : rgb(42, 113, 148) no-repeat center center;
 }

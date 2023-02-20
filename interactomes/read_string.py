@@ -4,8 +4,9 @@ from time import time
 
 import networkx as nx
 import numpy as np
-import pandas
+import pandas as pd
 import swifter
+from goatools import obo_parser
 
 import src.settings as st
 from src import map_uniprot
@@ -37,7 +38,7 @@ def construct_graph(
         tuple[nx.Graph, dict]: Graph representing the protein-protein interaction network and a dictionary containing the nodes of the graph.
     """
     st.log.debug("Reading raw data...", flush=True)
-    link_table, alias_table, description_table, ont_table = read_raw_data(
+    link_table, alias_table, description_table, annot_table, ont = read_raw_data(
         networks_directory, tax_id, clean_name, MAX_NUM_LINKS
     )
     st.log.debug("Generating graph...", flush=True)
@@ -45,7 +46,8 @@ def construct_graph(
         link_table,
         alias_table,
         description_table,
-        ont_table,
+        annot_table,
+        ont,
         organism,
         clean_name,
         networks_directory,
@@ -57,23 +59,23 @@ def construct_graph(
 def extract_nodes(
     # idx: int,
     # identifier: str,
-    node: pandas.Series,
-    alias_table: pandas.DataFrame,
-    description_table: pandas.DataFrame,
-    ont_table: pandas.DataFrame,
-) -> pandas.Series:
+    node: pd.Series,
+    alias_table: pd.DataFrame,
+    description_table: pd.DataFrame,
+    ont_table: pd.DataFrame,
+) -> pd.Series:
     """Extract nodes from the STRING DB network files.
 
     Args:
-        node (pandas.Series): Row of the nodes DataFrame.
-        alias_table (pandas.DataFrame): DataFrame containing all aliases for all nodes.
-        description_table (pandas.DataFrame): DataFrame containing all descriptions for all nodes.
+        node (pd.Series): Row of the nodes DataFrame.
+        alias_table (pd.DataFrame): DataFrame containing all aliases for all nodes.
+        description_table (pd.DataFrame): DataFrame containing all descriptions for all nodes.
 
     Returns:
-        pandas.Series: Updated node with aliases.
+        pd.Series: Updated node with aliases.
     """
 
-    def extract_uniprot_id(alias: pandas.DataFrame) -> list:
+    def extract_uniprot_id(alias: pd.DataFrame) -> list:
         """Extracts possible uniprot ids from the alias column of a node.
 
         Args:
@@ -95,7 +97,7 @@ def extract_nodes(
                 return uniprot[0]
         return None
 
-    def extract_gene_name(alias: pandas.DataFrame):
+    def extract_gene_name(alias: pd.DataFrame):
         """Extracts possible gene names from the alias column of a node.
 
         Args:
@@ -116,28 +118,24 @@ def extract_nodes(
         return gene_name[0]
 
     def extract_go_terms(
-        ont_table: pandas.DataFrame, node: pandas.Series, identifier: str, column: str
-    ) -> pandas.Series:
+        ont_table: pd.DataFrame, node: pd.Series, identifier: str, column: str
+    ) -> pd.Series:
         """Extracts GO terms from the ontology table.
 
         Args:
-            ont_table (pandas.DataFrame): Data Frame containing all ontology terms.
-            node (pandas.Series): Node to be updated.
+            ont_table (pd.DataFrame): Data Frame containing all ontology terms.
+            node (pd.Series): Node to be updated.
             identifier (str): Identifier of the node.
             column (str): Column to search for the identifier.
 
         Returns:
-            pandas.Series: Updated Node
+            pd.Series: Updated Node
         """
         rows = ont_table[ont_table[column] == identifier]
         for entry in rows.itertuples():
             qualifier = entry.qualifier
-            if qualifier not in node:
-                node[qualifier] = set({})
-            if "go" not in node:
-                node["go"] = set({})
-            node[qualifier].add(entry.go)
-            node["go"].add(entry.go)
+            if entry.go not in node:
+                node[entry.go] = qualifier
         # ont_table = ont_table.drop(index=rows.index)
         return node  # , ont_table
 
@@ -175,28 +173,29 @@ def extract_nodes(
 
 
 def gen_graph(
-    link_table: pandas.DataFrame,
-    alias_table: pandas.DataFrame,
-    description_table: pandas.DataFrame,
-    ont_table: pandas.DataFrame,
+    link_table: pd.DataFrame,
+    alias_table: pd.DataFrame,
+    description_table: pd.DataFrame,
+    annot_table: pd.DataFrame,
+    ont: obo_parser.GODag,
     organism: str,
     clean_name: str,
     _dir: str,
     last_link: int or None = None,
     threshold: int = 0,
-) -> tuple[pandas.DataFrame, pandas.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Extracts data from the STRING database files and constructs a graph representing the protein-protein interaction network.
 
     Args:
-        network_table (pandas.DataFrame): Data Frame containing all links of the network.
-        alias_table (pandas.DataFrametr): Data Frame containing all aliases of the proteins.
-        description_table (pandas.DataFrame): Data Frame containing Descriptions of the proteins.
+        network_table (pd.DataFrame): Data Frame containing all links of the network.
+        alias_table (pd.DataFrame): Data Frame containing all aliases of the proteins.
+        description_table (pd.DataFrame): Data Frame containing Descriptions of the proteins.
         organism (str): Organism from which the network originates from.
         last_link (int or None, optional): FOR DEBUGGING: Integer of the last link to be processed. Defaults to None.
         threshold (int): Score threshold, every edge having an experimental score larger than this value is used for layout calculation. Defaults to 0.
 
     Returns:
-        tuple[pandas.DataFrame, pandas.DataFrame]: Nodes and link data frames.
+        tuple[pd.DataFrame, pd.DataFrame]: Nodes and link data frames.
     """
 
     species = Organisms.get_scientific_name(organism)
@@ -215,13 +214,13 @@ def gen_graph(
     ].div(1000)
 
     st.log.debug("Extracting nodes...", flush=True)
-    nodes = pandas.DataFrame()
-    concat = pandas.concat([link_table[LiT.start], link_table[LiT.end]])
+    nodes = pd.DataFrame()
+    concat = pd.concat([link_table[LiT.start], link_table[LiT.end]])
     nodes[NT.name] = concat.unique()
     nodes[NT.species] = species
 
     nodes = nodes.swifter.apply(
-        extract_nodes, axis=1, args=(alias_table, description_table, ont_table)
+        extract_nodes, axis=1, args=(alias_table, description_table, annot_table)
     )
     st.log.debug("Nodes extracted!", flush=True)
 
@@ -247,6 +246,18 @@ def gen_graph(
 
     no_uniprot = nodes[nodes["uniprot"].isna() & nodes["gene_name"].notna()]
     nodes = map_gene_names_to_uniprot(nodes, no_uniprot, taxid)
+    # go_terms = pd.DataFrame([{"col": s} for s in nodes["go"]])
+    # nodes = nodes.drop(columns=["go"])
+
+    # features = Layouter.get_feature_matrix(go_terms, 20)
+    features = [c for c in nodes.columns if "GO:" in c]
+
+    new_names = {}
+    for col in features:
+        if col in ont:
+            new_names[col] = f"{ont[col].name}:{col}"
+    nodes = nodes.rename(columns=new_names)
+    nodes = nodes.replace("", pd.NA)
     write_network(clean_name, nodes, link_table, _dir)
 
     st.log.debug(
@@ -257,7 +268,7 @@ def gen_graph(
 
 
 def map_gene_names_to_uniprot(
-    nodes: pandas.DataFrame, missing_annot: dict, taxid: str
+    nodes: pd.DataFrame, missing_annot: dict, taxid: str
 ) -> nx.Graph:
     """Maps gene names to uniprot ids and adds them to the nodes.
 
@@ -300,8 +311,8 @@ def map_gene_names_to_uniprot(
 
 def write_network(
     organism: str,
-    nodes: pandas.DataFrame,
-    processed_network: pandas.DataFrame,
+    nodes: pd.DataFrame,
+    processed_network: pd.DataFrame,
     _dir: str,
 ) -> None:
     """Write the graph to a json file. And write the l_lays to a json file.
@@ -328,7 +339,7 @@ def construct_layouts(
     overwrite_links: bool = False,
     threshold: float = 0.4,
     max_links: int = st.MAX_NUM_LINKS,
-    layout_name: str = None,
+    layout_name: list[str] = None,
     max_num_features: int = None,
     debug: bool = False,
 ) -> None:
@@ -343,9 +354,9 @@ def construct_layouts(
 
     def gen_layout(
         G: nx.Graph,
-        layout_algo: str = None,
+        layout_algo: list[str] = None,
         variables: dict = None,
-        max_num_features: int = None,
+        feature_matrices: list[pd.DataFrame] = None,
     ) -> dict:
         """Generates a 3D layout for the graph.
 
@@ -357,7 +368,7 @@ def construct_layouts(
         """
         layouter = Layouter()
         layouter.graph = G
-        layouts = layouter.apply_layout(layout_algo, variables, max_num_features)
+        layouts = layouter.apply_layout(layout_algo, variables, feature_matrices)
         # for algo, layout in layouts.items():
         #     layout = np.array(list(layout.values()))
         #     pos = Layouter.normalize_pos(layout)
@@ -375,8 +386,10 @@ def construct_layouts(
         """
         t1 = time()
         path = os.path.join(_dir, organism)
-        nodes = pandas.read_pickle(f"{path}/nodes.pickle")
-        all_links = pandas.read_pickle(f"{path}/links.pickle")
+        nodes = pd.read_pickle(f"{path}/nodes.pickle")
+        nodes = nodes.replace("", pd.NA)
+        all_links = pd.read_pickle(f"{path}/links.pickle")
+        all_links = all_links.replace("", pd.NA)
         st.log.debug(
             f"Loading data from pickles took {time() - t1} seconds.", flush=True
         )
@@ -390,6 +403,7 @@ def construct_layouts(
         _dir: str,
         overwrite: bool = False,
         layout_name: str = None,
+        ranking: list[tuple[str, int]] = None,
     ) -> None:
         """Will write the node layout to a csv file with the following format:
         x,y,r,g,b,a,name;uniprot_id;description. File name is: {organism}_node.csv located in projects folder.
@@ -401,14 +415,16 @@ def construct_layouts(
         """
         _directory = os.path.join(_dir, organism, "nodes")
         os.makedirs(_directory, exist_ok=True)
-        nodes = pandas.DataFrame.from_dict(dict(G.nodes(data=True)), orient="index")
+        nodes = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient="index")
         nodes["r"] = 255
         nodes["g"] = 255
         nodes["b"] = 255
-        nodes["a"] = 255 // 2
+        nodes["a"] = 255 // 4
+
         has_gene_name = nodes["gene_name"].notna()
         nodes["ensembl"] = nodes[NT.name].copy()
         nodes.loc[has_gene_name, NT.name] = nodes.loc[has_gene_name, "gene_name"]
+        # TODO add GO Terms to node Annotation
         nodes["attr"] = nodes.apply(
             lambda x: f"{x.get(NT.name)};{x.get(NT.uniprot)};{x.get(NT.description)};{x.get('ensembl')}",
             axis=1,
@@ -420,6 +436,28 @@ def construct_layouts(
             nodes["z"] = layout.loc[:, 2]
             if layout_name and len(layout_name) >= idx:
                 name = layout_name[idx]
+            st.log.debug(f"Writing node layout for {name} for {organism}.")
+            tmp_nodes = nodes.copy()
+            if "functional" in name and ranking:
+                to_apply = tmp_nodes.index
+                tmp = ranking.copy()
+                colors = []
+                while len(to_apply) > 0 and len(tmp) > 0:
+                    column, _ = tmp.pop(0)
+                    consider = tmp_nodes.loc[to_apply].copy()
+                    consider = consider[consider[column].notna()]
+                    if len(consider) == 0:
+                        continue
+                    while True:
+                        color = np.random.choice(range(256), size=3)
+                        hex = "#{:02x}{:02x}{:02x}".format(*color)
+                        if hex not in colors:
+                            colors.append(hex)
+                            break
+                    nodes.loc[consider.index, ["r", "g", "b"]] = color
+                    tmp_nodes = tmp_nodes.drop(consider.index)
+                    to_apply = [x for x in to_apply if x not in consider.index]
+
             file_name = os.path.join(_directory, f"{name}.csv")
             if os.path.isfile(file_name) and not overwrite:
                 st.log.info(
@@ -433,7 +471,7 @@ def construct_layouts(
 
     def write_link_layouts(
         organism: str,
-        all_links: pandas.DataFrame,
+        all_links: pd.DataFrame,
         _dir: str,
         overwrite: bool = False,
     ) -> None:
@@ -488,15 +526,10 @@ def construct_layouts(
     )
     layout_graph = G.copy()
 
-    nodes = nodes.fillna(value="")
     # nx.set_node_attributes(G, nodes.to_dict(orient="index"))
-    G.add_nodes_from(
-        (idx, {k: v for k, v in row.items()}) for idx, row in nodes.iterrows()
-    )
-    layout_graph.add_nodes_from(
-        (idx, {k: v for k, v in row.items() if k == "go"})
-        for idx, row in nodes.iterrows()
-    )
+    node_data = nodes.T.apply(lambda x: x.dropna().to_dict()).tolist()
+    G.add_nodes_from((idx, x) for idx, x in enumerate(node_data) if x is not None)
+    layout_graph.add_nodes_from((idx, {}) for idx in nodes.index)
 
     not_ind = [idx for idx in nodes.index if idx not in G.nodes]
     missing_nodes = nodes.loc[not_ind]
@@ -508,7 +541,20 @@ def construct_layouts(
     # Map gene names to uniprot ids and add them to the nodes.
     if layout_name is None:
         layout_name = layout_algo
+    else:
+        for idx, name in enumerate(layout_name):
+            if name is None:
+                layout_name[idx] = layout_algo[idx]
+
     tmp = layout_algo.copy()
+    feature_matrices = []
+    matrix = nodes[[col for col in nodes.columns if ":GO" in col]]
+    matrix = matrix.applymap(lambda x: 1, na_action="ignore")
+    matrix = matrix.fillna(0)
+    ranking = {
+        col: int(matrix[col].sum()) for col in matrix.columns if matrix[col].sum() >= 10
+    }
+    ranking = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
     for idx, layout in enumerate(tmp):
         file_name = os.path.join(_dir, organism, "nodes", f"{layout_name[idx]}.csv")
         if os.path.isfile(file_name) and not overwrite:
@@ -520,27 +566,43 @@ def construct_layouts(
             st.log.info(
                 f"{file_name} does not exist or overwrite is allowed. Generating layout."
             )
-    layouts = gen_layout(layout_graph, layout_algo, variables, max_num_features)
+        if "functional" in layout:
+            if max_num_features:
+                filtered = ranking[:max_num_features]
+            else:
+                filtered = [x for x in ranking if x[1] > 50]
+            matrix = matrix[[col for col, _ in filtered]]
+            feature_matrices.append(matrix)
+        else:
+            feature_matrices.append(None)
     if debug:
         st.log.debug("DEBUG IS ON RANDOM LAYOUT")
         import random
 
         def pos():
-            return [random.random() for _ in range(len(G.nodes))]
+            return [np.random.random() for _ in range(len(G.nodes))]
 
         layouts = {
-            lay: pandas.DataFrame({0: pos(), 1: pos(), 2: pos()}) for lay in layout_algo
+            lay: pd.DataFrame({0: pos(), 1: pos(), 2: pos()}) for lay in layout_algo
         }
+    else:
+        layouts = gen_layout(layout_graph, layout_algo, variables, feature_matrices)
     st.log.info(f"Generated layouts. Used algorithms: {layout_algo}.")
     write_link_layouts(organism, all_links, _dir, overwrite_links)
     write_node_layout(
-        organism, G, layouts, _dir, overwrite=overwrite, layout_name=layout_name
+        organism,
+        G,
+        layouts,
+        _dir,
+        overwrite=overwrite,
+        layout_name=layout_name,
+        ranking=ranking,
     )
 
 
 def read_raw_data(
     networks_directory: str, tax_id: str, clean_name: str, MAX_NUM_LINKS: int
-) -> tuple[pandas.DataFrame, pandas.DataFrame, pandas.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     directory = os.path.join(networks_directory, clean_name)
 
     link_file = os.path.join(directory, f"{tax_id}.protein.links.detailed.v11.5.txt.gz")
@@ -554,7 +616,8 @@ def read_raw_data(
 
     alias_file = os.path.join(directory, f"{tax_id}.protein.aliases.v11.5.txt.gz")
     description_file = os.path.join(directory, f"{tax_id}.protein.info.v11.5.txt.gz")
-    ontologies_file = os.path.join(directory, f"{tax_id}.gaf.gz")
+    annot_file = os.path.join(directory, f"{tax_id}.gaf.gz")
+    ont_file = os.path.join(directory, "..", "go-basic.obo")
 
     rename_dict = {
         "protein1": LiT.start,
@@ -583,7 +646,7 @@ def read_raw_data(
         Evidences.stringdb_similarity.value: np.int64,
     }
 
-    link_table = pandas.read_table(link_file, header=0, sep=" ")
+    link_table = pd.read_table(link_file, header=0, sep=" ")
     for default_col, new_col in rename_dict.items():
         if default_col in link_table.columns:
             link_table = link_table.rename(columns={default_col: new_col})
@@ -612,7 +675,7 @@ def read_raw_data(
         link_table.to_csv(filtered, compression="gzip", sep=" ", index=False)
 
     st.log.debug("Filtered and sorted...", flush=True)
-    alias_table = pandas.read_table(
+    alias_table = pd.read_table(
         alias_file,
         header=0,
         sep="\t",
@@ -624,12 +687,10 @@ def read_raw_data(
             ["Ensembl_UniProt_AC", "BLAST_UniProt_AC", "BLAST_UniProt_GN_Name"]
         )
     ]
-    description_table = pandas.read_table(
-        description_file, header=0, sep="\t", index_col=0
-    )
-    ont = pandas.read_table(ontologies_file, comment="!", header=None, sep="\t")
-    ont = ont.drop(columns=[0, 7, 11, 12, 13, 14, 15, 16])
-    ont.columns = [
+    description_table = pd.read_table(description_file, header=0, sep="\t", index_col=0)
+    annot = pd.read_table(annot_file, comment="!", header=None, sep="\t")
+    annot = annot.drop(columns=[0, 7, 11, 12, 13, 14, 15, 16])
+    annot.columns = [
         "id",
         "symbol",
         "qualifier",
@@ -640,5 +701,6 @@ def read_raw_data(
         "name",
         "synonym",
     ]
-    ont.index = ont["id"]
-    return link_table, alias_table, description_table, ont
+    annot.index = annot["id"]
+    ont = obo_parser.GODag(ont_file)
+    return link_table, alias_table, description_table, annot, ont

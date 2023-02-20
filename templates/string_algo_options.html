@@ -1,6 +1,6 @@
 <script>
-    var sessiondata = JSON.parse({{ sessionData| tojson}});
-    var stringex = sessiondata.stringex;
+    var sessionData = JSON.parse({{ sessionData| tojson}});
+    var stringex = sessionData.stringex;
     var algorithms = stringex.layoutAlgos;
     for (var i = 0; i < algorithms.length; i++) {
         if (algorithms[i] == "cg_functional_umap") {

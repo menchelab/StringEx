@@ -36,14 +36,24 @@ def map_nodes(
         tuple[pd.DataFrame,pd.DataFrame]: Mapped nodes and target nodes with additional attributes from the source network.
     """
 
-    target_nodes["n"] = target_nodes["attrlist"].swifter.apply(
-        lambda x: x[0] if isinstance(x, list) else pd.NA
+    target_nodes["n"] = (
+        target_nodes["attrlist"]
+        .swifter.progress_bar(False)
+        .apply(lambda x: x[0] if isinstance(x, list) else pd.NA)
     )
-    target_nodes["uniprot"] = target_nodes["attrlist"].swifter.apply(
-        lambda x: [x[1]] if isinstance(x, list) and len(x) > 1 else pd.NA
+    target_nodes["uniprot"] = (
+        target_nodes["attrlist"]
+        .swifter.progress_bar(False)
+        .apply(lambda x: [x[1]] if isinstance(x, list) and len(x) > 1 else pd.NA)
     )
-    target_nodes["description"] = target_nodes["attrlist"].swifter.apply(
-        lambda x: x[2] if isinstance(x, list) and len(x) > 2 and x[2] != "" else pd.NA
+    target_nodes["description"] = (
+        target_nodes["attrlist"]
+        .swifter.progress_bar(False)
+        .apply(
+            lambda x: x[2]
+            if isinstance(x, list) and len(x) > 2 and x[2] != ""
+            else pd.NA
+        )
     )
 
     # Split identifier into taxid and gene name
@@ -55,15 +65,17 @@ def map_nodes(
                 return splitted[1]
             return x
 
-        src_nodes["short"] = src_nodes["stringdb_database identifier"].swifter.apply(
-            get_short
+        src_nodes["short"] = (
+            src_nodes["stringdb_database identifier"]
+            .swifter.progress_bar(False)
+            .apply(get_short)
         )
-        log.debug("Split identifier into taxid and gene name!")
+        log.debug("Split identifier into taxid and gene name!", flush=True)
 
     # rename to general key name
     if "stringdb_description" in src_nodes:
         src_nodes = src_nodes.rename(columns={"stringdb_description": "description"})
-        log.debug("Renamed description column!")
+        log.debug("Renamed description column!", flush=True)
 
     def get_id_on_taget(x: pd.Series, target_nodes: pd.DataFrame):
         """Extract the node from the target network that matches with at least one identifier from the source node.
@@ -105,12 +117,14 @@ def map_nodes(
             res[i] = a
         return res
 
-    attribute = target_nodes["attrlist"].swifter.apply(extract_attributes)
-    src_nodes["target_id"] = src_nodes.swifter.apply(
+    attribute = (
+        target_nodes["attrlist"].swifter.progress_bar(False).apply(extract_attributes)
+    )
+    src_nodes["target_id"] = src_nodes.swifter.progress_bar(False).apply(
         get_id_on_taget, axis=1, args=(attribute,)
     )
 
-    src_nodes["c"] = src_nodes.swifter.apply(
+    src_nodes["c"] = src_nodes.swifter.progress_bar(False).apply(
         lambda x: x["layouts"][0][NT.node_color] if "layouts" in x else x["cy_col"],
         axis=1,
     )
@@ -140,7 +154,7 @@ def map_nodes(
             500,
         )
 
-    log.debug(f"Updated {len(src_nodes)} nodes")
+    log.debug(f"Updated {len(src_nodes)} nodes.", flush=True)
     return src_nodes, target_nodes
 
 
@@ -187,11 +201,13 @@ def map_links(
     src_links = src_links[
         src_links[LiT.start].isin(node_ids) & src_links[LiT.end].isin(node_ids)
     ]
-    log.debug(f"Considering {len(src_links)} links.")
+    log.debug(f"Considering {len(src_links)} links.", flush=True)
 
-    src_links = src_links.swifter.apply(check_if_in_target, axis=1, args=(src_nodes,))
+    src_links = src_links.swifter.progress_bar(False).apply(
+        check_if_in_target, axis=1, args=(src_nodes,)
+    )
 
-    log.debug(f"Filtering target links to only consider mapped nodes...")
+    log.debug(f"Filtering target links to only consider mapped nodes...", flush=True)
 
     node_target_ids = src_nodes["target_id"].to_list()
     filter = target_links[LiT.start].isin(node_target_ids) & target_links[LiT.end].isin(
@@ -201,7 +217,7 @@ def map_links(
     links_to_consider = target_links[filter]
     log.debug(f"Filtered!")
 
-    log.debug(f"Finding index of link in target...")
+    log.debug(f"Finding index of link in target...", flush=True)
 
     def find_link_in_target(x: pd.Series, to_consider: pd.DataFrame) -> int or None:
         """Extract the link from the target network that matches with the source links and updated the source link accordingly.
@@ -221,23 +237,23 @@ def map_links(
             return index[0]
         return None
 
-    src_links["target_id"] = src_links.swifter.apply(
+    src_links["target_id"] = src_links.swifter.progress_bar(False).apply(
         find_link_in_target, axis=1, args=(links_to_consider,)
     )
-    log.debug(f"All indices found!")
+    log.debug(f"All indices found!", flush=True)
 
     add = src_links[src_links["target_id"].isna()]
     update = src_links[src_links["target_id"].notna()]
 
     new_cols = update[[c for c in update.columns if c not in target_links.columns]]
 
-    log.debug(f"Updating target links...")
+    log.debug(f"Updating target links...", flush=True)
     new_cols.index = new_cols["target_id"]
     target_links = target_links.merge(
         new_cols, how="outer", left_index=True, right_index=True
     )
 
-    log.debug(f"Links updated!")
+    log.debug(f"Links updated!", flush=True)
 
     target_links = target_links.drop(columns=["target_id"])
 

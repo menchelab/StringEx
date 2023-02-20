@@ -1,13 +1,17 @@
-import flask
-from . import settings as st
-import uploader
 import json
-import GlobalData as GD
 import os
-from PIL import Image
-from . import workflows as wf
-from . import util as string_util
+
+import flask
+import GlobalData as GD
 import pandas as pd
+from PIL import Image
+from project import Project
+
+import uploader
+
+from . import settings as st
+from . import util as string_util
+from . import workflows as wf
 from .classes import VRNetzElements as VRNE
 
 
@@ -89,7 +93,6 @@ def preview():
         print("project Argument not provided - redirecting to menu page")
 
         data["projects"] = uploader.listProjects()
-        print(data["projects"])
         return flask.render_template("threeJS_VIEWER_Menu.html", data=json.dumps(data))
 
     layoutindex = flask.request.args.get("layout")
@@ -112,54 +115,37 @@ def preview():
 
     project = flask.request.args.get("project")
     GD.sessionData["actPro"] = project
-
+    project = Project(project)
     y = '{"nodes": [], "links":[]}'
     testNetwork = json.loads(y)
 
-    pname = os.path.join(st._PROJECTS_PATH, project, "pfile")
-    p = open(pname + ".json", "r")
-    thispfile = json.load(p)
-    thispfile["selected"] = [layoutindex, layoutRGBIndex, linkRGBIndex]
+    project.set_pfile_value("selected", [layoutindex, layoutRGBIndex, linkRGBIndex])
 
-    name = os.path.join(st._PROJECTS_PATH, project, "nodes")
-    n = open(name + ".json", "r")
-    nodes = json.load(n)
-    nlength = len(nodes["nodes"])
+    nlength = len(project.names["names"])
 
-    lname = os.path.join(st._PROJECTS_PATH, project, "links")
-    f = open(lname + ".json", "r")
-    links = json.load(f)
-    length = len(links["links"])
+    length = len(project.links["links"])
 
     nodes_im = os.path.join(
-        st._PROJECTS_PATH,
-        project,
-        "layouts",
-        thispfile["layouts"][layoutindex] + ".bmp",
+        project.layouts_dir,
+        project.get_pfile_value("layouts")[layoutindex] + ".bmp",
     )
     im = Image.open(nodes_im, "r")
 
     nodes_iml = os.path.join(
-        st._PROJECTS_PATH,
-        project,
-        "layoutsl",
-        thispfile["layouts"][layoutindex] + "l.bmp",
+        project.layoutsl_dir,
+        project.get_pfile_value("layouts")[layoutindex] + "l.bmp",
     )
     iml = Image.open(nodes_iml, "r")
 
     nodes_col = os.path.join(
-        st._PROJECTS_PATH,
-        project,
-        "layoutsRGB",
-        thispfile["layoutsRGB"][layoutRGBIndex] + ".png",
+        project.layouts_rgb_dir,
+        project.get_pfile_value("layoutsRGB")[layoutRGBIndex] + ".png",
     )
     imc = Image.open(nodes_col, "r")
 
     links_col = os.path.join(
-        st._PROJECTS_PATH,
-        project,
-        "linksRGB",
-        thispfile["linksRGB"][linkRGBIndex] + ".png",
+        project.links_rgb_dir,
+        project.get_pfile_value("linksRGB")[linkRGBIndex] + ".png",
     )
     imlc = Image.open(links_col, "r")
 
@@ -179,7 +165,7 @@ def preview():
 
             newnode["p"] = pos
             newnode["c"] = pixel_valuesc[i]
-            newnode["n"] = nodes["nodes"][i]["n"]
+            newnode["n"] = project.nodes["nodes"][i]["n"]
             testNetwork["nodes"].append(newnode)
 
     if length > 30000:
@@ -187,14 +173,14 @@ def preview():
     for x in range(length):
         newLink = {}
         newLink["id"] = x
-        newLink["s"] = links["links"][x]["s"]
-        newLink["e"] = links["links"][x]["e"]
+        newLink["s"] = project.links["links"][x]["s"]
+        newLink["e"] = project.links["links"][x]["e"]
         newLink["c"] = pixel_valueslc[x]
         testNetwork["links"].append(newLink)
 
     return flask.render_template(
         "string_preview.html",
         data=json.dumps(testNetwork),
-        pfile=json.dumps(thispfile),
+        pfile=json.dumps(project.pfile),
         sessionData=json.dumps(GD.sessionData),
     )

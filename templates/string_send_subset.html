@@ -7,8 +7,9 @@
             background-image: url("{{url_for('static', filename='/img/processing.gif')}}");
             background-repeat: no-repeat;
             background-position: center;
+            background-clip: content-box;
             background-size: cover;
-            background-clip: padding-box;
+            overflow: hidden;
       }
 </style>
 
@@ -16,17 +17,20 @@
 <div id="tab_to_add" class="container" style="display:none;">
       <div id="string_send_cytoscape_tab">
             <div id="stringex_client_ip" value="{{ request.remote_addr }}"></div>
-            <div class="twelve columns">
-                  <h2 class="lineglowslow" style="margin-bottom:30px;margin-top:30px">STRING EX</h2>
+            <div class="twelve columns" style="min-height: fit-content;">
+                  <h2 class="lineglowslow" style="line-height: 50px;margin-top: 2px;">STRING EX</h2>
             </div>
             <div class="frameBox">
                   <h3> Send to Cytoscape</h3>
                   <div class="frameBox twelve columns">
-                        <div class="twelve columns" style="margin-bottom:5vh;">
+                        <div class="twelve columns" style="display:flex;align-items:center;">
                               <div class="three columns">
                                     <h4>Node Layout</h4>
                               </div>
-                              <div class="nine columns">
+                              <div class="one columns">
+                                    <p></p>
+                              </div>
+                              <div class="eight columns">
                                     <select id="stringex_send_layout_select">
                                     </select>
                                     <script>
@@ -34,11 +38,14 @@
                                     </script>
                               </div>
                         </div>
-                        <div class="twelve columns" style="margin-bottom:5vh;">
+                        <div class="twelve columns" style="display:flex;align-items:center;">
                               <div class="three columns">
                                     <h4>Node Colors</h4>
                               </div>
-                              <div class="nine columns">
+                              <div class="one columns">
+                                    <p></p>
+                              </div>
+                              <div class="eight columns">
                                     <select id="stringex_send_color_select">
                                     </select>
                                     <script>
@@ -46,44 +53,39 @@
                                     </script>
                               </div>
                         </div>
-                        <div class="twelve columns" style="margin-bottom:5vh;">
+                        <div class="twelve columns" style="display:flex;align-items:center;">
                               <div class="three columns">
-                                    <h4>To host</h4>
+                                    <label for="stringex_to_host">
+                                          <h4>To Host</h4>
+                                    </label>
                               </div>
-                              <div class="nine columns">
+                              <div class="one columns">
+                                    <p></p>
+                              </div>
+                              <div class="eight columns">
                                     <input type="checkbox" value="false" id="stringex_to_host" name="stringex_to_host"
-                                          class="stringex_checkbox"></checkbox>
+                                          style="margin-top: 15px;margin-bottom: 10px;margin-left: 10px;"
+                                          class="vr_checkbox">
+                                    </checkbox>
                               </div>
                         </div>
                         <div class="twelve columns">
-                              <div class="one columns">
-                                    <h3></h3>
+                              <div class="twelve columns">
+                                    <input style="margin-left:-3px;" id="stringex_send_network_to_cy_button"
+                                          type="button" value="Send"></input>
                               </div>
-                              <div class="eleven columns">
-                                    <input id="stringex_send_network_to_cy_button" type="button" value="Send"></input>
-                              </div>
+                              <!-- <div class="six columns">
+                                    <input type="button" style="margin-left:-3px;" id="stringex_reset_selection"
+                                          value="Reset"></input>
+                              </div> -->
                         </div>
                         <div class="twelve columns">
                               <div class="one columns">
                                     <p></p>
                               </div>
-                              <div class="elven columns strex_updateMessage" id="stringex_SM">
+                              <div class="ten columns strex_updateMessage" id="stringex_SM">
                               </div>
                         </div>
-                        <div class="twelve columns">
-                              <div class="four columns">
-                                    <h4># Nodes:</h4>
-                              </div>
-                              <div class="six columns">
-                                    <h4 id="stirngex_num_nodes" style:>
-                                          <script>
-                                                console.log(sessiondata["selected"].length)
-                                                document.write(sessiondata["selected"].length);
-                                          </script>
-                                    </h4>
-                              </div>
-                        </div>
-                        <input type="button" id="stringex_reset_selection" value="Reset Selection"></input>
 
                   </div>
 
@@ -92,5 +94,4 @@
 
       </div>
 </div>
-<img id="tab_img" src="{{ url_for('StringEx.static', filename='img/string_logo_2015_340_340.png') }}"
-      style="display: none;">
+<img id="tab_img" src="{{ url_for('StringEx.static', filename='img/Cytoscape_logo.png') }}" style="display: none;">

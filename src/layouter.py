@@ -1,4 +1,6 @@
 import json
+import os
+from multiprocessing import Pool
 
 import networkx as nx
 import numpy as np
@@ -128,6 +130,7 @@ class Layouter:
         self,
         layout_algo: str,
         cg_variables: dict = None,
+        feature_matrix: pd.DataFrame = None,
         max_num_features: int = None,
     ) -> dict:
         """Will pick the correct cartoGRAPHs layout algorithm and apply it to the graph. If cartoGRAPH is not installed an ImportError is raised.
@@ -166,11 +169,14 @@ class Layouter:
                     self.graph, dim, prplxty, density, l_rate, steps
                 )
             elif "functional" in layout_algo:
-                feature_matrix = self.get_feature_matrix(self.graph, max_num_features)
+                if feature_matrix is None:
+                    feature_matrix = self.get_feature_matrix(
+                        self.graph, max_num_features
+                    )
                 if feature_matrix is None:
                     return ValueError("Unable to construct feature matrix!")
                 return cg.layout_functional_tsne(
-                    self.graph, dim, prplxty, density, l_rate, steps
+                    self.graph, feature_matrix, dim, prplxty, density, l_rate, steps
                 )
         if "umap" in layout_algo:
             n_neighbors = cg_variables.get("n_neighbors", 10)
@@ -189,8 +195,10 @@ class Layouter:
                     self.graph, dim, n_neighbors, spread, min_dist
                 )
             elif "functional" in layout_algo:
-                "Please specify a functional matrix of choice with N x rows with G.nodes and M x feature columns."
-                feature_matrix = self.get_feature_matrix(self.graph, max_num_features)
+                if feature_matrix is None:
+                    feature_matrix = self.get_feature_matrix(
+                        self.graph, max_num_features
+                    )
                 if feature_matrix is None:
                     return ValueError("Unable to construct feature matrix!")
                 return cg.layout_functional_umap(
@@ -219,6 +227,7 @@ class Layouter:
         self,
         layout_algo: str = None,
         algo_variables: dict = {},
+        feature_matrices: list[pd.DataFrame] = None,
         max_num_features: int = None,
     ) -> dict[str, list[float]]:
         """Applies a layout algorithm and adds the node positions to nodes in the self.network[VRNE.nodes] list.
@@ -233,17 +242,17 @@ class Layouter:
         layouts = {}
         if isinstance(layout_algo, str):
             layout_algo = [layout_algo]
-        for algo in layout_algo:
+        for idx, algo in enumerate(layout_algo):
             if algo is None:
                 """Select default layout algorithm"""
                 algo = LA.spring
             if LA.cartoGRAPH in algo:
-                log.debug(f"Applying layout: {algo}")
+                log.debug(f"Applying layout: {algo}.", flush=True)
                 layout = self.create_cartoGRAPH_layout(
-                    algo, algo_variables, max_num_features
+                    algo, algo_variables, feature_matrices[idx], max_num_features
                 )
                 if isinstance(layout, ValueError):
-                    log.debug(
+                    log.error(
                         "Error in executing cartoGRAPHs layout. Create a layout with spring instead."
                     )
                     layout = self.create_spring_layout(algo_variables)
@@ -252,7 +261,7 @@ class Layouter:
                     LA.spring: self.create_spring_layout,
                     LA.kamada_kawai: self.create_kamada_kawai_layout,
                 }
-                log.debug(f"Applying layout: {algo}")
+                log.debug(f"Applying layout: {algo}", flush=True)
                 layout = lay_func[algo](
                     algo_variables
                 )  # Will use the desired layout algorithm
@@ -285,7 +294,7 @@ class Layouter:
             return x
 
         pos = pd.DataFrame([x, y, z]).T
-        pos = pos.swifter.apply(norm)
+        pos = pos.swifter.progress_bar(False).apply(norm)
         return pos
 
     @staticmethod
@@ -309,19 +318,23 @@ class Layouter:
                 x["size"] = layout["s"]
                 return x
 
-            nodes = nodes.swifter.apply(extract_cy, axis=1)
+            nodes = nodes.swifter.progress_bar(False).apply(extract_cy, axis=1)
 
-        nodes[layout_name + "2d_pos"] = layout.swifter.apply(
+        nodes[layout_name + "2d_pos"] = layout.swifter.progress_bar(False).apply(
             lambda x: [x[0], x[1], 0], axis=1
         )
-        nodes[layout_name + "_pos"] = layout.swifter.apply(lambda x: list(x), axis=1)
+        nodes[layout_name + "_pos"] = layout.swifter.progress_bar(False).apply(
+            lambda x: list(x), axis=1
+        )
 
         if "cy_pos" and "cy_col" in nodes:
             # nodes[layout_name+"_col"] = nodes["cy_col"]
             coords = np.array([np.array(x) for x in nodes["cy_pos"]])
             pos = Layouter.normalize_pos(coords)
 
-            nodes["cy_pos"] = pos.swifter.apply(lambda x: [x[0], x[1], 0], axis=1)
+            nodes["cy_pos"] = pos.swifter.progress_bar(False).apply(
+                lambda x: [x[0], x[1], 0], axis=1
+            )
 
             def extract_color(x):
                 """Scale alpha channel (glowing effect) with node size (max size = 1"""
@@ -329,9 +342,13 @@ class Layouter:
                 return col
 
             max_size = max(nodes["size"])
-            nodes["size"] = nodes["size"].swifter.apply(lambda x: x / max_size)
-            nodes["cy_col"] = nodes[["cy_col", "size"]].swifter.apply(
-                extract_color, axis=1
+            nodes["size"] = (
+                nodes["size"].swifter.progress_bar(False).apply(lambda x: x / max_size)
+            )
+            nodes["cy_col"] = (
+                nodes[["cy_col", "size"]]
+                .swifter.progress_bar(False)
+                .apply(extract_color, axis=1)
             )
 
         return nodes
@@ -354,7 +371,7 @@ class Layouter:
         # Set up the colors for each evidence type
         if evidences is None:
             evidences = Evidences.get_default_scheme()
-        log.debug(f"Handling evidences...")
+        log.debug(f"Handling evidences...", flush=True)
 
         if ST.stringdb_score in links.columns:
             links = links.rename(columns={ST.stringdb_score: Evidences.any.value})
@@ -374,59 +391,132 @@ class Layouter:
             return x
 
         to_replace = links[Evidences.any.value].isnull()
-        links[to_replace] = links[to_replace].swifter.apply(extract_score, axis=1)
+        links[to_replace] = (
+            links[to_replace].swifter.progress_bar(False).apply(extract_score, axis=1)
+        )
 
+        colors = [
+            Layouter.handle_evidences(ev, color, links, stringify)
+            for ev, color in evidences.items()
+        ]
+        for ev, data in zip(evidences.keys(), colors):
+            if data is None:
+                continue
+            links[ev + "_col"] = data
+        return links
+
+    @staticmethod
+    def handle_evidences(ev, color, links, stringify):
         def gen_color(x, color):
             x = color[:3] + (int(x * 255),)
             return x
 
-        for ev in evidences:
-            if ev not in links.columns:
-                if stringify:
-                    links[ev] = [int(0) for _ in range(len(links))]
-                else:
-                    continue
-            color = evidences[ev]
-            with_score = links[links[ev] > 0.0][ev]
-            this = with_score.swifter.apply(gen_color, args=(color,))
-            links[ev + "_col"] = this
-        return links
+        if ev not in links.columns:
+            if stringify:
+                links[ev] = [int(0) for _ in range(len(links))]
+            else:
+                return
+        with_score = links[links[ev] > 0.0][ev]
+        this = with_score.swifter.progress_bar(False).apply(gen_color, args=(color,))
+        return this
 
     @staticmethod
-    def get_feature_matrix(G: nx.Graph, max_num_features: int = None) -> pd.DataFrame:
+    def get_feature_matrix(
+        G: nx.Graph or pd.DataFrame,
+        max_num_features: int = None,
+    ) -> pd.DataFrame:
         if max_num_features is None:
             max_num_features = 100
-        nodes = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient="index")
+        if isinstance(G, nx.Graph):
+            nodes = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient="index")
+        elif isinstance(G, pd.DataFrame):
+            nodes = G
         all_columns = list(nodes.columns)
+        new_cols = {}
+        n = nodes.size
+        feature_matrix = pd.DataFrame(index=range(n))
         while len(all_columns) > 0:
             column = all_columns.pop()
-            if hasattr(nodes.at[0, column], "__iter__"):
-                new_cols = {}
-                for idx, row in nodes.iterrows():
-                    for val in row[column]:
-                        if val not in nodes.columns:
-                            if val not in new_cols:
-                                new_cols[val] = []
-                            new_cols[val].append(idx)
-                new_cols = sorted(
-                    new_cols.items(), key=lambda x: len(x[1]), reverse=True
-                )
-                new_cols = new_cols[:max_num_features]
-                columns = [col[0] for col in new_cols]
-                nodes = nodes.reindex(columns=columns, fill_value=0)
-                for entry in new_cols:
-                    col, indices = entry
-                    true = nodes.index.isin(indices)
-                    nodes[col] = nodes[col].where(true, 1)
-            elif isinstance(nodes.at[0, column], str):
-                nodes = nodes.drop(columns=[column])
+            data = nodes[column]
+            if (
+                pd.api.types.is_string_dtype(data)
+                and not pd.api.types.is_bool_dtype(data)
+                and not pd.api.types.is_numeric_dtype(data)
+                and not pd.api.types.is_list_like(data)
+            ):
+                strings = data.unique()
+                if strings.size <= nodes.size * 0.05:
+                    nodes = nodes.drop(columns=[column])
+                    continue
+                log.debug(f"Handling column {column}...")
+                for string in strings:
+                    if string in feature_matrix.columns:
+                        continue
+                    series = (
+                        nodes[column].apply(lambda x: 1 if x == string else 0).copy()
+                    )
+                    series.name = string
+                    feature_matrix = pd.concat([feature_matrix, series], axis=1)
 
-            if len(nodes.columns) >= max_num_features:
-                break
-        if len(nodes.columns) == 0:
+            elif (
+                pd.api.types.is_numeric_dtype(data)
+                and not pd.api.types.is_bool_dtype(data)
+                and not pd.api.types.is_list_like(data)
+            ):
+                numbers = nodes[column].unique()
+                if numbers.size <= nodes.size * 0.05:
+                    nodes = nodes.drop(data)
+                    continue
+                log.debug(f"Handling column {column}...")
+                new_cols = {}
+                for number in numbers:
+                    if number in feature_matrix.columns:
+                        continue
+                    series = (
+                        nodes[column].apply(lambda x: 1 if x == number else 0).copy()
+                    )
+                    series.name = number
+                    feature_matrix = pd.concat([feature_matrix, series], axis=1)
+            elif pd.api.types.is_list_like(data):
+                log.debug(f"Handling column {column}...")
+                new_values = set()
+                for _, row in nodes.iterrows():
+                    if not pd.api.types.is_list_like(row[column]):
+                        continue
+                    for val in row[column]:
+                        new_values.add(val)
+                tmp = pd.DataFrame(data)
+                for val in new_values:
+                    if val in tmp.columns:
+                        continue
+                    series = pd.Series([0 for _ in range(n)], index=nodes.index)
+                    series.name = val
+                    tmp = pd.concat([feature_matrix, series], axis=1)
+
+                def gen_feature(x, column):
+                    if not pd.api.types.is_list_like(x[column]):
+                        return None
+                    for val in x[column]:
+                        x[val] = 1
+                    return x[[val for val in x[column]]]
+
+                tmp = nodes.swifter.apply(gen_feature, args=(column,), axis=1)
+                nodes = nodes.drop(columns=[column])
+                feature_matrix = pd.concat([feature_matrix, tmp], axis=1)
+
+        for col in feature_matrix.columns:
+            new_cols[col] = feature_matrix[col].notna().sum()
+        new_cols = sorted(new_cols.items(), key=lambda x: x[1], reverse=True)
+        new_cols = new_cols[:max_num_features]
+        columns = [col[0] for col in new_cols]
+        feature_matrix = feature_matrix.reindex(columns=columns, fill_value=0)
+        if len(feature_matrix.columns) == 0:
             return None
-        log.debug(f"The feature matrix consists of {len(nodes.columns)} new features.")
-        return nodes
+        log.debug(
+            f"The feature matrix consists of {len(feature_matrix.columns)} new features.",
+            flush=True,
+        )
+        return feature_matrix
 
 
 if __name__ == "__main__":

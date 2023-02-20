@@ -1,31 +1,39 @@
 import logging
 import os
 import sys
-from logging.handlers import RotatingFileHandler
 from logging import StreamHandler
+from logging.handlers import RotatingFileHandler
 
 _RUNTIME_FORMAT = "%(message)s"
+
+
 class CustomLogger(logging.Logger):
-    def __init__(self, name, console_format = "%(message)s",level=logging.NOTSET):
+    def __init__(self, name, console_format="%(message)s", level=logging.NOTSET):
         super().__init__(name, level)
         self.console_format = console_format
 
-    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, runtime=False, flush=False):
+    def _log(
+        self,
+        level,
+        msg,
+        args,
+        exc_info=None,
+        extra=None,
+        stack_info=False,
+        runtime=False,
+        flush=False,
+    ):
         if runtime:
             msg = f"{self.name} - {msg}"
-        if flush:
-            for idx,handler in enumerate(self.handlers):
-                if not isinstance(handler, RotatingFileHandler):
-                    LINE_UP = '\033[1A'
-                    LINE_CLEAR = '\x1b[2K'  
-                    format = logging.Formatter(LINE_UP + LINE_CLEAR + self.console_format)
-                    self.handlers[idx].setFormatter(format)
-        else:
-            for idx,handler in enumerate(self.handlers):
-                if not isinstance(handler, RotatingFileHandler):
-                    format = logging.Formatter(self.console_format)
-                    self.handlers[idx].setFormatter(format)
-                    self.handlers[idx].terminator = "\n"
+        for idx, handler in enumerate(self.handlers):
+            if not isinstance(handler, RotatingFileHandler):
+                LINE_UP = "\033[1A"
+                LINE_CLEAR = "\x1b[2K"
+                format = logging.Formatter(LINE_UP + LINE_CLEAR + self.console_format)
+                self.handlers[idx].setFormatter(format)
+                self.handlers[idx].terminator = "\n"
+            if not flush:
+                self.handlers[idx].terminator = "\n\n"
         super()._log(level, msg, args, exc_info, extra, stack_info)
 
 
@@ -90,7 +98,6 @@ def get_logger(
     if c_format:
         c_format = logging.Formatter(c_format)
         c_handler.setFormatter(c_format)
-
 
     r_handler.setFormatter(logging.Formatter(_RUNTIME_FORMAT))
 

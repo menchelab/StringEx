@@ -1,5 +1,4 @@
 import glob
-import gzip
 import json
 import os
 import pickle
@@ -30,7 +29,6 @@ def VRNetzer_upload_workflow(
     tags: dict = None,
     algo_variables: dict = None,
     layout_name: str = None,
-    project_path: str = None,
     overwrite_project: bool = False,
 ) -> str:
     """Used from the StringEX/uploadfiles route to upload VRNetz networks to the VRNetzer.
@@ -46,6 +44,9 @@ def VRNetzer_upload_workflow(
     Returns:
         str: HTML string to reflect whether the upload was successful or not.
     """
+    if type(network) is dict:
+        network[VRNE.nodes] = pd.DataFrame(network[VRNE.nodes])
+        network[VRNE.links] = pd.DataFrame(network[VRNE.links])
     if tags is None:
         tags = {
             "stringify": False,
@@ -58,7 +59,7 @@ def VRNetzer_upload_workflow(
     log.info("Starting upload of VRNetz...")
     start = time.time()
 
-    log.debug(f"Network loaded in {time.time()-start} seconds.")
+    log.debug(f"Network loaded in {time.time()-start} seconds.", flush=True)
 
     if not project_name:
         return "namespace fail"
@@ -73,13 +74,12 @@ def VRNetzer_upload_workflow(
         algo_variables=algo_variables,
         layout_name=layout_name,
     )
-    log.debug(f"Applying layout algorithm in {time.time()-s1} seconds.")
+    log.debug(f"Applying layout algorithm in {time.time()-s1} seconds.", flush=True)
     network = layouter.network
 
     # upload network
     uploader = Uploader(
         network,
-        p_path=project_path,
         p_name=project_name,
         stringify=tags.get("stringify"),
         overwrite_project=overwrite_project,
@@ -92,7 +92,7 @@ def VRNetzer_upload_workflow(
         with open(outfile, "w") as f:
             json.dump(network, f)
         log.info(f"Saved network as {outfile}")
-    log.debug(f"Total process took {time.time()-s1} seconds.")
+    log.debug(f"Total process took {time.time()-s1} seconds.", flush=True)
     log.info("Project has been uploaded!")
     html = (
         f'<a style="color:green;"href="/StringEx/preview?project={project_name}" target="_blank" >SUCCESS: Network {filename} saved as project {project_name} </a><br>'
@@ -159,8 +159,9 @@ def VRNetzer_map_workflow(
             os.path.join(os.path.join(_PROJECTS_PATH, project_name), "pfile.json"), "w"
         ) as f:
             json.dump(pfile, f)
-
+        start = time.time()
         html = map_source_to_target(src_network, trg_network, f_organ, project_name)
+        log.debug(f"Mapping process took {time.time()-start} seconds.")
 
     except Exception as e:
         error = traceback.format_exc()

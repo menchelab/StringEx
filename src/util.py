@@ -33,6 +33,8 @@ def get_algo_variables(algo: str, form: dict) -> dict:
     Returns:
         dict: dictionary of the needed variables for the picked algorithm.
     """
+    if algo is None:
+        return algo
     if "cg" in algo:
         return {
             "prplxty": form.get("string_cg_prplxty", 50),
@@ -144,93 +146,6 @@ def move_on_boot() -> None:
         ):
             log.debug(f"Copying {_dir}")
             shutil.copytree(_dir, os.path.join(st._PROJECTS_PATH, dir_name))
-
-
-def extract_node_data(selected_nodes: list[int], project: str, layout: str, color: str):
-    project_path = os.path.join(st._PROJECTS_PATH, project)
-    with open(os.path.join(project_path, "nodes.json"), "r") as f:
-        nodes_data = pd.DataFrame(json.load(f)["nodes"])
-        if not selected_nodes:
-            n = len(nodes_data)
-            if n > 2000:
-                n = 2000
-            selected_nodes = random.sample(range(len(nodes_data)), n)
-        nodes_data = nodes_data[nodes_data["id"].isin(selected_nodes)]
-    if "layouts" in nodes_data.columns:
-        nodes_data = nodes_data.drop(columns=["layouts"])
-    if "display name" in nodes_data.columns:
-        nodes_data["name"] = nodes_data["display name"]
-        nodes_data = nodes_data.drop(columns=["display name", NT.name])
-
-    with open(os.path.join(project_path, "pfile.json"), "r") as f:
-        pfile = json.load(f)
-
-    if layout not in pfile["layouts"]:
-        layout = pfile["layouts"][0]
-
-    if color not in pfile["layoutsRGB"]:
-        color = pfile["layoutsRGB"][0]
-
-    node_pos_l = list(
-        Image.open(os.path.join(project_path, "layouts", layout + ".bmp")).getdata()
-    )
-
-    node_pos_h = list(
-        Image.open(os.path.join(project_path, "layoutsl", layout + "l.bmp")).getdata()
-    )
-
-    node_colors = list(
-        Image.open(os.path.join(project_path, "layoutsRGB", color + ".png")).getdata()
-    )
-
-    node_colors = [node_colors[c] for c in selected_nodes]
-    node_pos_l = [node_pos_l[c] for c in selected_nodes]
-    node_pos_h = [node_pos_h[c] for c in selected_nodes]
-
-    def rgb_to_hex(r, g, b):
-        return "#{:02x}{:02x}{:02x}".format(r, g, b)
-
-    nodes_data["color"] = node_colors
-    nodes_data["color"] = nodes_data["color"].swifter.apply(
-        lambda x: rgb_to_hex(*x[:3])
-    )
-
-    node_pos_h = [map(lambda x: x * 255, pixel) for pixel in node_pos_h]
-    pos = [[], [], []]
-    for pixel in zip(node_pos_h, node_pos_l):
-        high = tuple(pixel[0])
-        low = tuple(pixel[1])
-        for dim in range(3):
-            cord = (high[dim] + low[dim]) / 65280
-            pos[dim].append(cord)
-        # print(tuple(map(lambda x: sum(x), pixel)))
-    for col, dim in zip(["x", "y", "z"], pos):
-        nodes_data[col] = dim
-        nodes_data[col] = nodes_data[col].swifter.apply(lambda x: int(x * 1000))
-        # def norm(x, dim_max):
-        #     x /= dim_max
-        #     return int(x)
-        # dim_max = nodes_data[col].max()
-        # if dim_max > 0:
-        #     nodes_data[col] = nodes_data[col].swifter.apply(norm, args=(dim_max,))
-
-    nodes_data = nodes_data.astype({"id": str})
-    return nodes_data, selected_nodes
-
-
-def extract_link_data(nodes: list[int], project: str):
-    project_path = os.path.join(st._PROJECTS_PATH, project)
-    with open(os.path.join(project_path, "links.json"), "r") as f:
-        links_data = json.load(f)["links"]
-    links_data = pd.DataFrame(links_data)
-    if nodes:
-        links_data = links_data[
-            links_data["s"].isin(nodes) & links_data["e"].isin(nodes)
-        ]
-    links_data = links_data.rename(columns={"s": "source", "e": "target"})
-    links_data["interaction"] = ["interacts" for _ in range(len(links_data))]
-    links_data = links_data.astype({"source": str, "target": str})
-    return links_data
 
 
 if __name__ == "__main__":

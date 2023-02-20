@@ -7,3 +7,4 @@ Pillow
 flask
 py4cytoscape
 swifter
+goatools

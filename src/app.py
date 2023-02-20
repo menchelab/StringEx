@@ -1,21 +1,18 @@
 import json
+import multiprocessing as mp
 import os
 
 import flask
 import GlobalData as GD
-import py4cytoscape as p4c
-import requests
-from flask_socketio import emit
 from io_blueprint import IOBlueprint
-from PIL import Image
 
-import uploader
 import util
 
 from . import routes
 from . import settings as st
 from . import util as string_util
 from . import workflows as wf
+from .send_to_cytoscape import send_to_cytoscape
 
 url_prefix = "/StringEx"
 
@@ -50,7 +47,6 @@ def string_ex_upload_files() -> str:
     Returns:
         str: A status giving information whether the upload was successful or not.
     """
-    # TODO: allow to use provided layout
     return routes.upload_files()
 
 
@@ -94,91 +90,23 @@ def string_ex_result_page(project):
 @blueprint.on(
     "send_to_cytoscape",
 )
-def string_ex_get_selection(message):
-
-    """Get the selected Nodes of the current open network. and provide it as a raw tab separated is of edges"""
-    selected = GD.sessionData["selected"]
-    if len(selected) == 0:
-        blueprint.emit(
-            "status",
-            {
-                "message": f"No node is selected.",
-                "status": "error",
-            },
-        )
-        return
-    project = GD.sessionData["actPro"]
+def string_send_to_cytoscape(message):
+    """Send the selected nodes and links to Cytoscape."""
+    return_dict = mp.Manager().dict()
     ip = flask.request.remote_addr
-    port = 1234
     user = message.get("user", util.generate_username())
-    layout = message.get("layout", "")
-    color = message.get("color", "")
-    title = f"{layout} & {color}"
-    base_url = "http://" + str(ip) + f":{port}/v1"
-
-    try:
-        p4c.cytoscape_ping(base_url=base_url)
-    except requests.exceptions.RequestException:
-        blueprint.emit(
-            "status",
-            {
-                "message": f"Could not connect to Cytoscape at {base_url}. Please check if Cytoscape is running and if the url is correct. Is cyREST installed?",
-                "status": "error",
-            },
-        )
-        return
-    nodes, selected = string_util.extract_node_data(selected, project, layout, color)
-    links = string_util.extract_link_data(selected, project)
-    st.log.debug("Extracted node and link data")
-
-    # Create network
-    suid = p4c.create_network_from_data_frames(
-        nodes, links, base_url=base_url, collection=project, title=title
+    p = mp.Process(
+        target=send_to_cytoscape, args=(message, ip, user, return_dict, GD.pfile)
     )
-    st.log.debug(f"Created network with SUID: {suid}")
-
-    # Create style
-    style = "VRNetzer_Style"
-    if style not in p4c.get_visual_style_names(base_url=base_url):
-        p4c.create_visual_style(style, base_url=base_url)
-        st.log.debug(f"Created style: {style}")
-
-    # Set colors
-    p4c.set_node_color_mapping(
-        table_column="color", mapping_type="p", style_name=style, base_url=base_url
-    )
-    st.log.debug(f"Set node color mapping")
-
-    # Set layout
-    cords = ["x", "y"]
-    properties = ["NODE_X_LOCATION", "NODE_Y_LOCATION"]
-    if "NODE_Z_LOCATION" in p4c.get_visual_property_names():
-        cords.append("z")
-        properties.append("NODE_Z_LOCATION")
-
-    for property, column in zip(properties, cords):
-        mapping = p4c.map_visual_property(
-            property, table_column=column, mapping_type="p", base_url=base_url
-        )
-        p4c.update_style_mapping(style, mapping, base_url=base_url)
-        st.log.debug(f"Set {property} mapping")
-
-    # Set style
-    p4c.set_visual_style(style, base_url=base_url)
-    st.log.debug(f"Set style: {style}")
-
-    # Fit content
-    p4c.fit_content(base_url=base_url)
-    st.log.debug(f"Fit content")
-
-    blueprint.emit(
-        "status",
-        {
-            "message": f"Project {project} successfully send to Cytoscape.",
-            "status": "success",
-        },
-    )
-    st.log.debug(f"Created new network in Cytoscape at client {ip}:{port}")
+    p.start()
+    p.join(timeout=30)
+    p.terminate()
+    if p.exitcode is None:
+        return_dict["status"] = {
+            "message": f"Process timed out. Please do not remove networks or views fom Cytoscape while the process is running.",
+            "status": "error",
+        }
+    blueprint.emit("status", return_dict["status"])
 
 
 @blueprint.on("reset_selection")
