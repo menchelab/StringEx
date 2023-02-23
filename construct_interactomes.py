@@ -39,6 +39,7 @@ def workflow(parser):
 
             def download():
                 load_files.download(tax_id, parser.src_dir, clean_name)
+                load_files.gene_ontology_download(organism, parser.src_dir, clean_name)
 
             if parser.benchmark:
                 download_runtime = timeit.repeat(
@@ -134,6 +135,7 @@ def workflow(parser):
                     parser.src_dir,
                     parser.ip,
                     parser.port,
+                    max_num_features=parser.max_num_features,
                 )
 
             if parser.benchmark:
@@ -200,15 +202,16 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
         if "u" not in disabled:
             disabled += "u"
         # TODO: Parallelize the layout calculation
-        for algo in variables[organism]:
+        for algo, var in variables.items():
             st.log.info(f"Calculating layout for {organism} with {algo} algorithm")
             if "c" not in disabled:
                 disabled += "c"
             if "d" not in disabled:
                 disabled += "d"
             args = [disabled] + base[1:] + [algo]
-            for k, v in variables[organism][algo].items():
-                args += [f"{k}", f"{v}"]
+            for k, v in var.items():
+                if k not in args:
+                    args += [f"{k}", f"{v}"]
             st.log.debug(args)
             main(args)
     # TODO: Parallelize the upload

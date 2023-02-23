@@ -54,13 +54,16 @@ class Uploader:
         stringify: bool = True,
     ) -> None:
         self.network = network
-        self.project = Project(p_name)
+        self.project = Project(p_name, read=False)
         self.overwrite_project = overwrite_project  # boolean that indicates whether to skip existing project files or to update them
         self.stringify = (
             stringify  # boolean that indicates whether a network should be stringified
         )
+        print("=====================================")
+        print("OVERWRITE_PROJECT", overwrite_project)
+        print("=====================================")
         if self.overwrite_project:
-            shutil.rmtree(self.project.location, ignore_errors=True)
+            self.project.remove()
         if self.stringify:
             self.project.pfile["network"] = "string"
         self.project.pfile["network_type"] = "ppi"

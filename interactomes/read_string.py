@@ -424,7 +424,6 @@ def construct_layouts(
         has_gene_name = nodes["gene_name"].notna()
         nodes["ensembl"] = nodes[NT.name].copy()
         nodes.loc[has_gene_name, NT.name] = nodes.loc[has_gene_name, "gene_name"]
-        # TODO add GO Terms to node Annotation
         nodes["attr"] = nodes.apply(
             lambda x: f"{x.get(NT.name)};{x.get(NT.uniprot)};{x.get(NT.description)};{x.get('ensembl')}",
             axis=1,

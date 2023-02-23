@@ -55,6 +55,7 @@ def send_to_cytoscape(message, ip, user, return_dict, pfile) -> None:
             "message": f"Could not connect to Cytoscape at {base_url}. Please check if Cytoscape is running and if the url is correct. Is cyREST installed?",
             "status": "error",
         }
+        return
     if len(selected) == 0:
         st.log.debug("No nodes selected.")
         links, selected = extract_link_data(selected, selected_links, project)
@@ -69,7 +70,6 @@ def send_to_cytoscape(message, ip, user, return_dict, pfile) -> None:
     if links.size > 0:
         args += (links,)
     try:
-
         suid = p4c.create_network_from_data_frames(
             *args, base_url=base_url, collection=project, title=title
         )
@@ -125,12 +125,19 @@ def send_to_cytoscape(message, ip, user, return_dict, pfile) -> None:
             "status": "success",
         }
 
-    except p4c.exceptions.CyError as e:
-        st.log.debug(f"Could not send project to Cytoscape. {e}", flush=True)
-        return_dict["status"] = {
-            "message": f"Could not send project to Cytoscape. {e}. Network has been removed from Cytoscape!",
-            "status": "error",
-        }
+    except Exception as e:
+        if isinstance(e, p4c.exceptions.CyError):
+            st.log.debug(f"Could not send project to Cytoscape. {e}", flush=True)
+            return_dict["status"] = {
+                "message": f"Could not send project to Cytoscape. {e}. Network has been removed from Cytoscape!",
+                "status": "error",
+            }
+        elif isinstance(e, requests.exceptions.RequestException):
+            st.log.debug(f"Could not send project to Cytoscape. {e}", flush=True)
+            return_dict["status"] = {
+                "message": f"Could not connect to Cytoscape at {base_url}. Please check if Cytoscape is running and if the url is correct. Is cyREST installed?",
+                "status": "error",
+            }
 
 
 def extract_node_data(

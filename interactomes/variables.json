@@ -1,263 +1,29 @@
 {
-  "H.sapiens": {
-    "spring": {
-      "-opd": 0.4,
-      "-it": 200,
-      "-thr": 0.9,
-      "-spth": 0.001,
-      "-name": "spring"
-    },
-    "cg_functional_umap": {
-      "-md": 0.99,
-      "-nn": 10,
-      "-maxf": 1000,
-      "-thr": 0.9,
-      "-name": "functional"
-    },
-    "cg_global_umap": {
-      "-nn": 20,
-      "-md": 0.99,
-      "-thr": 0.9,
-      "-name": "global"
-    },
-    "cg_local_umap": {
-      "-nn": 10,
-      "-spr": 1.0,
-      "-md": 0.9,
-      "-thr": 0.4,
-      "-name": "local"
-    }
+  "spring": {
+    "-opd": 0.4,
+    "-it": 200,
+    "-thr": 0.9,
+    "-spth": 0.001,
+    "-name": "spring"
   },
-  "A.thaliana": {
-    "spring": {
-      "-opd": 0.4,
-      "-it": 200,
-      "-thr": 0.9,
-      "-spth": 0.001,
-      "-name": "spring"
-    },
-    "cg_functional_umap": {
-      "-md": 0.99,
-      "-nn": 10,
-      "-maxf": 1000,
-      "-thr": 0.9,
-      "-name": "functional"
-    },
-    "cg_global_umap": {
-      "-nn": 20,
-      "-md": 0.99,
-      "-thr": 0.9,
-      "-name": "global"
-    },
-    "cg_local_umap": {
-      "-nn": 10,
-      "-spr": 1.0,
-      "-md": 0.9,
-      "-thr": 0.4,
-      "-name": "local"
-    }
+  "cg_functional_umap": {
+    "-md": 0.99,
+    "-nn": 10,
+    "-maxf": 1000,
+    "-thr": 0.9,
+    "-name": "functional"
   },
-  "D.melanogaster": {
-    "spring": {
-      "-opd": 0.4,
-      "-it": 200,
-      "-thr": 0.9,
-      "-spth": 0.001,
-      "-name": "spring"
-    },
-    "cg_functional_umap": {
-      "-md": 0.99,
-      "-nn": 10,
-      "-maxf": 1000,
-      "-thr": 0.9,
-      "-name": "functional"
-    },
-    "cg_global_umap": {
-      "-nn": 20,
-      "-md": 0.99,
-      "-thr": 0.9,
-      "-name": "global"
-    },
-    "cg_local_umap": {
-      "-nn": 10,
-      "-spr": 1.0,
-      "-md": 0.9,
-      "-thr": 0.4,
-      "-name": "local"
-    }
+  "cg_global_umap": {
+    "-nn": 20,
+    "-md": 0.99,
+    "-thr": 0.9,
+    "-name": "global"
   },
-  "C.elegans": {
-    "spring": {
-      "-opd": 0.4,
-      "-it": 200,
-      "-thr": 0.9,
-      "-spth": 0.001,
-      "-name": "spring"
-    },
-    "cg_functional_umap": {
-      "-md": 0.99,
-      "-nn": 10,
-      "-maxf": 1000,
-      "-thr": 0.9,
-      "-name": "functional"
-    },
-    "cg_global_umap": {
-      "-nn": 20,
-      "-md": 0.99,
-      "-thr": 0.9,
-      "-name": "global"
-    },
-    "cg_local_umap": {
-      "-nn": 10,
-      "-spr": 1.0,
-      "-md": 0.9,
-      "-thr": 0.4,
-      "-name": "local"
-    }
-  },
-  "E.coli": {
-    "spring": {
-      "-opd": 0.4,
-      "-it": 200,
-      "-thr": 0.9,
-      "-spth": 0.001,
-      "-name": "spring"
-    },
-    "cg_functional_umap": {
-      "-md": 0.99,
-      "-nn": 10,
-      "-maxf": 1000,
-      "-thr": 0.9,
-      "-name": "functional"
-    },
-    "cg_global_umap": {
-      "-nn": 20,
-      "-md": 0.99,
-      "-thr": 0.9,
-      "-name": "global"
-    },
-    "cg_local_umap": {
-      "-nn": 10,
-      "-spr": 1.0,
-      "-md": 0.9,
-      "-thr": 0.4,
-      "-name": "local"
-    }
-  },
-  "S.cerevisiae": {
-    "spring": {
-      "-opd": 0.4,
-      "-it": 200,
-      "-thr": 0.9,
-      "-spth": 0.001,
-      "-name": "spring"
-    },
-    "cg_functional_umap": {
-      "-md": 0.99,
-      "-nn": 10,
-      "-maxf": 1000,
-      "-thr": 0.9,
-      "-name": "functional"
-    },
-    "cg_global_umap": {
-      "-nn": 20,
-      "-md": 0.99,
-      "-thr": 0.9,
-      "-name": "global"
-    },
-    "cg_local_umap": {
-      "-nn": 10,
-      "-spr": 1.0,
-      "-md": 0.9,
-      "-thr": 0.4,
-      "-name": "local"
-    }
-  },
-  "D.rerio": {
-    "spring": {
-      "-opd": 0.4,
-      "-it": 200,
-      "-thr": 0.9,
-      "-spth": 0.001,
-      "-name": "spring"
-    },
-    "cg_functional_umap": {
-      "-md": 0.99,
-      "-nn": 10,
-      "-maxf": 1000,
-      "-thr": 0.9,
-      "-name": "functional"
-    },
-    "cg_global_umap": {
-      "-nn": 20,
-      "-md": 0.99,
-      "-thr": 0.9,
-      "-name": "global"
-    },
-    "cg_local_umap": {
-      "-nn": 10,
-      "-spr": 1.0,
-      "-md": 0.9,
-      "-thr": 0.4,
-      "-name": "local"
-    }
-  },
-  "M.musculus": {
-    "spring": {
-      "-opd": 0.4,
-      "-it": 200,
-      "-thr": 0.9,
-      "-spth": 0.001,
-      "-name": "spring"
-    },
-    "cg_functional_umap": {
-      "-md": 0.99,
-      "-nn": 10,
-      "-maxf": 1000,
-      "-thr": 0.9,
-      "-name": "functional"
-    },
-    "cg_global_umap": {
-      "-nn": 20,
-      "-md": 0.99,
-      "-thr": 0.9,
-      "-name": "global"
-    },
-    "cg_local_umap": {
-      "-nn": 10,
-      "-spr": 1.0,
-      "-md": 0.9,
-      "-thr": 0.4,
-      "-name": "local"
-    }
-  },
-  "R.norvegicus": {
-    "spring": {
-      "-opd": 0.4,
-      "-it": 200,
-      "-thr": 0.9,
-      "-spth": 0.001,
-      "-name": "spring"
-    },
-    "cg_functional_umap": {
-      "-md": 0.99,
-      "-nn": 10,
-      "-maxf": 1000,
-      "-thr": 0.9,
-      "-name": "functional"
-    },
-    "cg_global_umap": {
-      "-nn": 20,
-      "-md": 0.99,
-      "-thr": 0.9,
-      "-name": "global"
-    },
-    "cg_local_umap": {
-      "-nn": 10,
-      "-spr": 1.0,
-      "-md": 0.9,
-      "-thr": 0.4,
-      "-name": "local"
-    }
+  "cg_local_umap": {
+    "-nn": 10,
+    "-spr": 1.0,
+    "-md": 0.9,
+    "-thr": 0.4,
+    "-name": "local"
   }
 }

@@ -17,6 +17,7 @@ def upload(
     src: str,
     ip: str = "localhost",
     port: int = 5000,
+    max_num_features: int = 100,
 ) -> None:
     """Uploads the network using the internal upload route of the VRNetzer.
 
@@ -80,7 +81,17 @@ def upload(
             nodes_data = json.load(f)
             nodes_data = pd.DataFrame(nodes_data["nodes"])
         nodes = pd.read_pickle(nodes_src)
-        nodes = nodes[[c for c in nodes.columns if "GO:" in c]]
+        features = [c for c in nodes.columns if "GO:" in c]
+        nodes = nodes[features].copy()
+        lengths = {c: len(nodes[c].dropna()) for c in nodes.columns}
+        lengths = [
+            k
+            for k, _ in sorted(lengths.items(), key=lambda item: item[1], reverse=True)
+        ]
+        filtered = lengths[:max_num_features]
+        drops = [c for c in features if c not in filtered]
+        nodes = nodes.drop(columns=drops)
+
         nodes = nodes.replace("", pd.NA)
         nodes = pd.concat([nodes_data, nodes], axis=1)
         nodes = nodes.T.apply(lambda x: x.dropna().to_dict()).tolist()
@@ -89,6 +100,7 @@ def upload(
             json.dump(res, f)
 
         links = pd.read_pickle(links_src)
+        colors = [c for c in links.columns if c.endswith("col")]
         res = {"links": links.to_dict(orient="records")}
         links_json = os.path.join(target_dir, "links.json")
         with open(links_json, "w", encoding="UTF-8") as f:

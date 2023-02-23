@@ -248,9 +248,14 @@ class Layouter:
                 algo = LA.spring
             if LA.cartoGRAPH in algo:
                 log.debug(f"Applying layout: {algo}.", flush=True)
-                layout = self.create_cartoGRAPH_layout(
-                    algo, algo_variables, feature_matrices[idx], max_num_features
-                )
+                if feature_matrices is None:
+                    layout = self.create_cartoGRAPH_layout(
+                        algo, algo_variables
+                    )
+                else:
+                    layout = self.create_cartoGRAPH_layout(
+                        algo, algo_variables, feature_matrices[idx], max_num_features
+                    )
                 if isinstance(layout, ValueError):
                     log.error(
                         "Error in executing cartoGRAPHs layout. Create a layout with spring instead."

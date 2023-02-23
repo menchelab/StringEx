@@ -116,6 +116,7 @@ def preview():
     project = flask.request.args.get("project")
     GD.sessionData["actPro"] = project
     project = Project(project)
+    project.read_all_jsons()
     y = '{"nodes": [], "links":[]}'
     testNetwork = json.loads(y)
 

@@ -59,12 +59,14 @@ def VRNetzer_upload_workflow(
     log.info("Starting upload of VRNetz...")
     start = time.time()
 
-    log.debug(f"Network loaded in {time.time()-start} seconds.", flush=True)
+    log.debug(f"Network loaded in {time.time()-start} seconds.")
+    log.info(f"Network loaded from {filename}.", flush=True)
 
     if not project_name:
         return "namespace fail"
 
     # create layout
+    log.info(f"Applying layout algorithm:{algo}", flush=True)
     s1 = time.time()
     layouter = apply_layout_workflow(
         network,
@@ -74,7 +76,8 @@ def VRNetzer_upload_workflow(
         algo_variables=algo_variables,
         layout_name=layout_name,
     )
-    log.debug(f"Applying layout algorithm in {time.time()-s1} seconds.", flush=True)
+    log.debug(f"Applying layout algorithm in {time.time()-s1} seconds.")
+    log.info(f"Applied layout algorithm:{algo}", flush=True)
     network = layouter.network
 
     # upload network
@@ -87,6 +90,7 @@ def VRNetzer_upload_workflow(
     s1 = time.time()
     state = uploader.upload_files(network)
     log.debug(f"Uploading process took {time.time()-s1} seconds.")
+    log.info(f"Uploading network...", flush=True)
     if tags.get("string_write"):
         outfile = f"{_NETWORKS_PATH}/{project_name}_processed.VRNetz"
         with open(outfile, "w") as f:
