@@ -100,7 +100,6 @@ def upload(
             json.dump(res, f)
 
         links = pd.read_pickle(links_src)
-        colors = [c for c in links.columns if c.endswith("col")]
         res = {"links": links.to_dict(orient="records")}
         links_json = os.path.join(target_dir, "links.json")
         with open(links_json, "w", encoding="UTF-8") as f:

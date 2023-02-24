@@ -437,6 +437,7 @@ def construct_layouts(
                 name = layout_name[idx]
             st.log.debug(f"Writing node layout for {name} for {organism}.")
             tmp_nodes = nodes.copy()
+            # TODO: Seems to take ages
             if "functional" in name and ranking:
                 to_apply = tmp_nodes.index
                 tmp = ranking.copy()

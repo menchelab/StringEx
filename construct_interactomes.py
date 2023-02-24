@@ -167,7 +167,6 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
     parser.organism.remove("reproduce")
     if parser.organism == "all" or len(parser.organism) == 0:
         parser.organism = Organisms.all_organisms
-        parser.organism.remove("D.melanogaster")
     flag = " ".join(
         [
             handle

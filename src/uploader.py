@@ -1,6 +1,4 @@
-import json
 import os
-import shutil
 import sys
 from multiprocessing import Manager, Pool, Process
 
@@ -19,10 +17,8 @@ try:
     from project import Project
 except ModuleNotFoundError:
     pass
-from flask import jsonify
 from PIL import Image
 
-from .classes import AttrTags as AT
 from .classes import Evidences as EV
 from .classes import LayoutTags as LT
 from .classes import LinkTags as LiT
@@ -30,7 +26,7 @@ from .classes import NodeTags as NT
 from .classes import ProjectTag as PT
 from .classes import StringTags as ST
 from .classes import VRNetzElements as VRNE
-from .settings import _MAPPING_ARBITARY_COLOR, _PROJECTS_PATH, log
+from .settings import log
 from .util import clean_filename
 
 
@@ -59,9 +55,6 @@ class Uploader:
         self.stringify = (
             stringify  # boolean that indicates whether a network should be stringified
         )
-        print("=====================================")
-        print("OVERWRITE_PROJECT", overwrite_project)
-        print("=====================================")
         if self.overwrite_project:
             self.project.remove()
         if self.stringify:
@@ -296,7 +289,7 @@ class Uploader:
         """
         if not isinstance(nodes, pd.DataFrame):
             nodes = pd.DataFrame(nodes)
-        nodes = self.change_to_universal_attr(nodes)
+        # nodes = self.change_to_universal_attr(nodes)
         # filtered = nodes.drop(columns=skip_attr)
         # self.nodes[VRNE.nodes] += filtered.to_dict(orient="records")
         n = len(nodes)
@@ -443,6 +436,8 @@ class Uploader:
         layouts_rgb = cy + two + rest
         self.project.pfile["layoutsRGB"] = [f"{c}" for c in layouts_rgb]
 
+        nodes = nodes[[c for c in nodes.columns if not c.endswith(("_pos", "_col"))]]
+        links = links[[c for c in links.columns if not c.endswith(("_col",))]]
         self.project.nodes = {
             "nodes": [v.dropna().to_dict() for k, v in nodes.iterrows()]
         }
