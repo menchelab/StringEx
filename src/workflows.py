@@ -79,7 +79,6 @@ def VRNetzer_upload_workflow(
     log.debug(f"Applying layout algorithm in {time.time()-s1} seconds.")
     log.info(f"Applied layout algorithm:{algo}", flush=True)
     network = layouter.network
-
     # upload network
     uploader = Uploader(
         network,
@@ -93,6 +92,7 @@ def VRNetzer_upload_workflow(
     log.info(f"Uploading network...", flush=True)
     if tags.get("string_write"):
         outfile = f"{_NETWORKS_PATH}/{project_name}_processed.VRNetz"
+        os.makedirs(os.path.dirname(outfile), exist_ok=True)
         with open(outfile, "w") as f:
             json.dump(network, f)
         log.info(f"Saved network as {outfile}")
@@ -200,9 +200,9 @@ def VRNetzer_send_network_workflow(request: dict, blueprint):
         "string_write": False,
         "string_calc_lay": True,
     }
-    if network_data.get("database") == "string":
+    if network_data.get("database") in ["string", "stitch"]:
         tags["stringify"] = True
-
+    log.debug(f"STRINGIFY {tags['stringify']}")
     output = VRNetzer_upload_workflow(
         network,
         project_name,

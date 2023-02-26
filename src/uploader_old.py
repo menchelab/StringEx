@@ -371,22 +371,6 @@ class Uploader:
                 + layout
                 + " Node Textures Created"
             )
-            # else:
-            #     if os.path.exists(pathXYZ):
-            #         output += (
-            #             '<a style="color:red;">ERROR </a>'
-            #             + layout
-            #             + " Nodelist already in project"
-            #         )
-            #     else:
-            #         l_img[l][0].save(pathXYZ)
-            #         l_img[l][1].save(pathXYZl)
-            #         l_img[l][2].save(pathRGB, "PNG")
-            #         output += (
-            #             '<a style="color:green;">SUCCESS </a>'
-            #             + layout
-            #             + " Node Textures Created"
-            #         )
         return output
 
     # TODO other name for variable filename. maybe Layout name
@@ -502,20 +486,6 @@ class Uploader:
                     f"{LT.string_3d}RGB",
                 ]
         log.debug("Project stringifyed")
-        # if f"{LT.cy_layout}XYZ" in self.pfile[PT.layouts]:
-        #     self.pfile[PT.layouts] = [
-        #         f"{LT.cy_layout}XYZ",
-        #         f"{LT.string_3d_no_z}XYZ",
-        #         f"{LT.string_3d}XYZ",
-        #     ]
-        # else:
-        #     self.pfile[PT.layouts_rgb] = [
-        #         f"{LT.string_3d_no_z}RGB",
-        #         f"{LT.string_3d}RGB",
-        #     ]
-        # for _ in ev:
-        #     self.pfile[PT.layouts].append(self.pfile[PT.layouts][-1])
-        #     self.pfile[PT.layouts_rgb].append(self.pfile[PT.layouts_rgb][-1])
 
         with open(self.pfile_file, "w") as json_file:
             json.dump(self.pfile, json_file)

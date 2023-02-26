@@ -87,6 +87,12 @@ def string_ex_result_page(project):
     )
 
 
+@blueprint.route("/")
+def string_ex_index():
+    """Route to the index page."""
+    return flask.redirect("/")
+
+
 @blueprint.on(
     "send_to_cytoscape",
 )

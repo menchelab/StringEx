@@ -54,7 +54,7 @@ font-family: 'Venus', sans-serif;*/
     font-size:2vh;
 }
 
-@media (max-width: 1920px) {
+@media (min-width: 1920px) {
     .stringEvidenceButton{
         font-size: 2vw;
     }
@@ -65,7 +65,7 @@ font-family: 'Venus', sans-serif;*/
         font-size: 15px;
     }
 }
-@media (max-width: 1280px) {
+@media (min-width: 1280px) {
     .stringEvidenceButton[type="WebGL Button"] {
         font-size: 10px;
     }
@@ -73,7 +73,7 @@ font-family: 'Venus', sans-serif;*/
         font-size: 10px;
     }
 }
-@media (max-width: 800px) {
+@media (min-width: 800px) {
     .stringEvidenceButton [type="WebGL Button"]{
         font-size: 8px;
     }
@@ -81,9 +81,9 @@ font-family: 'Venus', sans-serif;*/
         font-size: 8px;
     }
 }
-@media (max-width: 550) {
+@media (min-width: 500px) {
     .stringEvidenceButton{
-        font-size: 0.2vw;
+        font-size: 2.5vw;
     }
     .stringEvidenceButton [type="WebGL Button"]{
         font-size: 8px;

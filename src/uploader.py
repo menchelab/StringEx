@@ -14,7 +14,7 @@ sys.path.append(os.path.join(_WORKING_DIR, "..", ".."))
 
 try:
     import GlobalData as GD
-    from project import Project
+    from project import DEFAULT_PFILE, Project
 except ModuleNotFoundError:
     pass
 from PIL import Image
@@ -57,10 +57,13 @@ class Uploader:
         )
         if self.overwrite_project:
             self.project.remove()
+        self.project.pfile = DEFAULT_PFILE
+        self.project.pfile["name"] = p_name
         if self.stringify:
             self.project.pfile["network"] = "string"
         self.project.pfile["network_type"] = "ppi"
         self.MAX_NUM_LINKS = 262144
+        # TODO: PFILE IS WRONGLY WRITTEN LINKS AND LINKSRGB IS SWITCHED
 
     def makeProjectFolders(self) -> None:
         """Creates the project folders and writes empty pfile and names file."""
@@ -235,8 +238,6 @@ class Uploader:
             xyz = f"{layout_name}XYZ"
             images["high"].save(os_join(path, "layouts", f"{xyz}.bmp"))
             images["low"].save(os_join(path, "layoutsl", f"{xyz}l.bmp"))
-            if xyz not in self.project.pfile["layouts"]:
-                self.project.pfile["layouts"].append(xyz)
 
         if color is not None and color.any():
             color = color.fillna(0)
@@ -261,8 +262,6 @@ class Uploader:
             rgb = f"{layout_name}RGB"
             images["layoutsRGB"].save(os_join(path, "layoutsRGB", f"{rgb}.png"))
 
-            if rgb not in self.project.pfile["layoutsRGB"]:
-                self.project.pfile["layoutsRGB"].append(rgb)
         res = {
             "out": '<br><a style="color:green;">SUCCESS </a>'
             + layout_name
@@ -372,8 +371,9 @@ class Uploader:
         links = network.get(VRNE.links)
         n_lay = network.get(VRNE.node_layouts, [])  # Node layouts
         l_lay = network.get(VRNE.link_layouts, [])  # Link layouts
+        if self.project.names is None:
+            self.project.names = {}
 
-        nodes: pd.DataFrame
         if "names" not in self.project.names:
             self.project.names["names"] = []
         self.project.names["names"] = [[n] for n in nodes[NT.name].tolist()]
@@ -399,10 +399,9 @@ class Uploader:
         for res in link_tex_res:
             state += res["out"]
             if res["xyz"] and res["xyz"] not in self.project.pfile["links"]:
-                self.project.pfile["linksRGB"].append(res["xyz"])
+                self.project.pfile["links"].append(res["xyz"])
             if res["rgb"] and res["rgb"] not in self.project.pfile["linksRGB"]:
-                self.project.pfile["links"].append(res["rgb"])
-
+                self.project.pfile["linksRGB"].append(res["rgb"])
         nodes = self.network.get(VRNE.nodes, [])
 
         if isinstance(nodes, pd.DataFrame):

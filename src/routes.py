@@ -45,7 +45,7 @@ def upload_files():
         if key in form:
             tags[key] = True
     if "database" in network[VRNE.network]:
-        if network[VRNE.network]["database"] == "string":
+        if network[VRNE.network]["database"] in ["string", "stitch"]:
             tags["stringify"] = True
     algo_variables = string_util.get_algo_variables(algo, form)
     layout_name = form.get("string_layout_name", "3d")
@@ -87,13 +87,23 @@ def map_files():
 
 
 def preview():
-    data = {}
-    if flask.request.args.get("project") is None:
-
+    def error_function():
         print("project Argument not provided - redirecting to menu page")
 
-        data["projects"] = uploader.listProjects()
+        data = {"projects": uploader.listProjects()}
         return flask.render_template("threeJS_VIEWER_Menu.html", data=json.dumps(data))
+
+    project = flask.request.args.get("project")
+    if project is None:
+        return error_function()
+
+    GD.sessionData["actPro"] = project
+    project = Project(project, read=False)
+
+    if not project.exists():
+        return error_function()
+
+    project.read_all_jsons()
 
     layoutindex = flask.request.args.get("layout")
     if layoutindex is None:
@@ -113,10 +123,6 @@ def preview():
     else:
         linkRGBIndex = int(linkRGBIndex)
 
-    project = flask.request.args.get("project")
-    GD.sessionData["actPro"] = project
-    project = Project(project)
-    project.read_all_jsons()
     y = '{"nodes": [], "links":[]}'
     testNetwork = json.loads(y)
 
