@@ -9,12 +9,24 @@ import swifter
 from goatools import obo_parser
 
 import src.settings as st
+from interactomes import functional_annotations as fa
 from src import map_uniprot
 from src.classes import Evidences
 from src.classes import LinkTags as LiT
 from src.classes import NodeTags as NT
 from src.classes import Organisms
 from src.layouter import Layouter
+
+FUNCTIONAL_CATEGORIES = [
+    "Protein Domains (Pfam)",
+    "Biological Process (Gene Ontology)",
+    "Molecular Function (Gene Ontology)",
+    "Annotated Keywords (UniProt)",
+    "Cellular Component (Gene Ontology)",
+    "Disease-gene associations (DISEASES)",
+    "Tissue expression (TISSUES)",
+    "Subcellular localization (COMPARTMENTS)",
+]
 
 
 def construct_graph(
@@ -38,22 +50,21 @@ def construct_graph(
         tuple[nx.Graph, dict]: Graph representing the protein-protein interaction network and a dictionary containing the nodes of the graph.
     """
     st.log.debug("Reading raw data...", flush=True)
-    link_table, alias_table, description_table, annot_table, ont = read_raw_data(
+    link_table, alias_table, description_table, enrichment_table = read_raw_data(
         networks_directory, tax_id, clean_name, MAX_NUM_LINKS
     )
     st.log.debug("Generating graph...", flush=True)
-    G, links = gen_graph(
+    G, links, annotations = gen_graph(
         link_table,
         alias_table,
         description_table,
-        annot_table,
-        ont,
+        enrichment_table,
         organism,
         clean_name,
         networks_directory,
         last_link,
     )
-    return G, links
+    return G, links, annotations
 
 
 def extract_nodes(
@@ -176,13 +187,14 @@ def gen_graph(
     link_table: pd.DataFrame,
     alias_table: pd.DataFrame,
     description_table: pd.DataFrame,
-    annot_table: pd.DataFrame,
-    ont: obo_parser.GODag,
+    enrichment_table: pd.DataFrame,
     organism: str,
     clean_name: str,
     _dir: str,
     last_link: int or None = None,
-    threshold: int = 0,
+    threshold: float = 0,
+    feature_threshold: int = 0.05,
+    annotation_treshold: float = 0.01,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Extracts data from the STRING database files and constructs a graph representing the protein-protein interaction network.
 
@@ -197,7 +209,7 @@ def gen_graph(
     Returns:
         tuple[pd.DataFrame, pd.DataFrame]: Nodes and link data frames.
     """
-
+    organism_dir = os.path.join(_dir, clean_name)
     species = Organisms.get_scientific_name(organism)
     taxid = Organisms.get_tax_ids(organism)
 
@@ -216,55 +228,71 @@ def gen_graph(
     st.log.debug("Extracting nodes...", flush=True)
     nodes = pd.DataFrame()
     concat = pd.concat([link_table[LiT.start], link_table[LiT.end]])
-    nodes[NT.name] = concat.unique()
+    nodes[NT.identifier] = concat.unique()
     nodes[NT.species] = species
+    st.log.debug("Extracting node label", flush=True)
+    nodes[NT.name] = nodes[NT.identifier].swifter.apply(lambda x: x.split(".")[1])
 
-    nodes = nodes.swifter.apply(
-        extract_nodes, axis=1, args=(alias_table, description_table, annot_table)
+    functional_annotations = fa.get_annotations(
+        enrichment_table
+        # taxid,
+        # organism_dir,
+        # nodes.size,
     )
-    st.log.debug("Nodes extracted!", flush=True)
 
-    def get_short(x):
-        splitted = x.split(".")
-        if len(splitted) > 1:
-            return splitted[1]
-        return x
+    sources = alias_table.groupby("source")
+    nodes[NT.uniprot] = None
+    for src in sources.groups:
+        no_uniprot = nodes[nodes[NT.uniprot].isnull()].copy()
+        if no_uniprot.empty:
+            break
+        if "UniProt_AC" in src:
+            src = sources.get_group(src)
+            no_uniprot[NT.uniprot] = no_uniprot[NT.identifier].swifter.apply(
+                lambda x: None
+                if x not in src.index
+                else src.at[x, "alias"]
+                if isinstance(src.at[x, "alias"], str)
+                else [uniprot for uniprot in src.at[x, "alias"]]
+            )
+            nodes[NT.uniprot].update(no_uniprot[NT.uniprot])
+        elif "UniProt_GN" in src:
+            src = sources.get_group(src)
+            st.log.debug(f"Extracting gene name..", flush=True)
+            nodes[NT.gene_name] = nodes[NT.identifier].swifter.apply(
+                lambda x: src.at[x, "alias"] if x in src.index else None
+            )
 
-    st.log.debug("Preparing short names...", flush=True)
-    link_table[LiT.start] = link_table[LiT.start].swifter.apply(get_short)
-    link_table[LiT.end] = link_table[LiT.end].swifter.apply(get_short)
+    no_uniprot = nodes[nodes[NT.uniprot].isna() & nodes[NT.gene_name].notna()]
+    nodes = map_gene_names_to_uniprot(nodes, no_uniprot, taxid)
 
-    st.log.debug("Setting link ids...", flush=True)
-    #     return link
-
-    names = nodes[NT.name].tolist()
+    st.log.debug(f"Extracting description..", flush=True)
+    nodes[NT.description] = nodes[NT.identifier].swifter.apply(
+        lambda x: None
+        if x not in description_table.index
+        else description_table.at[x, "annotation"].replace(";", " ")
+        if description_table.at[x, "annotation"] != "annotation not available"
+        else None
+    )
+    identifiers = dict(zip(nodes[NT.identifier], nodes.index))
     link_table[[LiT.start, LiT.end]] = link_table[
         [LiT.start, LiT.end]
-    ].swifter.applymap(lambda x: names.index(x) if x in names else None)
+    ].swifter.applymap(lambda x: identifiers[x] if x in identifiers else None)
 
-    st.log.debug("Mapped updated link start and end to node indices!", flush=True)
-
-    no_uniprot = nodes[nodes["uniprot"].isna() & nodes["gene_name"].notna()]
-    nodes = map_gene_names_to_uniprot(nodes, no_uniprot, taxid)
-    # go_terms = pd.DataFrame([{"col": s} for s in nodes["go"]])
-    # nodes = nodes.drop(columns=["go"])
-
-    # features = Layouter.get_feature_matrix(go_terms, 20)
-    features = [c for c in nodes.columns if "GO:" in c]
-
-    new_names = {}
-    for col in features:
-        if col in ont:
-            new_names[col] = f"{ont[col].name}:{col}"
-    nodes = nodes.rename(columns=new_names)
-    nodes = nodes.replace("", pd.NA)
-    write_network(clean_name, nodes, link_table, _dir)
-
-    st.log.debug(
-        f"Network for {organism} has {len(nodes)} nodes and {len(link_table)}edges."
+    write_network(
+        clean_name,
+        nodes,
+        link_table,
+        functional_annotations,
+        # unfiltered_annotations,
+        _dir,
     )
 
-    return nodes, link_table
+    st.log.debug(
+        f"Network for {organism} has {len(nodes)} nodes and {len(link_table)} links and has {len(functional_annotations)} functional categories!",
+    )
+
+    return nodes, link_table, functional_annotations
 
 
 def map_gene_names_to_uniprot(
@@ -313,6 +341,8 @@ def write_network(
     organism: str,
     nodes: pd.DataFrame,
     processed_network: pd.DataFrame,
+    functional_annotations: dict,
+    # unfiltered_annotations: dict,
     _dir: str,
 ) -> None:
     """Write the graph to a json file. And write the l_lays to a json file.
@@ -327,6 +357,17 @@ def write_network(
     t1 = time()
     nodes.to_pickle(f"{path}/nodes.pickle")
     processed_network.to_pickle(f"{path}/links.pickle")
+    os.makedirs(f"{path}/functional_annotations", exist_ok=True)
+
+    # for key, value in functional_annotations.items():
+    #     value.to_pickle(f"{path}/functional_annotations/{key}_filtered.pickle")
+
+    # for key, value in unfiltered_annotations.items():
+    #     value.to_pickle(f"{path}/functional_annotations/{key}.pickle")
+
+    for key, value in functional_annotations.items():
+        value.to_pickle(f"{path}/functional_annotations/{key}.pickle")
+
     st.log.debug(f"Writing pickle data took {time() - t1} seconds.", flush=True)
 
 
@@ -341,6 +382,7 @@ def construct_layouts(
     max_links: int = st.MAX_NUM_LINKS,
     layout_name: list[str] = None,
     max_num_features: int = None,
+    functional_threshold: float = 0.05,
     debug: bool = False,
 ) -> None:
     """Constructs the layouts for the network and compress them into a tar file.
@@ -357,6 +399,7 @@ def construct_layouts(
         layout_algo: list[str] = None,
         variables: dict = None,
         feature_matrices: list[pd.DataFrame] = None,
+        random_lay=False,
     ) -> dict:
         """Generates a 3D layout for the graph.
 
@@ -368,33 +411,14 @@ def construct_layouts(
         """
         layouter = Layouter()
         layouter.graph = G
-        layouts = layouter.apply_layout(layout_algo, variables, feature_matrices)
+        layouts = layouter.apply_layout(
+            layout_algo, variables, feature_matrices, random_lay=random_lay
+        )
         # for algo, layout in layouts.items():
         #     layout = np.array(list(layout.values()))
         #     pos = Layouter.normalize_pos(layout)
         #     layouts[algo] = pos
         return layouts
-
-    def read_network(organism: str, _dir: str) -> tuple[nx.Graph, dict]:
-        """Reads the graphml of the network and a json file with the link layouts.
-
-        Args:
-            organism (str): Organism from which the network originates from.
-
-        Returns:
-            tuple[nx.Graph, dict]: Graph representing the protein-protein interaction network and a dictionary containing the nodes of the graph.
-        """
-        t1 = time()
-        path = os.path.join(_dir, organism)
-        nodes = pd.read_pickle(f"{path}/nodes.pickle")
-        nodes = nodes.replace("", pd.NA)
-        all_links = pd.read_pickle(f"{path}/links.pickle")
-        all_links = all_links.replace("", pd.NA)
-        st.log.debug(
-            f"Loading data from pickles took {time() - t1} seconds.", flush=True
-        )
-
-        return nodes, all_links
 
     def write_node_layout(
         organism: str,
@@ -403,7 +427,8 @@ def construct_layouts(
         _dir: str,
         overwrite: bool = False,
         layout_name: str = None,
-        ranking: list[tuple[str, int]] = None,
+        functional_annotations: dict = None,
+        functional_matrices: list[pd.DataFrame] = None,
     ) -> None:
         """Will write the node layout to a csv file with the following format:
         x,y,r,g,b,a,name;uniprot_id;description. File name is: {organism}_node.csv located in projects folder.
@@ -416,9 +441,6 @@ def construct_layouts(
         _directory = os.path.join(_dir, organism, "nodes")
         os.makedirs(_directory, exist_ok=True)
         nodes = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient="index")
-        nodes["r"] = 255
-        nodes["g"] = 255
-        nodes["b"] = 255
         nodes["a"] = 255 // 4
 
         has_gene_name = nodes["gene_name"].notna()
@@ -428,44 +450,74 @@ def construct_layouts(
             lambda x: f"{x.get(NT.name)};{x.get(NT.uniprot)};{x.get(NT.description)};{x.get('ensembl')}",
             axis=1,
         )
-        for idx, entry in enumerate(layouts.items()):
-            name, layout = entry
-            nodes["x"] = layout.loc[:, 0]
-            nodes["y"] = layout.loc[:, 1]
-            nodes["z"] = layout.loc[:, 2]
+        for idx, layout in layouts.items():
+            name = layout_name[idx]
+            layout_nodes = nodes.copy()
+            colors = pd.Series(index=layout_nodes.index)
+            layout_nodes["x"] = layout[:, 0]
+            layout_nodes["y"] = layout[:, 1]
+            layout_nodes["z"] = layout[:, 2]
             if layout_name and len(layout_name) >= idx:
                 name = layout_name[idx]
             st.log.debug(f"Writing node layout for {name} for {organism}.")
-            tmp_nodes = nodes.copy()
-            # TODO: Seems to take ages
-            if "functional" in name and ranking:
-                to_apply = tmp_nodes.index
-                tmp = ranking.copy()
-                colors = []
-                while len(to_apply) > 0 and len(tmp) > 0:
-                    column, _ = tmp.pop(0)
-                    consider = tmp_nodes.loc[to_apply].copy()
-                    consider = consider[consider[column].notna()]
-                    if len(consider) == 0:
-                        continue
-                    while True:
-                        color = np.random.choice(range(256), size=3)
-                        hex = "#{:02x}{:02x}{:02x}".format(*color)
-                        if hex not in colors:
-                            colors.append(hex)
-                            break
-                    nodes.loc[consider.index, ["r", "g", "b"]] = color
-                    tmp_nodes = tmp_nodes.drop(consider.index)
-                    to_apply = [x for x in to_apply if x not in consider.index]
+            split_name = name.split(";")
+            if feature_matrices and feature_matrices[idx] is not None:
+                feature_matrix = feature_matrices[idx].copy()
+            if len(split_name) > 1:
+                split_name = split_name[1]
+                if split_name in functional_annotations:
+                    used_colors = set()
+                    st.log.debug("Adding colors to functional clusters..")
+                    for row_idx, data in functional_annotations[split_name].iterrows():
+                        term = row_idx
+                        while True:
+                            color = np.random.randint(0, 255, 3)
+                            hex = "#{:02x}{:02x}{:02x}".format(*color)
+                            if hex not in used_colors:
+                                used_colors.add(hex)
+                                break
+                        is_true = feature_matrix[term] == True
 
+                        if not is_true.any():
+                            continue
+                        needs_color = colors.isna()
+                        if not (is_true & needs_color).any():
+                            continue
+                        has_color = ~needs_color
+                        highlight = (
+                            functional_matrices[idx][term]
+                            .swifter.progress_bar(False)
+                            .apply(
+                                lambda x: color / 255 if x else None,
+                            )
+                        )
+                        has_new_color = highlight.notna()
+                        to_multiply = has_color & has_new_color
+                        if to_multiply.any():
+                            colors[has_new_color] = colors[has_new_color].multiply(
+                                highlight[has_new_color]
+                            )
+                        to_add = has_new_color & ~has_color
+                        if to_add.any():
+                            colors[to_add] = highlight[to_add].copy()
+                        if colors.notna().all():
+                            break
+            colors = colors.swifter.apply(
+                lambda x: [1, 1, 1] if isinstance(x, float) else x
+            )
+            colors = colors.swifter.progress_bar(False).apply(
+                lambda x: [int(i * 255) for i in x]
+            )
+            layout_nodes[["r", "g", "b"]] = colors.swifter.apply(lambda x: pd.Series(x))
+            layout_nodes["a"] = 255 // 4
             file_name = os.path.join(_directory, f"{name}.csv")
             if os.path.isfile(file_name) and not overwrite:
                 st.log.info(
                     f"Node layout for {name} for {organism} already exists. Skipping."
                 )
                 continue
-            nodes[["x", "y", "z", "r", "g", "b", "a", "attr"]].to_csv(
-                file_name, sep=",", header=False, index=False
+            layout_nodes[["x", "y", "z", "r", "g", "b", "a", "attr"]].to_csv(
+                file_name, sep=",", header=False, index=None
             )
             st.log.info(f"Node layout for {organism} has been written to {file_name}.")
 
@@ -515,7 +567,22 @@ def construct_layouts(
                 f"link layout for evidence {ev} for {organism} has been written to {file_name}."
             )
 
-    nodes, all_links = read_network(organism, _dir)
+    functional_lay = False
+    for layout in layout_algo:
+        if "functional" in layout:
+            functional_lay = True
+
+    nodes, all_links, functional_annotations = read_network(
+        organism, _dir, functional_lay
+    )
+
+    if functional_lay:
+        functional_annotations = dict(
+            sorted(
+                functional_annotations.items(), key=lambda x: x[1].size, reverse=True
+            )[:max_num_features]
+        )
+
     all_links = all_links[:max_links]
 
     G = nx.from_pandas_edgelist(
@@ -527,6 +594,7 @@ def construct_layouts(
     layout_graph = G.copy()
 
     # nx.set_node_attributes(G, nodes.to_dict(orient="index"))
+    random_lay = False
     node_data = nodes.T.apply(lambda x: x.dropna().to_dict()).tolist()
     G.add_nodes_from((idx, x) for idx, x in enumerate(node_data) if x is not None)
     layout_graph.add_nodes_from((idx, {}) for idx in nodes.index)
@@ -545,48 +613,50 @@ def construct_layouts(
         for idx, name in enumerate(layout_name):
             if name is None:
                 layout_name[idx] = layout_algo[idx]
-
     tmp = layout_algo.copy()
+    tmp_names = layout_name.copy()
     feature_matrices = []
-    matrix = nodes[[col for col in nodes.columns if ":GO" in col]]
-    matrix = matrix.applymap(lambda x: 1, na_action="ignore")
-    matrix = matrix.fillna(0)
-    ranking = {
-        col: int(matrix[col].sum()) for col in matrix.columns if matrix[col].sum() >= 10
-    }
-    ranking = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
+    filtered_functional_annotations = None
+    identifiers = nodes[NT.identifier].copy()
+    for idx, layout in enumerate(tmp):
+        if "functional" in layout:
+            name = tmp_names[idx]
+            (
+                new_algos,
+                new_names,
+                new_matrices,
+                filtered_functional_annotations,
+            ) = prepare_feature_matrices(
+                name,
+                functional_annotations,
+                functional_threshold,
+                layout,
+                identifiers.copy(),
+            )
+            layout_algo = layout_algo[:idx] + new_algos + layout_algo[idx + 1 :]
+            layout_name = layout_name[:idx] + new_names + layout_name[idx + 1 :]
+            feature_matrices = (
+                feature_matrices[:idx] + new_matrices + feature_matrices[idx + 1 :]
+            )
+        else:
+            feature_matrices.append(None)
     for idx, layout in enumerate(tmp):
         file_name = os.path.join(_dir, organism, "nodes", f"{layout_name[idx]}.csv")
         if os.path.isfile(file_name) and not overwrite:
             st.log.info(
-                f"Node layout for layout {layout} for {organism} already exists. Skipping."
+                f"Node layout for layout {layout_name[idx]} for {organism} already exists. Skipping."
             )
             layout_algo.remove(layout)
         else:
             st.log.info(
                 f"{file_name} does not exist or overwrite is allowed. Generating layout."
             )
-        if "functional" in layout:
-            if max_num_features:
-                filtered = ranking[:max_num_features]
-            else:
-                filtered = [x for x in ranking if x[1] > 50]
-            matrix = matrix[[col for col, _ in filtered]]
-            feature_matrices.append(matrix)
-        else:
-            feature_matrices.append(None)
     if debug:
         st.log.debug("DEBUG IS ON RANDOM LAYOUT")
-        import random
-
-        def pos():
-            return [np.random.random() for _ in range(len(G.nodes))]
-
-        layouts = {
-            lay: pd.DataFrame({0: pos(), 1: pos(), 2: pos()}) for lay in layout_algo
-        }
-    else:
-        layouts = gen_layout(layout_graph, layout_algo, variables, feature_matrices)
+        random_lay = True
+    layouts = gen_layout(
+        layout_graph, layout_algo, variables, feature_matrices, random_lay
+    )
     st.log.info(f"Generated layouts. Used algorithms: {layout_algo}.")
     write_link_layouts(organism, all_links, _dir, overwrite_links)
     write_node_layout(
@@ -596,7 +666,8 @@ def construct_layouts(
         _dir,
         overwrite=overwrite,
         layout_name=layout_name,
-        ranking=ranking,
+        functional_annotations=filtered_functional_annotations,
+        functional_matrices=feature_matrices,
     )
 
 
@@ -616,8 +687,11 @@ def read_raw_data(
 
     alias_file = os.path.join(directory, f"{tax_id}.protein.aliases.v11.5.txt.gz")
     description_file = os.path.join(directory, f"{tax_id}.protein.info.v11.5.txt.gz")
-    annot_file = os.path.join(directory, f"{tax_id}.gaf.gz")
-    ont_file = os.path.join(directory, "..", "go-basic.obo")
+    enrichment_file = os.path.join(
+        directory, f"{tax_id}.protein.enrichment.terms.v11.5.txt.gz"
+    )
+    # annot_file = os.path.join(directory, f"{tax_id}.gaf.gz")
+    # ont_file = os.path.join(directory, "..", "go-basic.obo")
 
     rename_dict = {
         "protein1": LiT.start,
@@ -688,19 +762,76 @@ def read_raw_data(
         )
     ]
     description_table = pd.read_table(description_file, header=0, sep="\t", index_col=0)
-    annot = pd.read_table(annot_file, comment="!", header=None, sep="\t")
-    annot = annot.drop(columns=[0, 7, 11, 12, 13, 14, 15, 16])
-    annot.columns = [
-        "id",
-        "symbol",
-        "qualifier",
-        "go",
-        "db_reference",
-        "evidence",
-        "aspect",
-        "name",
-        "synonym",
-    ]
-    annot.index = annot["id"]
-    ont = obo_parser.GODag(ont_file)
-    return link_table, alias_table, description_table, annot, ont
+
+    enrichment_file = pd.read_table(enrichment_file, header=0, sep="\t")
+
+    return link_table, alias_table, description_table, enrichment_file
+
+
+def prepare_feature_matrices(
+    name,
+    functional_annotations,
+    functional_threshold,
+    layout,
+    identifiers,
+    functional_categories=FUNCTIONAL_CATEGORIES,
+):
+    new_algos = []
+    new_names = []
+    new_matrices = []
+    filtered_functional_annotations = {}
+    for cat in functional_annotations:
+        category = functional_annotations[cat].copy()
+        category = category[category["number_of_members"] > functional_threshold]
+        if category.empty:
+            continue
+        if cat not in functional_categories:
+            st.log.debug(
+                f"Category {cat} is not a valid functional category. Consider adding it as its seems to be relevant."
+            )
+            continue
+        n = f"{name};{cat}"
+        new_algos.append(layout)
+        new_names.append(n)
+        st.log.debug(f"Mapping terms of category {cat} to nodes...", flush=True)
+        feature_matrix = category.swifter.apply(
+            lambda x: identifiers.isin(x.members), axis=1
+        ).T
+        new_matrices.append(feature_matrix)
+        filtered_functional_annotations[cat] = category
+
+    return new_algos, new_names, new_matrices, filtered_functional_annotations
+
+
+def read_network(
+    organism: str, _dir: str, read_functional: bool
+) -> tuple[nx.Graph, dict]:
+    """Reads the graphml of the network and a json file with the link layouts.
+
+    Args:
+        organism (str): Organism from which the network originates from.
+
+    Returns:
+        tuple[nx.Graph, dict]: Graph representing the protein-protein interaction network and a dictionary containing the nodes of the graph.
+    """
+    t1 = time()
+    path = os.path.join(_dir, organism)
+    nodes = pd.read_pickle(f"{path}/nodes.pickle")
+    all_links = pd.read_pickle(f"{path}/links.pickle")
+
+    functional_annotations = None
+    if read_functional:
+        functional_annotations = {}
+        for file in os.listdir(f"{path}/functional_annotations"):
+            if not file.endswith(".pickle"):
+                continue
+
+            if file.endswith(".pickle"):
+                functional_annotations[file.strip(".pickle")] = pd.read_pickle(
+                    f"{path}/functional_annotations/{file}"
+                )
+
+    all_links = all_links.replace("", pd.NA)
+    st.log.debug(f"Loading data from pickles took {time() - t1} seconds.", flush=True)
+
+    return nodes, all_links, functional_annotations

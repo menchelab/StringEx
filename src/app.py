@@ -93,6 +93,21 @@ def string_ex_index():
     return flask.redirect("/")
 
 
+@blueprint.route("/receiveInteractome", methods=["POST"])
+def string_ex_receive_interactome():
+    """Route to receive the interactome from prepared by a client using the the provided script"""
+    data = {"project_name": flask.request.args.get("project_name")}
+    files = flask.request.files
+    data["host"] = flask.request.host
+    return routes.receive_interactome(data, files)
+
+
+@blueprint.route("/status", methods=["GET"])
+def string_ex_status():
+    """Route to receive the status of the current job."""
+    return "StringEx is installed and running..."
+
+
 @blueprint.on(
     "send_to_cytoscape",
 )
@@ -126,8 +141,3 @@ def string_ex_reset_selection():
             "status": "success",
         },
     )
-
-
-@blueprint.on("delete")
-def string_ex_delete_all_networks():
-    p4c.delete_network()

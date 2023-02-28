@@ -10,6 +10,7 @@ from project import Project
 import uploader
 
 from . import settings as st
+from . import upload_interactomes
 from . import util as string_util
 from . import workflows as wf
 from .classes import VRNetzElements as VRNE
@@ -191,3 +192,7 @@ def preview():
         pfile=json.dumps(project.pfile),
         sessionData=json.dumps(GD.sessionData),
     )
+
+
+def receive_interactome(data, files):
+    return upload_interactomes.upload(data, files)

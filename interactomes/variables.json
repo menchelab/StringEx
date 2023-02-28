@@ -9,9 +9,9 @@
   "cg_functional_umap": {
     "-md": 0.99,
     "-nn": 10,
-    "-maxf": 1000,
-    "-thr": 0.9,
-    "-name": "functional"
+    "-maxf": 10,
+    "-thr": 0.99,
+    "-name": ""
   },
   "cg_global_umap": {
     "-nn": 20,

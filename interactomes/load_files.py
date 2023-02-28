@@ -15,14 +15,16 @@ def download(tax_id: int, dest: str, clean_name: str, string_db_ver: str = "11.5
     links = f"protein.links.detailed.v{string_db_ver}/"
     info = f"protein.info.v{string_db_ver}/"
     ali = f"protein.aliases.v{string_db_ver}/"
+    enrichment_terms = f"protein.enrichment.terms.v{string_db_ver}/"
     organism_links = f"{tax_id}.{links[:-1]}.txt.gz"
     organism_info = f"{tax_id}.{info[:-1]}.txt.gz"
     organism_aliases = f"{tax_id}.{ali[:-1]}.txt.gz"
+    organism_enrichment_terms = f"{tax_id}.{enrichment_terms[:-1]}.txt.gz"
     directory = os.path.join(dest, clean_name)
     os.makedirs(directory, exist_ok=True)
     for data, file in zip(
-        [links, info, ali],
-        [organism_links, organism_info, organism_aliases],
+        [links, info, ali, enrichment_terms],
+        [organism_links, organism_info, organism_aliases, organism_enrichment_terms],
     ):
         if not os.path.exists(os.path.join(directory, file)):
             r = requests.get(url + data + file)

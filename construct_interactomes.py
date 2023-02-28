@@ -110,6 +110,7 @@ def workflow(parser):
                     parser.max_links,
                     parser.layout_name,
                     parser.max_num_features,
+                    parser.functional_threshold,
                     parser.no_lay,
                 )
 
@@ -135,7 +136,8 @@ def workflow(parser):
                     parser.src_dir,
                     parser.ip,
                     parser.port,
-                    max_num_features=parser.max_num_features,
+                    parser.annotation_threshold,
+                    parser.max_num_annotations,
                 )
 
             if parser.benchmark:

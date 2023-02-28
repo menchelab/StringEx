@@ -2,6 +2,7 @@ import json
 import os
 from multiprocessing import Pool
 
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -98,7 +99,7 @@ class Layouter:
         self.graph = nx.read_graphml(file)
         return self.graph
 
-    def create_spring_layout(self, algo_variables: dict) -> dict:
+    def create_spring_layout(self, algo_variables: dict,random_lay) -> dict:
         """Generates a spring layout for the Graph.
 
         Args:
@@ -113,25 +114,39 @@ class Layouter:
                 k = None
         iterations = algo_variables.get("iterations", 50)
         threshold = algo_variables.get("threshold", 0.0001)
+        if random_lay:
+            return self.create_random_layout()
         return nx.spring_layout(
             self.graph, dim=3, k=k, iterations=iterations, threshold=threshold
         )
 
-    def create_kamada_kawai_layout(self, algo_variables: dict) -> dict:
+    def create_kamada_kawai_layout(self, algo_variables: dict,random_lay) -> dict:
         """Generates a kamada kawai layout for the Graph.
         Args:
             algo_variables (dict): contains variables for the algorithm. Does not do anything.
         Returns:
             dict: node ids as keys and three dimensional positions as values.
         """
+        if random_lay:
+            return self.create_random_layout()
         return nx.kamada_kawai_layout(self.graph, dim=3)
-
+    
+    def create_random_layout(self, algo_variables: dict ={}) -> dict:
+        """Generates a random layout for the Graph.
+        Args:
+            algo_variables (dict): contains variables for the algorithm. Does not do anything.
+        Returns:
+            dict: node ids as keys and three dimensional positions as values.
+        """
+        return nx.random_layout(self.graph, dim=3)
+    
     def create_cartoGRAPH_layout(
         self,
         layout_algo: str,
         cg_variables: dict = None,
         feature_matrix: pd.DataFrame = None,
         max_num_features: int = None,
+        random = False
     ) -> dict:
         """Will pick the correct cartoGRAPHs layout algorithm and apply it to the graph. If cartoGRAPH is not installed an ImportError is raised.
 
@@ -146,7 +161,14 @@ class Layouter:
         import cartoGRAPHs as cg
 
         dim = 3
-
+        if "functional" in layout_algo:
+            nodes = list(self.graph.nodes())
+            no_feature = feature_matrix[~feature_matrix.any(axis=1)]
+            feature_matrix = feature_matrix.drop(no_feature.index)
+            feature_graph = self.graph.subgraph(
+                list(set(nodes) - set(no_feature.index))
+            )
+            sphere_graph = self.graph.subgraph(list(no_feature.index))
         if "tsne" in layout_algo:
             prplxty = cg_variables.get("prplxty", 50)
             density = cg_variables.get("density", 12)
@@ -175,10 +197,16 @@ class Layouter:
                     )
                 if feature_matrix is None:
                     return ValueError("Unable to construct feature matrix!")
-                return cg.layout_functional_tsne(
-                    self.graph, feature_matrix, dim, prplxty, density, l_rate, steps
+                if random:
+                    functional = self.create_random_layout()
+                else:
+                    functional = cg.layout_functional_tsne(
+                    feature_graph, feature_matrix, dim, prplxty, density, l_rate, steps
                 )
-        if "umap" in layout_algo:
+                layout = sample_sphere(sphere_graph,list(functional.values()))
+                functional.update(layout)
+                return functional
+        elif "umap" in layout_algo:
             n_neighbors = cg_variables.get("n_neighbors", 10)
             spread = cg_variables.get("spread", 1.0)
             min_dist = cg_variables.get("min_dist", 0.1)
@@ -201,9 +229,15 @@ class Layouter:
                     )
                 if feature_matrix is None:
                     return ValueError("Unable to construct feature matrix!")
-                return cg.layout_functional_umap(
-                    self.graph, feature_matrix, dim, n_neighbors, spread, min_dist
-                )
+                if random:
+                    functional = self.create_random_layout()
+                else:
+                    functional = cg.layout_functional_umap(
+                        feature_graph, feature_matrix, dim, n_neighbors, spread, min_dist
+                    )
+                layout = sample_sphere(sphere_graph,list(functional.values()))
+                functional.update(layout)
+                return functional
         elif "topographic" in layout_algo:
             # d_z = a dictionary with keys=G.nodes and values=any int/float assigned to a node
             posG2D = nx.Graph()
@@ -229,6 +263,7 @@ class Layouter:
         algo_variables: dict = {},
         feature_matrices: list[pd.DataFrame] = None,
         max_num_features: int = None,
+        random_lay=False,
     ) -> dict[str, list[float]]:
         """Applies a layout algorithm and adds the node positions to nodes in the self.network[VRNE.nodes] list.
 
@@ -249,13 +284,12 @@ class Layouter:
             if LA.cartoGRAPH in algo:
                 log.debug(f"Applying layout: {algo}.", flush=True)
                 if feature_matrices is None:
-                    layout = self.create_cartoGRAPH_layout(
-                        algo, algo_variables
-                    )
+                    layout = self.create_cartoGRAPH_layout(algo, algo_variables,random_lay)
                 else:
                     layout = self.create_cartoGRAPH_layout(
-                        algo, algo_variables, feature_matrices[idx], max_num_features
+                        algo, algo_variables, feature_matrices[idx], max_num_features,random_lay
                     )
+
                 if isinstance(layout, ValueError):
                     log.error(
                         "Error in executing cartoGRAPHs layout. Create a layout with spring instead."
@@ -265,42 +299,36 @@ class Layouter:
                 lay_func = {
                     LA.spring: self.create_spring_layout,
                     LA.kamada_kawai: self.create_kamada_kawai_layout,
+                    LA.random: self.create_random_layout,
                 }
                 log.debug(f"Applying layout: {algo}", flush=True)
                 layout = lay_func[algo](
-                    algo_variables
+                    algo_variables,random_lay
                 )  # Will use the desired layout algorithm
+            layout = dict(sorted(layout.items(), key=lambda x: x[0]))
+            layout = np.array(list(layout.values()))
+            # lay = np.array(list(layout.values()))
+            # x = lay[:, 0]
+            # y = lay[:, 1]
+            # z = lay[:, 2]
 
-            lay = np.array(list(layout.values()))
-            x = lay[:, 0]
-            y = lay[:, 1]
-            z = lay[:, 2]
+            # def normalize_pos(x):
+            #     x += abs(min(x))
+            #     x /= max(x)
+            #     return x
 
-            def normalize_pos(x):
-                x += abs(min(x))
-                x /= max(x)
-                return x
-
-            pos = pd.DataFrame([x, y, z]).T
-            pos = pos.apply(normalize_pos, axis=0)
-            layouts[algo] = pos
+            # pos = pd.DataFrame([x, y, z]).T
+            # pos = pos.apply(normalize_pos, axis=0)
+            # layouts[idx] = pos
+            layouts[idx] = self.normalize_pos(layout)
         return layouts
 
     @staticmethod
-    def normalize_pos(layout: dict):
-
-        x = layout[:, 0]
-        y = layout[:, 1]
-        z = layout[:, 2]
-
-        def norm(x):
-            x += abs(min(x))
-            x /= max(x)
-            return x
-
-        pos = pd.DataFrame([x, y, z]).T
-        pos = pos.swifter.progress_bar(False).apply(norm)
-        return pos
+    def normalize_pos(layout: np.array,dim:int=3):
+        for i in range(0, dim):
+            layout[:, i] += abs(min(layout[:, i]))
+            layout[:, i] /= max(layout[:, i])
+        return layout
 
     @staticmethod
     def add_layout_to_vrnetz(
@@ -325,21 +353,17 @@ class Layouter:
 
             nodes = nodes.swifter.progress_bar(False).apply(extract_cy, axis=1)
 
-        nodes[layout_name + "2d_pos"] = layout.swifter.progress_bar(False).apply(
-            lambda x: [x[0], x[1], 0], axis=1
-        )
-        nodes[layout_name + "_pos"] = layout.swifter.progress_bar(False).apply(
-            lambda x: list(x), axis=1
-        )
+        _2d_layout = np.hstack((layout[:, :2], np.zeros((len(layout), 1))))
+        nodes[layout_name + "2d_pos"] = pd.Series(_2d_layout.tolist())
+        nodes[layout_name + "_pos"] = pd.Series(layout.tolist())
 
         if "cy_pos" and "cy_col" in nodes:
             # nodes[layout_name+"_col"] = nodes["cy_col"]
+            # Check if this works, as it now returns a np array
             coords = np.array([np.array(x) for x in nodes["cy_pos"]])
-            pos = Layouter.normalize_pos(coords)
-
-            nodes["cy_pos"] = pos.swifter.progress_bar(False).apply(
-                lambda x: [x[0], x[1], 0], axis=1
-            )
+            pos = Layouter.normalize_pos(coords, dim=2)
+            pos = np.hstack((pos, np.zeros((len(pos), 1))))
+            nodes["cy_pos"] = pd.Series(pos.tolist())
 
             def extract_color(x):
                 """Scale alpha channel (glowing effect) with node size (max size = 1"""
@@ -522,6 +546,16 @@ class Layouter:
             flush=True,
         )
         return feature_matrix
+
+
+def sample_sphere(G,layout,*args,**kwargs):
+    from . import sphere_sampler
+
+    pos = sphere_sampler.sample_sphere_pcd(len(G),layout,*args,**kwargs)
+    layout = {}
+    for i, node in enumerate(G.nodes()):
+        layout[node] = pos[i]
+    return layout
 
 
 if __name__ == "__main__":

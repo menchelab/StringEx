@@ -35,6 +35,8 @@ class NodeTags:
     uniprot = "uniprot"
     display_name = "display name"
     size = "size"
+    identifier = "used_identifier"
+    gene_name = "gene_name"
 
 
 class StringTags:
@@ -76,9 +78,9 @@ class VRNetzElements:
 
 class LayoutAlgroithms:
     spring = "spring"
-
     kamada_kawai = "kamada_kawai"
     all_algos = [spring, kamada_kawai]
+    random = "random"
     cartoGRAPH = "cg"
     cartoGRAPH_local = "local"
     cartoGRAPH_global = "global"
@@ -227,3 +229,18 @@ class Organisms:
             Organisms.ecoli: "string_ecoli_ppi",
         }
         return file_names.get(organism)
+
+    def get_organism_name(directory: str) -> str:
+        """Return the organism name from the directory name."""
+        organism_names = {
+            "string_human_ppi": Organisms.human,
+            "string_mouse_ppi": Organisms.mouse,
+            "string_yeast_ppi": Organisms.yeast,
+            "string_worm_ppi": Organisms.worm,
+            "string_fly_ppi": Organisms.fly,
+            "string_arabidopsis_ppi": Organisms.arabidopsis,
+            "string_zebrafish_ppi": Organisms.zebrafish,
+            "string_rat_ppi": Organisms.rat,
+            "string_ecoli_ppi": Organisms.ecoli,
+        }
+        return organism_names.get(directory)

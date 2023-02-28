@@ -249,8 +249,6 @@ def apply_layout_workflow(
         log.info(f"Applying algorithm {layout_algo} ...")
         layout = layouter.apply_layout(layout_algo, algo_variables)
         algo, layout = next(iter(layout.items()))
-        if algo != layout_name:
-            layout_name = algo
         nodes = layouter.add_layout_to_vrnetz(
             layouter.network[VRNE.nodes], layout, layout_name
         )

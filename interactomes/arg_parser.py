@@ -167,6 +167,27 @@ def parse_args(args=None):
         help="Defines the maximum number of features to be used for the functional layouts.",
         default=30,
     )
+    parser.add_argument(
+        "--functional_threshold",
+        "-fthr",
+        type=float,
+        help="Defines the percentage of nodes that have to be annotated with a feature to be used for the functional layouts.",
+        default=0.05,
+    )
+    parser.add_argument(
+        "--max_num_annotations",
+        "-maxa",
+        type=int,
+        help="Defines the maximum number of annotations to be added to the node annotations.",
+        default=30,
+    )
+    parser.add_argument(
+        "--annotation_threshold",
+        "-athr",
+        type=float,
+        help="Defines the percentage of nodes that have to be annotated with a feature to be added to the node annotations.",
+        default=0.01,
+    )
     ### SPRING VARIABLES ###
     parser.add_argument(
         "--opt_dist",
