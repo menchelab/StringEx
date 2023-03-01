@@ -32,7 +32,7 @@ def upload(data: dict, files) -> None:
         project.pfile["linksRGB"] = [f"{ev.value}RGB" for ev in Evidences]
         project.write_pfile()
 
-        project.nodes = {"nodes" : nodes}
+        project.nodes = {"nodes": nodes}
         project.links = {"links": links}
         project.write_nodes()
         project.write_links()

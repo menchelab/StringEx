@@ -66,6 +66,7 @@ def upload(
             f"Trying to upload network for {organism} as project {directory}.",
             flush=True,
         )
+        ...
     except requests.exceptions.ConnectionError:
         st.log.error(f"Could not connect to {ip}:{port}. Upload failed.", flush=True)
         return
@@ -84,114 +85,101 @@ def upload(
 
     try:
 
-        # # Move network.json.gzip to project folder
-        # unfiltered_annotations = {}
-        # for file in os.listdir(f"{src_dir}/functional_annotations"):
-        #     if not file.endswith(".pickle"):
-        #         continue
-        #     if file.endswith("_filtered.pickle"):
-        #         unfiltered_annotations[file.strip("_filtered.pickle")] = pd.read_pickle(
-        #             f"{src_dir}/functional_annotations/{file}"
-        #         )
+        # Write GO terms to nodes.json
+        nodes_json = os.path.join(target_dir, "nodes.json")
+        with open(nodes_json, "r") as f:
+            nodes_data = json.load(f)
+            nodes_data = pd.DataFrame(nodes_data["nodes"])
 
-        # # Write GO terms to nodes.json
-        # nodes_json = os.path.join(target_dir, "nodes.json")
-        # with open(nodes_json, "r") as f:
-        #     nodes_data = json.load(f)
-        #     nodes_data = pd.DataFrame(nodes_data["nodes"])
+        nodes, links, functional_annotations = read_network(directory, src, True)
 
-        # nodes, links, functional_annotations = read_network(directory, src, True)
+        functional_annotations = dict(
+            sorted(
+                functional_annotations.items(), key=lambda x: x[1].size, reverse=True
+            )[:max_num_features]
+        )
+        categories = list(functional_annotations.keys())
+        identifiers = nodes[NT.identifier].copy()
+        feature_matrices = prepare_feature_matrices(
+            "",
+            functional_annotations,
+            annotations_threshold,
+            max_num_features,
+            identifiers,
+            categories,
+        )[2]
+        all_features = pd.concat(feature_matrices, axis=1)
 
-        # functional_annotations = dict(
-        #     sorted(
-        #         functional_annotations.items(), key=lambda x: x[1].size, reverse=True
-        #     )[:max_num_features]
-        # )
-        # categories = list(functional_annotations.keys())
-        # identifiers = nodes[NT.identifier].copy()
-        # feature_matrices = prepare_feature_matrices(
-        #     "",
-        #     functional_annotations,
-        #     annotations_threshold,
-        #     max_num_features,
-        #     identifiers,
-        #     categories,
-        # )[2]
-        # all_features = pd.concat(feature_matrices, axis=1)
+        lengths = all_features.swifter.apply(lambda x: x.sum())
+        lengths = {
+            k: v
+            for k, v in sorted(lengths.items(), key=lambda item: item[1], reverse=True)[
+                :max_num_features
+            ]
+        }
+        to_add = set([c for c in lengths])
+        all_features = all_features[to_add].copy()
 
-        # lengths = all_features.swifter.apply(lambda x: x.sum())
-        # lengths = {
-        #     k: v
-        #     for k, v in sorted(lengths.items(), key=lambda item: item[1], reverse=True)[
-        #         :max_num_features
-        #     ]
-        # }
-        # all_features = all_features[[c for c in lengths]]
+        # If a feature is present twice, just say its true if in any
+        all_features = all_features.groupby(all_features.columns, axis=1).apply(
+            lambda x: x.any(axis=1)
+        )
 
-        # annot, ont = read_go_annotation(annot_file, ont_file)
+        annot, ont = read_go_annotation(annot_file, ont_file)
 
-        # new_names = {}
-        # nodes = pd.concat([nodes, all_features], axis=1)
+        nodes = pd.concat([nodes, all_features], axis=1)
 
-        # go_columns = [c for c in all_features.columns if c.startswith("GO:")]
+        go_columns = [c for c in all_features.columns if c.startswith("GO:")]
 
-        # def handel_term(x, entries, col):
-        #     row = entries[entries["go"] == col]
-        #     if row.empty:
-        #         return x
-        #     qualifers = row.get("qualifier")
-        #     if qualifers is None or qualifers.empty:
-        #         return x
-        #     x[col] = qualifers.values[0]
-        #     return x
+        annot_gene = annot.groupby(NT.gene_name)
 
-        # def set_qualifiers(
-        #     x, identifier, annot: pd.core.groupby.generic.DataFrameGroupBy, go_columns
-        # ):
-        #     if x[identifier] not in annot.groups:
-        #         return x
-        #     entries = annot.get_group(x[identifier])
-        #     #TODO THROWS VALUE ERROR SOMETIMES (WHY?)
-        #     try:
-        #         to_handle = [c for c in go_columns if c in x.index and x[c]]
-        #     except ValueError as e:
-        #         st.log.debug(e)
-        #         st.log.debug(x)
-        #         exit()
-        #     for col in to_handle:
-        #         x = handel_term(x, entries, col)
-        #     return x
+        def handle_row(x, identifier, annot, go_columns):
+            annot_entries = annot.get_group(x[identifier])
+            for term in go_columns:
+                entries = annot_entries[annot_entries["go"] == term]
+                if entries.empty:
+                    continue
+                qualifiers = entries.get("qualifier")
+                if qualifiers is None or qualifiers.empty:
+                    continue
+                x[term] = qualifiers.values[0]
+            return x
 
-        # annot_gene = annot.groupby(NT.gene_name)
+        has_gene_name = nodes[NT.gene_name].notna() & nodes[NT.gene_name].isin(
+            annot_gene.groups
+        )
+        has_gene_name = nodes[has_gene_name].copy()
+        has_gene_name = has_gene_name[[NT.gene_name] + go_columns].swifter.apply(
+            handle_row,
+            axis=1,
+            args=(
+                NT.gene_name,
+                annot_gene,
+                go_columns,
+            ),
+        )
+        nodes.update(has_gene_name)
 
-        # nodes = nodes.swifter.apply(
-        #     set_qualifiers,
-        #     axis=1,
-        #     args=(
-        #         NT.gene_name,
-        #         annot_gene,
-        #         go_columns,
-        #     ),
-        # )
-        # for col in go_columns:
-        #     if col in ont:
-        #         new_names[col] = f"{ont[col].name};{col}"
-        #     else:
-        #         st.log.error(f"Could not find {col} in ontology.")
-        # nodes = nodes.rename(columns=new_names)
+        new_names = {}
+        for col in go_columns:
+            if col in ont:
+                new_names[col] = f"{ont[col].name};{col}"
+            else:
+                st.log.error(f"Could not find {col} in ontology.")
+        nodes = nodes.rename(columns=new_names)
 
-        # nodes = nodes.to_json(orient="records")
-        # links = links.to_json(orient="records")
+        nodes = nodes.to_json(orient="records")
+        links = links.to_json(orient="records")
 
-        # files.append(("nodes_data", nodes))
-        # files.append(("links_data", links))
+        files.append(("nodes_data", nodes))
+        files.append(("links_data", links))
 
-        # r = requests.post(
-        #     f"http://{ip}:{port}/StringEx/receiveInteractome?project_name={directory}",
-        #     files=files,
-        # )
-        # st.log.info(f"Uploaded network for {organism} as project {directory}.")
-        # st.log.debug(f"Response: {r}")
+        r = requests.post(
+            f"http://{ip}:{port}/StringEx/receiveInteractome?project_name={directory}",
+            files=files,
+        )
+        st.log.info(f"Uploaded network for {organism} as project {directory}.")
+        st.log.debug(f"Response: {r}")
         ...
     except requests.exceptions.ConnectionError as e:
         st.log.error(f"Could not connect to {ip}:{port}. Upload failed.")
@@ -200,7 +188,9 @@ def upload(
 
 def read_go_annotation(annot_file, ont_file):
     """Reads the annotation file and returns a dictionary with the annotations."""
-    annot = pd.read_table(annot_file, comment="!", header=None, sep="\t")
+    annot = pd.read_table(
+        annot_file, comment="!", header=None, sep="\t", low_memory=False
+    )
     annot = annot.drop(columns=[0, 7, 11, 12, 13, 14, 15, 16])
     annot.columns = [
         NT.uniprot,

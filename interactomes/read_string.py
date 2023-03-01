@@ -15,7 +15,9 @@ from src.classes import Evidences
 from src.classes import LinkTags as LiT
 from src.classes import NodeTags as NT
 from src.classes import Organisms
-from src.layouter import Layouter
+from src.layouter import Layouter, visualize_layout
+import umap
+from matplotlib import pyplot as plt
 
 FUNCTIONAL_CATEGORIES = [
     "Protein Domains (Pfam)",
@@ -65,122 +67,6 @@ def construct_graph(
         last_link,
     )
     return G, links, annotations
-
-
-def extract_nodes(
-    # idx: int,
-    # identifier: str,
-    node: pd.Series,
-    alias_table: pd.DataFrame,
-    description_table: pd.DataFrame,
-    ont_table: pd.DataFrame,
-) -> pd.Series:
-    """Extract nodes from the STRING DB network files.
-
-    Args:
-        node (pd.Series): Row of the nodes DataFrame.
-        alias_table (pd.DataFrame): DataFrame containing all aliases for all nodes.
-        description_table (pd.DataFrame): DataFrame containing all descriptions for all nodes.
-
-    Returns:
-        pd.Series: Updated node with aliases.
-    """
-
-    def extract_uniprot_id(alias: pd.DataFrame) -> list:
-        """Extracts possible uniprot ids from the alias column of a node.
-
-        Args:
-            alias (pd.DataFrame): Dataframe containing only data for a single node.
-
-        Returns:
-            list: contains all uniprot ids for a node.
-        """
-        for tag in ["Ensembl_UniProt_AC", "BLAST_UniProt_AC"]:
-            row = alias["source"] == tag
-            if isinstance(row, bool):
-                continue
-
-            row = alias.loc[alias["source"] == tag]
-            if row.empty:
-                continue
-            uniprot = list(alias.loc[alias["source"] == tag].get("alias"))
-            if len(uniprot) > 0:
-                return uniprot[0]
-        return None
-
-    def extract_gene_name(alias: pd.DataFrame):
-        """Extracts possible gene names from the alias column of a node.
-
-        Args:
-            alias (pd.DataFrame): Dataframe containing only data for a single node.
-
-        Returns:
-            list: contains all gene names for a node.
-        """
-        row = alias["source"] == "BLAST_UniProt_GN_Name"
-        if isinstance(row, bool):
-            return None
-        gene_name = list(
-            alias.loc[alias["source"] == "BLAST_UniProt_GN_Name"].get("alias")
-        )
-        if len(gene_name) == 0:
-            return None
-
-        return gene_name[0]
-
-    def extract_go_terms(
-        ont_table: pd.DataFrame, node: pd.Series, identifier: str, column: str
-    ) -> pd.Series:
-        """Extracts GO terms from the ontology table.
-
-        Args:
-            ont_table (pd.DataFrame): Data Frame containing all ontology terms.
-            node (pd.Series): Node to be updated.
-            identifier (str): Identifier of the node.
-            column (str): Column to search for the identifier.
-
-        Returns:
-            pd.Series: Updated Node
-        """
-        rows = ont_table[ont_table[column] == identifier]
-        for entry in rows.itertuples():
-            qualifier = entry.qualifier
-            if entry.go not in node:
-                node[entry.go] = qualifier
-        # ont_table = ont_table.drop(index=rows.index)
-        return node  # , ont_table
-
-    # get uniprot id(s)
-    identifier = node[NT.name]
-    node[NT.name] = node[NT.name].split(".")[1]
-    alias = alias_table[alias_table.index == identifier]
-    if not alias.empty:
-        # alias_table = alias_table.drop(index=alias.index)
-        uniprot = extract_uniprot_id(alias)
-        if uniprot:
-            # node, ont_table = extract_go_terms(ont_table, node, uniprot, "id")
-            node = extract_go_terms(ont_table, node, uniprot, "id")
-    else:
-        uniprot = None
-    node["uniprot"] = uniprot
-
-    gene_name = extract_gene_name(alias)
-    if gene_name:
-        node["gene_name"] = gene_name
-        # node, ont_table = extract_go_terms(ont_table, node, gene_name, "symbol")
-        node = extract_go_terms(ont_table, node, gene_name, "symbol")
-
-    else:
-        node["gene_name"] = None
-
-    # node[NT.species] = species
-    annotation = description_table.at[identifier, "annotation"]
-
-    if annotation != "annotation not available":
-        node[NT.description] = annotation.replace(";", "")
-        # description_table = description_table.drop(index=identifier)
-
-    return node  # , alias_table, description_table, ont_table
 
 
 def gen_graph(
@@ -243,7 +129,7 @@ def gen_graph(
     sources = alias_table.groupby("source")
     nodes[NT.uniprot] = None
     for src in sources.groups:
-        no_uniprot = nodes[nodes[NT.uniprot].isnull()].copy()
+        no_uniprot = nodes[nodes[NT.uniprot].isna()].copy()
         if no_uniprot.empty:
             break
         if "UniProt_AC" in src:
@@ -278,6 +164,9 @@ def gen_graph(
     link_table[[LiT.start, LiT.end]] = link_table[
         [LiT.start, LiT.end]
     ].swifter.applymap(lambda x: identifiers[x] if x in identifiers else None)
+    has_gene_name = nodes[nodes[NT.gene_name].notna()].copy()
+    has_gene_name[NT.name] = has_gene_name[NT.gene_name]
+    nodes.update(has_gene_name)
 
     write_network(
         clean_name,
@@ -422,13 +311,15 @@ def construct_layouts(
 
     def write_node_layout(
         organism: str,
-        G: nx.Graph,
+        nodes: pd.DataFrame,
         layouts: dict,
         _dir: str,
         overwrite: bool = False,
         layout_name: str = None,
+        algos: list[str] = None,
         functional_annotations: dict = None,
-        functional_matrices: list[pd.DataFrame] = None,
+        feature_matrices: list[pd.DataFrame] = None,
+        categories: list[str] = None,
     ) -> None:
         """Will write the node layout to a csv file with the following format:
         x,y,r,g,b,a,name;uniprot_id;description. File name is: {organism}_node.csv located in projects folder.
@@ -440,8 +331,8 @@ def construct_layouts(
         """
         _directory = os.path.join(_dir, organism, "nodes")
         os.makedirs(_directory, exist_ok=True)
-        nodes = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient="index")
         nodes["a"] = 255 // 4
+        nodes = nodes.sort_index()
 
         has_gene_name = nodes["gene_name"].notna()
         nodes["ensembl"] = nodes[NT.name].copy()
@@ -451,64 +342,84 @@ def construct_layouts(
             axis=1,
         )
         for idx, layout in layouts.items():
+            pos = np.array(list(layout.values()))
             name = layout_name[idx]
+            algo = algos[idx]
+            if categories:
+                category = categories[idx]
+                st.log.debug(category)
             layout_nodes = nodes.copy()
-            colors = pd.Series(index=layout_nodes.index)
-            layout_nodes["x"] = layout[:, 0]
-            layout_nodes["y"] = layout[:, 1]
-            layout_nodes["z"] = layout[:, 2]
+            layout_nodes["x"] = pos[:, 0]
+            layout_nodes["y"] = pos[:, 1]
+            layout_nodes["z"] = pos[:, 2]
             if layout_name and len(layout_name) >= idx:
                 name = layout_name[idx]
             st.log.debug(f"Writing node layout for {name} for {organism}.")
-            split_name = name.split(";")
             if feature_matrices and feature_matrices[idx] is not None:
                 feature_matrix = feature_matrices[idx].copy()
-            if len(split_name) > 1:
-                split_name = split_name[1]
-                if split_name in functional_annotations:
-                    used_colors = set()
-                    st.log.debug("Adding colors to functional clusters..")
-                    for row_idx, data in functional_annotations[split_name].iterrows():
-                        term = row_idx
-                        while True:
-                            color = np.random.randint(0, 255, 3)
-                            hex = "#{:02x}{:02x}{:02x}".format(*color)
-                            if hex not in used_colors:
-                                used_colors.add(hex)
-                                break
-                        is_true = feature_matrix[term] == True
+            # TODO: Change this with the real layout name to the name provided by the user, makes to much problems with the current implementation
+            colors = pd.Series(
+                [[1, 1, 1] for _ in range(len(layout_nodes))], index=layout_nodes.index
+            )
+            if "functional" in algo and category in functional_annotations:
+                layout_nodes["features"] = feature_matrix.any(axis=1)
+                has_features = layout_nodes["features"]
 
-                        if not is_true.any():
-                            continue
-                        needs_color = colors.isna()
-                        if not (is_true & needs_color).any():
-                            continue
-                        has_color = ~needs_color
-                        highlight = (
-                            functional_matrices[idx][term]
-                            .swifter.progress_bar(False)
-                            .apply(
-                                lambda x: color / 255 if x else None,
-                            )
-                        )
-                        has_new_color = highlight.notna()
-                        to_multiply = has_color & has_new_color
-                        if to_multiply.any():
-                            colors[has_new_color] = colors[has_new_color].multiply(
-                                highlight[has_new_color]
-                            )
-                        to_add = has_new_color & ~has_color
-                        if to_add.any():
-                            colors[to_add] = highlight[to_add].copy()
-                        if colors.notna().all():
-                            break
-            colors = colors.swifter.apply(
-                lambda x: [1, 1, 1] if isinstance(x, float) else x
-            )
-            colors = colors.swifter.progress_bar(False).apply(
-                lambda x: [int(i * 255) for i in x]
-            )
-            layout_nodes[["r", "g", "b"]] = colors.swifter.apply(lambda x: pd.Series(x))
+                category = functional_annotations[category].copy()
+
+                st.log.debug("Adding colors to functional clusters..")
+                to_color = colors[has_features].apply(lambda x: None).copy()
+
+                used_colors = set()
+                feature_matrix = feature_matrix[has_features]
+                # clusterable_embedding = umap.UMAP(
+                #     n_neighbors=10,
+                #     min_dist=0.9,
+                # ).fit_transform(feature_matrix.values)
+                # plt.scatter(
+                #     clusterable_embedding[:, 0],
+                #     clusterable_embedding[:, 1],
+                #     cmap="Spectral",
+                # )
+                # plt.show()
+                for term_idx, _ in category.iterrows():
+                    # check if any coloring necessary
+                    needs_color = to_color.isna()
+                    if not needs_color.any():
+                        st.log.debug("All colors are set...")
+                        break
+
+                    term_data = feature_matrix[term_idx]
+                    if not term_data.any():
+                        continue
+
+                    color, used_colors = get_color(used_colors)
+
+                    highlight = term_data.swifter.progress_bar(False).apply(
+                        lambda x: color if x else None,
+                    )
+                    has_new_color = ~highlight.isna()
+                    to_multiply = np.logical_and(~needs_color, has_new_color)
+                    if np.any(to_multiply):
+                        to_color[to_multiply] *= highlight[to_multiply]
+                    to_add = has_new_color & needs_color
+                    if np.any(to_add):
+                        to_color[to_add] = highlight[to_add]
+
+                colors.update(to_color)
+
+            colors = np.array(colors.tolist())
+            # for i in range(3):
+            #     st.log.debug(f"{colors[:, i].min()}, {colors[:, i].max()}")
+            colors = 0.5 - np.abs(colors - 0.5) + 0.5
+            # visualize_layout(
+            #     layout_nodes[["x", "y", "z"]].to_numpy(),
+            #     colors,
+            # )
+            # continue
+            colors *= 255
+            colors = colors.astype(int)
+            layout_nodes[["r", "g", "b"]] = colors
             layout_nodes["a"] = 255 // 4
             file_name = os.path.join(_directory, f"{name}.csv")
             if os.path.isfile(file_name) and not overwrite:
@@ -575,6 +486,7 @@ def construct_layouts(
     nodes, all_links, functional_annotations = read_network(
         organism, _dir, functional_lay
     )
+    # nodes = nodes.sample(n=5000, random_state=42)
 
     if functional_lay:
         functional_annotations = dict(
@@ -616,6 +528,7 @@ def construct_layouts(
     tmp = layout_algo.copy()
     tmp_names = layout_name.copy()
     feature_matrices = []
+    categories = None
     filtered_functional_annotations = None
     identifiers = nodes[NT.identifier].copy()
     for idx, layout in enumerate(tmp):
@@ -626,6 +539,7 @@ def construct_layouts(
                 new_names,
                 new_matrices,
                 filtered_functional_annotations,
+                categories,
             ) = prepare_feature_matrices(
                 name,
                 functional_annotations,
@@ -661,13 +575,15 @@ def construct_layouts(
     write_link_layouts(organism, all_links, _dir, overwrite_links)
     write_node_layout(
         organism,
-        G,
+        nodes,
         layouts,
         _dir,
         overwrite=overwrite,
         layout_name=layout_name,
+        algos=layout_algo,
         functional_annotations=filtered_functional_annotations,
-        functional_matrices=feature_matrices,
+        feature_matrices=feature_matrices,
+        categories=categories,
     )
 
 
@@ -749,16 +665,22 @@ def read_raw_data(
         link_table.to_csv(filtered, compression="gzip", sep=" ", index=False)
 
     st.log.debug("Filtered and sorted...", flush=True)
+
     alias_table = pd.read_table(
         alias_file,
-        header=0,
         sep="\t",
+        header=0,
         index_col=0,
     )
     # Filter out every entry which does not contains these three sources
     alias_table = alias_table.loc[
         alias_table["source"].isin(
-            ["Ensembl_UniProt_AC", "BLAST_UniProt_AC", "BLAST_UniProt_GN_Name"]
+            [
+                "Ensembl_UniProt_AC",
+                "BLAST_UniProt_AC",
+                "BLAST_UniProt_GN_Name",
+                "Ensembl_UniProt_GN_Name",
+            ]
         )
     ]
     description_table = pd.read_table(description_file, header=0, sep="\t", index_col=0)
@@ -780,6 +702,7 @@ def prepare_feature_matrices(
     new_names = []
     new_matrices = []
     filtered_functional_annotations = {}
+    categories = []
     for cat in functional_annotations:
         category = functional_annotations[cat].copy()
         category = category[category["number_of_members"] > functional_threshold]
@@ -790,7 +713,7 @@ def prepare_feature_matrices(
                 f"Category {cat} is not a valid functional category. Consider adding it as its seems to be relevant."
             )
             continue
-        n = f"{name};{cat}"
+        n = f"{name}{cat}"
         new_algos.append(layout)
         new_names.append(n)
         st.log.debug(f"Mapping terms of category {cat} to nodes...", flush=True)
@@ -799,8 +722,15 @@ def prepare_feature_matrices(
         ).T
         new_matrices.append(feature_matrix)
         filtered_functional_annotations[cat] = category
+        categories.append(cat)
 
-    return new_algos, new_names, new_matrices, filtered_functional_annotations
+    return (
+        new_algos,
+        new_names,
+        new_matrices,
+        filtered_functional_annotations,
+        categories,
+    )
 
 
 def read_network(
@@ -830,8 +760,16 @@ def read_network(
                 functional_annotations[file.strip(".pickle")] = pd.read_pickle(
                     f"{path}/functional_annotations/{file}"
                 )
-
     all_links = all_links.replace("", pd.NA)
     st.log.debug(f"Loading data from pickles took {time() - t1} seconds.", flush=True)
 
     return nodes, all_links, functional_annotations
+
+
+def get_color(used_colors: set):
+    while True:
+        color = np.random.randint(0, 255, 3)
+        hex = "#{:02x}{:02x}{:02x}".format(*color)
+        if hex not in used_colors:
+            used_colors.add(hex)
+            return color / 255, used_colors

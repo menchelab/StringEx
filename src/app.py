@@ -99,7 +99,10 @@ def string_ex_receive_interactome():
     data = {"project_name": flask.request.args.get("project_name")}
     files = flask.request.files
     data["host"] = flask.request.host
-    return routes.receive_interactome(data, files)
+    res = routes.receive_interactome(data, files)
+    if hasattr(GD, "annotationScraper"):
+        GD.annotationScraper.update_annotations(data["project_name"])
+    return res
 
 
 @blueprint.route("/status", methods=["GET"])
