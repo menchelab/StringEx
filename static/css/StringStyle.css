@@ -110,43 +110,6 @@ font-family: 'Venus', sans-serif;*/
     overflow: hidden;
     height: 4.5vh;
 }
-
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Scrollable Side Panel
-++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-.sidenav {
-    height: 100%;
-    width: 15%;
-    position: absolute;
-    z-index: 2;
-    top: 0;
-    right: 0;
-    overflow-x: hidden;
-    transition: 0.5s;
-    padding-top: 10px;
-}
-
-.sidenav a {
-    padding: 8px 8px 8px 500px;
-    text-decoration: none;
-    font-size: 25px;
-    color: #818181;
-    display: block;
-    transition: 0.3s
-}
-
-.sidenav a:hover,
-.offcanvas a:focus {
-    color: #f1f1f1;
-}
-
-.sidenav .closebtn {
-    position: absolute;
-    top: 0;
-    right: 25px;
-    font-size: 36px;
-    margin-left: 50px;
-}
 .todo{
     color:violet;
     opacity: 20%;

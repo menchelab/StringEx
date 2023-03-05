@@ -147,18 +147,17 @@ class Uploader:
         height = 512
         path = self.project.location
 
-        def get_pixel(elem):
-            if pd.isnull(elem):
-                return (0, 0, 0)
-            sx = elem % 128
-            syl = elem // 128 % 128
-            syh = elem // 16384
-            elem = (int(sx), int(syl), int(syh))
-            return elem
-
         tmp = links.copy()
-        tmp["start_pix"] = links[LiT.start].swifter.progress_bar(False).apply(get_pixel)
-        tmp["end_pix"] = links[LiT.end].swifter.progress_bar(False).apply(get_pixel)
+        tmp["start_pix"] = links[LiT.start].apply(
+            lambda x: (x % 128, x // 128 % 128, x // 16384)
+            if not pd.isnull(x)
+            else (0, 0, 0)
+        )
+        tmp["end_pix"] = links[LiT.end].apply(
+            lambda x: (x % 128, x // 128 % 128, x // 16384)
+            if not pd.isnull(x)
+            else (0, 0, 0)
+        )
         path = self.project.location
         layouts = [c for c in links.columns if c.endswith("col")]
         args = []
@@ -484,63 +483,99 @@ class Uploader:
         self.project.links = {"links": []}
         links = self.network.get(VRNE.links)
 
-        if update_link_textures:
-            p = Process(
-                target=self.update_link_textures,
-                args=(
-                    links,
-                    l_lay,
-                    target_links,
-                    target_links_rgb,
-                ),
-            )
-            p.start()
+        # if update_link_textures:
+        #     p = Process(
+        #         target=self.update_link_textures,
+        #         args=(
+        #             links,
+        #             l_lay,
+        #             target_links,
+        #             target_links_rgb,
+        #         ),
+        #     )
+        #     p.start()
 
         self.project.nodes = {"nodes": []}  # Reset nodes
         nodes = pd.DataFrame(self.network.get(VRNE.nodes))
         nodes = self.change_to_universal_attr(nodes)
+
         filtered = nodes.copy()
         for key in skip_attr:
             if key in nodes.columns:
                 filtered = filtered.drop(columns=[key])
         self.project.nodes = {
-            "nodes": [v.dropna().to_dict() for k, v in filtered.iterrows()]
+            "nodes": filtered.swifter.progress_bar(False)
+            .apply(lambda x: x.dropna().to_dict(), axis=1)
+            .tolist()
         }
 
         self.project.links = {
-            "links": [v.dropna().to_dict() for k, v in links.iterrows()]
+            "links": links.swifter.progress_bar(False)
+            .apply(lambda x: x.dropna().to_dict(), axis=1)
+            .tolist()
         }
-
         self.project.write_all_jsons()
 
         nodes = nodes.drop(
             columns=[c for c in nodes.columns if c not in [NT.node_color, NT.size]]
         )
+        from project import NODE, COLOR
 
-        not_mappend = nodes[NT.size].isna()
-        not_highlighted = nodes[not_mappend].copy()
-        highlighted = nodes[~not_mappend].copy()
-        not_highlighted[NT.node_color] = (
-            not_highlighted[NT.node_color]
+        def mask_nodes(project: Project, selected_nodes):
+            # MASK WHICH HIGHLIGHTS NODES THAT ARE SELECTED
+            NODE_BITMAP_SIZE = 128
+            nodes = pd.DataFrame(project.get_nodes()["nodes"])
+            mask = np.zeros((NODE_BITMAP_SIZE, NODE_BITMAP_SIZE, 4))
+            nodes = nodes[nodes["id"].isin(selected_nodes)].copy()
+            x, y = nodes["id"] // NODE_BITMAP_SIZE, nodes["id"] % NODE_BITMAP_SIZE
+            mask[x, y, :] = 1
+            return mask
+
+        mapped_nodes = nodes[~nodes[NT.size].isna()].copy()
+        mask = mask_nodes(self.project, mapped_nodes.index)
+        for lay in layouts:
+            layout_bmp = self.project.load_bitmap(lay, NODE, COLOR, True)
+            selected = np.zeros_like(layout_bmp)
+            selected[layout_bmp > 0] = mask[layout_bmp > 0]
+            # Multiply the two images element-wise
+            if len(np.unique(layout_bmp)) >= 1:
+                result = layout_bmp * selected
+            else:
+                # MAKE SELECTED NODES RED
+                result[:, :, :3] = [255, 0, 0]
+
+            non_zero = np.nonzero(selected)
+            max_row = np.max(non_zero[0])
+            non_zero = np.nonzero(selected[max_row])
+            max_col = np.max(non_zero[0])
+            not_selected = ~selected
+            not_selected[:max_row, :, :3] = [255, 255, 255]
+            not_selected[max_row, :max_col, :3] = [255, 255, 255]
+            not_selected[max_row, max_col:] = 0
+            not_selected[max_row + 1 :] = 0
+
+            result = result + not_selected
+            bmp = Image.fromarray(np.uint8(result))
+            self.project.write_bitmap(bmp, lay, NODE, COLOR)
+
+        # color layout which just highlights the mapped nodes
+        mapped_nodes[NT.node_color] = mapped_nodes.swifter.progress_bar(False).apply(
+            lambda x: tuple(x[NT.node_color] + [int(255 * x[NT.size])]), axis=1
+        )
+
+        not_mappend = nodes[nodes[NT.size].isna()].copy()
+        not_mappend[NT.node_color] = (
+            not_mappend[NT.node_color]
             .swifter.progress_bar(False)
             .apply(lambda x: tuple(x + [50]))
         )
-        highlighted[NT.node_color] = highlighted.swifter.progress_bar(False).apply(
-            lambda x: tuple(x[NT.node_color] + [int(255 * x[NT.size])]), axis=1
-        )
-        nodes = pd.concat([not_highlighted, highlighted])
+        nodes = pd.concat([mapped_nodes, not_mappend])
         nodes = nodes.sort_index()
-        data = nodes[NT.node_color]
-
-        n = len(layouts)
-        pool = Pool(n)
-        pool.starmap(
-            self.process_layouts, [(target_project, data, layout) for layout in layouts]
-        )
-
-        pool.close()
-        if update_link_textures:
-            p.join()
+        layout_bmp = Image.new("RGBA", (128, 128))
+        layout_bmp.putdata(nodes[NT.node_color])
+        self.project.write_bitmap(layout_bmp, "Mapped", NODE, COLOR)
+        self.project.add_node_color("Mapped")
+        self.project.write_pfile()
 
     def update_link_textures(self, links, l_lay, target_links, target_links_rgb):
         self.make_link_tex(links, l_lay)

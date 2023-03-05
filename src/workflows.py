@@ -19,6 +19,7 @@ from .layouter import Layouter
 from .map_small_on_large import map_source_to_target
 from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, log
 from .uploader import Uploader
+from project import Project
 
 
 def VRNetzer_upload_workflow(
@@ -130,14 +131,16 @@ def VRNetzer_map_workflow(
     f_organ = os.path.join(_PROJECTS_PATH, f_organ)
 
     nodes_file = os.path.join(f_organ, "nodes.json")
-    links_file = os.path.join(f_organ, "links.pickle")
+    links_file = os.path.join(f_organ, "links.json")
 
     with open(nodes_file, "r") as json_file:
         trg_network = json.load(json_file)
 
-    trg_network[VRNE.links] = pickle.load(open(links_file, "rb"))
-    trg_network[VRNE.links]["id"] = trg_network["links"].index
-    trg_network[VRNE.links] = trg_network["links"].to_dict("records")
+    with open(links_file, "r") as json_file:
+        trg_network[VRNE.links] = json.load(json_file)["links"]
+
+    # trg_network[VRNE.links]["id"] = trg_network["links"].index
+    # trg_network[VRNE.links] = trg_network["links"].to_dict("records")
 
     if project_name is None or project_name == "":
         src_name = os.path.split(src_filename)[1].split(".")[0]
@@ -147,22 +150,24 @@ def VRNetzer_map_workflow(
         # Add ppi to project name to activate the right node panel
         project_name = f"{project_name}_ppi"
     try:
-        shutil.copytree(
-            f_organ, os.path.join(_PROJECTS_PATH, project_name), dirs_exist_ok=True
-        )
-        for dir in ["links", "linksRGB"]:
-            for file in glob.glob(os.path.join(_PROJECTS_PATH, project_name, dir, "*")):
-                for ev in Evidences:
-                    if ev.value in file:
-                        os.remove(file)
-        with open(os.path.join(f_organ, "pfile.json"), "r") as f:
-            pfile = json.load(f)
-            pfile["name"] = project_name
-            pfile["network"] = "string"
-        with open(
-            os.path.join(os.path.join(_PROJECTS_PATH, project_name), "pfile.json"), "w"
-        ) as f:
-            json.dump(pfile, f)
+        src = Project(f_organ)
+        project = Project(project_name, False)
+        src.copy(project.location, ignore=False)
+        project.read_pfile()
+        for ev in Evidences:
+            links = [ev.value + "XYZ" for ev in Evidences]
+            link_colors = [ev.value + "RGB" for ev in Evidences]
+            project.pfile["links"] = links
+            project.pfile["linksRGB"] = link_colors
+        # for dir in ["links", "linksRGB"]:
+        #     for file in glob.glob(os.path.join(_PROJECTS_PATH, project_name, dir, "*")):
+        #         for ev in Evidences:
+        #             if ev.value in file:
+        #                 os.remove(file)
+
+        project.pfile["name"] = project_name
+        project.write_pfile()
+
         start = time.time()
         html = map_source_to_target(src_network, trg_network, f_organ, project_name)
         log.debug(f"Mapping process took {time.time()-start} seconds.")
@@ -170,6 +175,7 @@ def VRNetzer_map_workflow(
     except Exception as e:
         error = traceback.format_exc()
         log.error(error)
+        project.remove()
         html = f'<a style="color:red;">ERROR </a>: {error}', 500
     return html
 

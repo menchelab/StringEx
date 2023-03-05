@@ -1,33 +1,27 @@
-#!/usr/bin/env python3
-
-##############################################################
-## The following script retrieves and prints out
-## significantly enriched (FDR < 1%) GO Processes
-## for the given set of proteins.
-##
-## Requires requests module:
-## type "python -m pip install requests" in command line (win)
-## or terminal (mac/linux) to install the module
-##############################################################
-# Adapted based on https://string-db.org/cgi/help?sessionId=bsMEwNSWdi3y
-##############################################################
-import json
-import os
-
 import pandas as pd
-import requests  # # python -m pip install requests
-
+import os
 from src.settings import log
+from interactomes import data_io
+from src.classes import Organisms
+
+FUNCTIONAL_CATEGORIES = [
+    # "Protein Domains (Pfam)",
+    "Biological Process (Gene Ontology)",
+    "Molecular Function (Gene Ontology)",
+    "Annotated Keywords (UniProt)",
+    "Cellular Component (Gene Ontology)",
+    "Disease-gene associations (DISEASES)",
+    "Tissue expression (TISSUES)",
+    "Subcellular localization (COMPARTMENTS)",
+]
 
 
 def get_annotations(
-    # taxid: str,
-    # _dir: str,
-    # n: int,
-    # threshold: float,
-    # get_unfiltered: bool = False,
-    # unfiltered_threshold: float = 0,
-    df: pd.DataFrame,
+    _dir: str = None,
+    organism: str = None,
+    tax_id: str = None,
+    df: pd.DataFrame = None,
+    reconstruct: bool = False,
 ) -> dict[str, pd.DataFrame]:
     """Extracts all functional annotations for a given organism with a percentage of members above a given threshold.
 
@@ -40,45 +34,24 @@ def get_annotations(
     Returns:
         dict[str, pd.DataFrame]: dictionary of functional annotations.
     """
-    # file_path = os.path.join(_dir, f"{taxid}.protein.enrichment.terms.v11.5.txt")
-    # with open(file_path, "r") as f:
-    #     df = pd.read_csv(f, sep="\t")
+    if df is None:
+
+        if _dir is None:
+            raise ValueError("Either a dataframe or a directory must be provided")
+
+        if tax_id is None:
+            raise ValueError("tax_id must be provided")
+
+        organism_dir = os.path.join(_dir, organism)
+        df = data_io.read_enrichment_terms(organism_dir, tax_id)
+
+    if not reconstruct:
+        if os.path.exists(os.path.join(_dir, organism, "functional_annotations")):
+            return data_io.read_functional_annotations(_dir, organism)
+
     categories = df["category"].unique().tolist()
-    # if not get_unfiltered:
-    #     categories = [
-    #         cat for cat in categories if df[df["category"] == cat].size / n > threshold
-    #     ]
-    #     df = df.drop(df[~df["category"].isin(categories)].index)
     terms = df["term"].unique().tolist()
 
-    # def filter_out_terms(df, threshold):
-    #     return (
-    #         df.groupby("term")
-    #         .filter(lambda x: x.size / n > threshold)["term"]
-    #         .unique()
-    #         .tolist()
-    #     )
-
-    # if get_unfiltered:
-    #     unfiltered_annotations = {}
-    #     terms = filter_out_terms(df, unfiltered_threshold)
-    # else:
-    #     terms = filter_out_terms(df, threshold)
-    # df = df[df["term"].isin(terms)].copy()
-    # def handle_term(term_frame):
-    #     members = term_frame["#string_protein_id"].unique().tolist()
-    #     number_of_members = len(members)
-    #     if number_of_members / n < threshold and not get_unfiltered:
-    #         return None
-    #     description = term_frame["description"].unique().tolist()[0]
-    #     res = {
-    #         "members": members,
-    #         "description": description,
-    #         "number_of_members": number_of_members,
-    #     }
-    #     return res
-
-    # collection = df.swifter.groupby(["category", "term"]).apply(handle_term)
     functional_annotations = {}
 
     categories = df.groupby("category")
@@ -90,10 +63,8 @@ def get_annotations(
             term_frame = terms.get_group(term).copy()
             members = term_frame["#string_protein_id"].unique().tolist()
             number_of_members = len(members)
-            # if number_of_members / n < threshold and not get_unfiltered:
-            #     continue
-            # if number_of_members / n < unfiltered_threshold and get_unfiltered:
-            #     continue
+            if number_of_members == 1:
+                continue
             description = term_frame["description"].unique().tolist()[0]
             res = {
                 "members": members,
@@ -107,19 +78,116 @@ def get_annotations(
         if collection.empty:
             continue
         collection = collection.sort_values(by="number_of_members", ascending=False)
-        # if get_unfiltered:
-        #     unfiltered_annotations[cat] = collection.copy()
-        # collection = collection[collection["number_of_members"] / n > threshold]
-        # if collection.empty:
-        #     continue
-        functional_annotations[cat] = collection
 
-    # if get_unfiltered:
-    #     unfiltered_annotations = dict(
-    #         sorted(
-    #             unfiltered_annotations.items(), key=lambda x: x[1].size, reverse=True
-    #         )
-    #     )
+        functional_annotations[cat] = collection
     log.debug(f"Filtered {len(functional_annotations)}")
-    # log.debug(f"Unfiltered {len(unfiltered_annotations)}")
-    return functional_annotations  # , unfiltered_annotations
+    if _dir is not None:
+        data_io.write_functional_annotations(_dir, functional_annotations)
+    return functional_annotations
+
+
+def prepare_feature_matrices(
+    name,
+    functional_annotations,
+    functional_threshold,
+    layout,
+    identifiers,
+    _dir,
+    clean_name,
+    functional_categories=FUNCTIONAL_CATEGORIES,
+):
+    new_algos = []
+    new_names = []
+
+    fms, functional_annotations = construct_feature_matrices(
+        name,
+        functional_annotations,
+        identifiers,
+        functional_categories=functional_categories,
+    )
+
+    data_io.write_feature_matrices(_dir, clean_name, fms)
+    for name, fm in fms.items():
+        new_algos.append(layout)
+        new_names.append(name)
+        fm = fm.T
+        fms[name] = fm[fm.sum(axis=1) / len(identifiers) > functional_threshold].T
+
+    return (
+        new_algos,
+        new_names,
+        fms,
+        functional_annotations,
+    )
+
+
+def get_feature_matrices(
+    _dir,
+    clean_name,
+    identifiers,
+    functional_annotations=None,
+    functional_threshold=0.01,
+    functional_categories=FUNCTIONAL_CATEGORIES,
+    reconstruct=False,
+):
+
+    if not reconstruct:
+        if os.path.exists(
+            os.path.join(_dir, clean_name, "functional_annotations", "fm")
+        ):
+            fms = data_io.read_feature_matrices(
+                _dir, clean_name, len(identifiers), functional_threshold
+            )
+            if not len(fms) == 0:
+                return fms
+
+    if functional_annotations is None:
+        tax_id = Organisms.get_tax_ids(directory=clean_name)
+        functional_annotations = get_annotations(_dir, clean_name, tax_id, reconstruct)
+    fms = construct_feature_matrices(
+        "",
+        functional_annotations,
+        identifiers,
+        functional_categories=functional_categories,
+        min_threshold=functional_threshold,
+    )[0]
+    data_io.write_feature_matrices(_dir, clean_name, fms)
+    for name, fm in fms.items():
+        fm = fm.T
+        fms[name] = fm[fm.sum(axis=1) / len(identifiers) > functional_threshold].T
+    return fms
+
+
+def construct_feature_matrices(
+    name,
+    functional_annotations,
+    identifiers,
+    functional_categories=FUNCTIONAL_CATEGORIES,
+    min_threshold=0.01,
+):
+    feature_matrices = {}
+    filtered_functional_annotations = {}
+    for cat in functional_annotations:
+        category = functional_annotations[cat].copy()
+        if functional_categories is not None and cat not in functional_categories:
+            log.debug(
+                f"Category {cat} is not a valid functional category. Consider adding it as its seems to be relevant."
+            )
+            continue
+        category = category[
+            category["number_of_members"] / len(identifiers) >= min_threshold
+        ]
+        if category.empty:
+            continue
+        log.debug(f"Mapping terms of category {cat} to nodes...", flush=True)
+        feature_matrix = category.swifter.apply(
+            lambda x: identifiers.isin(x.members), axis=1
+        )
+        feature_matrix = feature_matrix[feature_matrix.sum(axis=1) > 1]
+
+        n = f"{name}{cat}"
+        feature_matrix = feature_matrix.T
+        feature_matrices[n] = feature_matrix
+        filtered_functional_annotations[cat] = category
+
+    return feature_matrices, filtered_functional_annotations

@@ -120,10 +120,11 @@ def string_send_to_cytoscape(message):
     ip = flask.request.remote_addr
     user = message.get("user", util.generate_username())
     p = mp.Process(
-        target=send_to_cytoscape, args=(message, ip, user, return_dict, GD.pfile)
+        target=send_to_cytoscape,
+        args=(message, ip, user, return_dict, GD.pfile, GD.sessionData["actPro"]),
     )
     p.start()
-    p.join(timeout=30)
+    p.join(timeout=300)
     p.terminate()
     if p.exitcode is None:
         return_dict["status"] = {

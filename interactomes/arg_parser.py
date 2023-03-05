@@ -8,6 +8,19 @@ _SOURCE_FILES = os.path.join(".", "string_interactomes")
 _OUTPUT_PATH = os.path.join(".", "csv", "string_interactomes")
 
 
+def range_limited_functional_threshold(arg):
+    """Type function for argparse - a float within some predefined bounds"""
+    try:
+        f = float(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError("Must be a floating point number")
+    if f < 0.01 or f > 1:
+        raise argparse.ArgumentTypeError(
+            "Argument must be < " + str(0.1) + "and > " + str(1)
+        )
+    return f
+
+
 def parse_args(args=None):
     parser = argparse.ArgumentParser(description="Construct STRING interactomes")
     organisms = Organisms.all_organisms.copy()
@@ -107,6 +120,40 @@ def parse_args(args=None):
         help="Defines the name of the layout files.",
         nargs="*",
     )
+    parser.add_argument(
+        "--feature_matrices",
+        "-fm",
+        action="store_true",
+        help="Constructs the feature matrices and only the feature matrices for all proteins in STRING.",
+        default=False,
+    )
+    parser.add_argument(
+        "--plot_feature_matrices",
+        "-pltfm",
+        action="store_true",
+        help="Plots the feature matrices distribution.",
+        default=False,
+    )
+    parser.add_argument(
+        "--n_processes",
+        "-np",
+        type=int,
+        help="Defines the number of processes to for layout calculations and upload",
+        default=os.cpu_count() - 1,
+    )
+    parser.add_argument(
+        "--parallel",
+        "-par",
+        action="store_true",
+        help="Turns on parallel processing for layout calculations and upload",
+        default=False,
+    )
+    parser.add_argument(
+        "--recolor",
+        "-rec",
+        action="store_true",
+        help="Allows to just recolor the nodes based on the layout files.",
+    )
     ### CARTOGRAPH VARIABLES ###
     ### TSNE ###
     parser.add_argument(
@@ -170,7 +217,7 @@ def parse_args(args=None):
     parser.add_argument(
         "--functional_threshold",
         "-fthr",
-        type=float,
+        type=range_limited_functional_threshold,
         help="Defines the percentage of nodes that have to be annotated with a feature to be used for the functional layouts.",
         default=0.05,
     )
@@ -184,9 +231,16 @@ def parse_args(args=None):
     parser.add_argument(
         "--annotation_threshold",
         "-athr",
-        type=float,
+        type=range_limited_functional_threshold,
         help="Defines the percentage of nodes that have to be annotated with a feature to be added to the node annotations.",
-        default=0.01,
+        default=0.1,
+    )
+    parser.add_argument(
+        "--epsilon",
+        "-eps",
+        type=float,
+        help="Defines the epsilon parameter of the HDBSCAN algorithm.",
+        default=None,
     )
     ### SPRING VARIABLES ###
     parser.add_argument(
@@ -251,6 +305,19 @@ def parse_args(args=None):
         "-nl",
         action="store_true",
         help="Turns off the layout construction.",
+    )
+    parser.add_argument(
+        "--preview_layout",
+        "-pl",
+        action="store_true",
+        help="Visualizes the colored layout in a preview window.",
+    )
+    parser.add_argument(
+        "--no_upload",
+        "-nu",
+        action="store_false",
+        help="Wont upload the network again only change meta data.",
+        default=True,
     )
     if args is None:
         return parser.parse_args()

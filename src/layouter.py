@@ -99,7 +99,7 @@ class Layouter:
         self.graph = nx.read_graphml(file)
         return self.graph
 
-    def create_spring_layout(self, algo_variables: dict, random_lay) -> dict:
+    def create_spring_layout(self, algo_variables: dict, random_lay: bool) -> dict:
         """Generates a spring layout for the Graph.
 
         Args:
@@ -114,6 +114,12 @@ class Layouter:
                 k = None
         iterations = algo_variables.get("iterations", 50)
         threshold = algo_variables.get("threshold", 0.0001)
+        algo_variables = {
+            "k": k,
+            "iterations": iterations,
+            "threshold": threshold,
+        }
+        return self.link_based_layout(nx.spring_layout, algo_variables, random_lay)
         if random_lay:
             return self.create_random_layout()
         return nx.spring_layout(
@@ -127,6 +133,9 @@ class Layouter:
         Returns:
             dict: node ids as keys and three dimensional positions as values.
         """
+        return self.link_based_layout(
+            nx.kamada_kawai_layout, algo_variables, random_lay
+        )
         if random_lay:
             return self.create_random_layout()
         return nx.kamada_kawai_layout(self.graph, dim=3)
@@ -175,26 +184,18 @@ class Layouter:
             sphere_graph = self.graph.subgraph(no_feature_index)
 
         if "tsne" in layout_algo:
-            prplxty = cg_variables.get("prplxty", 50)
-            density = cg_variables.get("density", 12)
-            l_rate = cg_variables.get("l_rate", 200)
-            steps = cg_variables.get("steps", 250)
+            algo_variables = {
+                "prplxty": cg_variables.get("prplxty", 50),
+                "density": cg_variables.get("density", 12),
+                "l_rate": cg_variables.get("l_rate", 200),
+                "steps": cg_variables.get("steps", 250),
+            }
             if "local" in layout_algo:
-                try:
-                    return cg.layout_local_tsne(
-                        self.graph, dim, prplxty, density, l_rate, steps
-                    )
-                except Exception as e:
-                    log.error(e)
-                    return e
+                function = cg.layout_local_tsne
             elif "global" in layout_algo:
-                return cg.layout_global_tsne(
-                    self.graph, dim, prplxty, density, l_rate, steps
-                )
+                function = cg.layout_global_tsne
             elif "importance" in layout_algo:
-                return cg.layout_importance_tsne(
-                    self.graph, dim, prplxty, density, l_rate, steps
-                )
+                function = cg.layout_importance_tsne
             elif "functional" in layout_algo:
                 if feature_matrix is None:
                     feature_matrix = self.get_feature_matrix(
@@ -206,33 +207,23 @@ class Layouter:
                     functional = self.create_random_layout(feature_graph)
                 else:
                     functional = cg.layout_functional_tsne(
-                        feature_graph,
-                        feature_matrix,
-                        dim,
-                        prplxty,
-                        density,
-                        l_rate,
-                        steps,
+                        feature_graph, feature_matrix, dim, **algo_variables
                     )
                 layout = sample_sphere(sphere_graph, list(functional.values()))
                 functional.update(layout)
                 return functional
         elif "umap" in layout_algo:
-            n_neighbors = cg_variables.get("n_neighbors", 10)
-            spread = cg_variables.get("spread", 1.0)
-            min_dist = cg_variables.get("min_dist", 0.1)
+            algo_variables = {
+                "n_neighbors": cg_variables.get("n_neighbors", 10),
+                "spread": cg_variables.get("spread", 1.0),
+                "min_dist": cg_variables.get("min_dist", 0.1),
+            }
             if "local" in layout_algo:
-                return cg.layout_local_umap(
-                    self.graph, dim, n_neighbors, spread, min_dist
-                )
+                function = cg.layout_local_umap
             elif "global" in layout_algo:
-                return cg.layout_global_umap(
-                    self.graph, dim, n_neighbors, spread, min_dist
-                )
+                function = cg.layout_global_umap
             elif "importance" in layout_algo:
-                return cg.layout_importance_umap(
-                    self.graph, dim, n_neighbors, spread, min_dist
-                )
+                function = cg.layout_importance_umap
             elif "functional" in layout_algo:
                 if feature_matrix is None:
                     feature_matrix = self.get_feature_matrix(
@@ -248,14 +239,12 @@ class Layouter:
                         feature_graph,
                         feature_matrix,
                         dim,
-                        n_neighbors,
-                        spread,
-                        min_dist,
+                        **algo_variables,
                     )
                 layout = sample_sphere(sphere_graph, list(functional.values()))
                 functional.update(layout)
-                # visualize_layout(list(functional.values()))
                 return functional
+
         elif "topographic" in layout_algo:
             raise NotImplementedError("Topographic layout not implemented yet!")
             # d_z = a dictionary with keys=G.nodes and values=any int/float assigned to a node
@@ -276,6 +265,27 @@ class Layouter:
             return cg.layout_geodesic(
                 self.graph, d_radius, n_neighbors, spread, min_dist, DM
             )
+
+        return self.link_based_layout(function, algo_variables, random)
+
+    def link_based_layout(
+        self, layout_algo, algo_variables: dict, random_lay: bool, G=None
+    ):
+        if G is None:
+            G = self.graph
+
+        no_links = G.subgraph([n for n, d in G.degree() if d == 0])
+        has_links = G.subgraph([n for n in G.nodes() if n not in no_links.nodes()])
+
+        if random_lay:
+            layout = self.create_random_layout(has_links)
+        else:
+            layout = layout_algo(has_links, **algo_variables, dim=3)
+
+        if len(no_links) > 0:
+            no_links_layout = sample_sphere(no_links, list(layout.values()))
+            layout.update(no_links_layout)
+        return layout
 
     def apply_layout(
         self,

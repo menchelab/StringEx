@@ -16,6 +16,7 @@ def download(tax_id: int, dest: str, clean_name: str, string_db_ver: str = "11.5
     info = f"protein.info.v{string_db_ver}/"
     ali = f"protein.aliases.v{string_db_ver}/"
     enrichment_terms = f"protein.enrichment.terms.v{string_db_ver}/"
+
     organism_links = f"{tax_id}.{links[:-1]}.txt.gz"
     organism_info = f"{tax_id}.{info[:-1]}.txt.gz"
     organism_aliases = f"{tax_id}.{ali[:-1]}.txt.gz"
@@ -59,6 +60,22 @@ def gene_ontology_download(organism: str, dest: str, clean_name: str):
         r = requests.get(url)
         with open(os.path.join(directory, file_name), "wb+") as f:
             f.write(r.content)
+
+
+def download_go_terms(dest: str):
+    url = "http://purl.obolibrary.org/obo/go/go-basic.obo"
+    r = requests.get(url)
+    file_path = os.path.join(dest, "go-basic.obo")
+    with open(file_path, "wb+") as f:
+        f.write(r.content)
+
+
+def download_uniprot_keywords(dest: str):
+    url = "https://rest.uniprot.org/keywords/stream?compressed=true&download=true&fields=id%2Cname&format=tsv&query=*"
+    r = requests.get(url)
+    file_path = os.path.join(dest, "uniprot_keywords.tsv.gz")
+    with open(file_path, "wb+") as f:
+        f.write(r.content)
 
 
 if __name__ == "__main__":

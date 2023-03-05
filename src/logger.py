@@ -25,15 +25,15 @@ class CustomLogger(logging.Logger):
     ):
         if runtime:
             msg = f"{self.name} - {msg}"
-        for idx, handler in enumerate(self.handlers):
-            if not isinstance(handler, RotatingFileHandler):
-                LINE_UP = "\033[1A"
-                LINE_CLEAR = "\x1b[2K"
-                format = logging.Formatter(LINE_UP + LINE_CLEAR + self.console_format)
-                self.handlers[idx].setFormatter(format)
-                self.handlers[idx].terminator = "\n"
-            if not flush:
-                self.handlers[idx].terminator = "\n\n"
+        # for idx, handler in enumerate(self.handlers):
+        #     if not isinstance(handler, RotatingFileHandler):
+        #         LINE_UP = "\033[1A"
+        #         LINE_CLEAR = "\x1b[2K"
+        #         format = logging.Formatter(LINE_UP + LINE_CLEAR + self.console_format)
+        #         self.handlers[idx].setFormatter(format)
+        #         self.handlers[idx].terminator = "\n"
+        #     if not flush:
+        #         self.handlers[idx].terminator = "\n\n"
         super()._log(level, msg, args, exc_info, extra, stack_info)
 
 

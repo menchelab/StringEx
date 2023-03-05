@@ -11,9 +11,10 @@ from PIL import Image
 from . import settings as st
 from . import util as string_util
 from .classes import NodeTags as NT
+from project import Project
 
 
-def send_to_cytoscape(message, ip, user, return_dict, pfile) -> None:
+def send_to_cytoscape(message, ip, user, return_dict, pfile, project) -> None:
     """Send the selected nodes to Cytoscape.
 
     Args:
@@ -40,7 +41,6 @@ def send_to_cytoscape(message, ip, user, return_dict, pfile) -> None:
         selected_links = []
     if len(selected) == 0 and len(selected_links) == 0:
         return
-    project = GD.sessionData["actPro"]
 
     port = 1234
     layout = message.get("layout", "")
@@ -154,18 +154,21 @@ def extract_node_data(
     Returns:
         tuple(pd.DataFrame,list[int]): Nodes data and selected nodes as nodes list gets reduced to a total of maximal 2000 nodes.
     """
-    project_path = os.path.join(st._PROJECTS_PATH, project)
-    with open(os.path.join(project_path, "nodes.json"), "r") as f:
-        nodes_data = pd.DataFrame(json.load(f)["nodes"])
-        nodes_data = nodes_data[nodes_data["id"].isin(selected_nodes)]
+    project = Project(project)
+    project.read_nodes()
+    project.read_names()
+    nodes_data = pd.DataFrame(project.nodes["nodes"])
+    nodes_data = nodes_data[nodes_data.index.isin(selected_nodes)].copy()
+
     if "layouts" in nodes_data.columns:
         nodes_data = nodes_data.drop(columns=["layouts"])
+
     if "display name" in nodes_data.columns:
         nodes_data["name"] = nodes_data["display name"]
         nodes_data = nodes_data.drop(columns=["display name", NT.name])
-    with open(os.path.join(project_path, "names.json"), "r") as f:
-        names = json.load(f)["names"]
-        annot_len = len(names[0])
+
+    names = project.names["names"]
+    annot_len = len(names[0])
     nodes_data["name"] = [names[x][0] for x in nodes_data.index]
     if annot_len >= 2:
         nodes_data["uniprot"] = [names[x][1] for x in nodes_data.index]
@@ -174,34 +177,36 @@ def extract_node_data(
                 names[x][annot] for x in nodes_data.index
             ]
 
-    with open(os.path.join(project_path, "pfile.json"), "r") as f:
-        pfile = json.load(f)
+    if layout not in project.pfile["layouts"]:
+        layout = project.pfile["layouts"][0]
 
-    if layout not in pfile["layouts"]:
-        layout = pfile["layouts"][0]
-
-    if color not in pfile["layoutsRGB"]:
-        color = pfile["layoutsRGB"][0]
+    if color not in project.pfile["layoutsRGB"]:
+        color = project.pfile["layoutsRGB"][0]
 
     node_pos_l = list(
-        Image.open(os.path.join(project_path, "layouts", layout + ".bmp")).getdata()
+        Image.open(os.path.join(project.location, "layouts", layout + ".bmp")).getdata()
     )
 
     node_pos_h = list(
-        Image.open(os.path.join(project_path, "layoutsl", layout + "l.bmp")).getdata()
+        Image.open(
+            os.path.join(project.location, "layoutsl", layout + "l.bmp")
+        ).getdata()
     )
 
     node_colors = list(
-        Image.open(os.path.join(project_path, "layoutsRGB", color + ".png")).getdata()
+        Image.open(
+            os.path.join(project.location, "layoutsRGB", color + ".png")
+        ).getdata()
     )
 
-    node_colors = [node_colors[c] for c in selected_nodes]
-    node_pos_l = [node_pos_l[c] for c in selected_nodes]
-    node_pos_h = [node_pos_h[c] for c in selected_nodes]
+    node_colors = [node_colors[c] for c in nodes_data.index]
+    node_pos_l = [node_pos_l[c] for c in nodes_data.index]
+    node_pos_h = [node_pos_h[c] for c in nodes_data.index]
 
     def rgb_to_hex(r, g, b):
         return "#{:02x}{:02x}{:02x}".format(r, g, b)
 
+    st.log.debug(f"{len(nodes_data)}, {len(node_colors)}")
     nodes_data["color"] = node_colors
     nodes_data["size"] = (
         nodes_data["color"].swifter.progress_bar(False).apply(lambda x: x[-1])
@@ -227,7 +232,7 @@ def extract_node_data(
         nodes_data[col] = (
             nodes_data[col].swifter.progress_bar(False).apply(lambda x: int(x * 1000))
         )
-    nodes_data = nodes_data.rename(columns={"n": "name"})
+    nodes_data = nodes_data.drop(columns=["n"])
     nodes_data["shared name"] = nodes_data["name"].copy()
     nodes_data = nodes_data.astype({"id": str})
     return nodes_data

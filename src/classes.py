@@ -35,8 +35,8 @@ class NodeTags:
     uniprot = "uniprot"
     display_name = "display name"
     size = "size"
-    identifier = "used_identifier"
     gene_name = "gene_name"
+    short = "short"
 
 
 class StringTags:
@@ -46,6 +46,12 @@ class StringTags:
     stringdb_species = "stringdb_species"
     stringdb_shared_name = "shared name"
     stringdb_score = "stringdb_score"
+    stringdb_identifier = "stringdb_database identifier"
+
+
+class CytoscapeTags:
+    name = "name"
+    shared_name = "shared name"
 
 
 class ProjectTag:
@@ -162,7 +168,7 @@ class Organisms:
     )
 
     @staticmethod
-    def get_tax_ids(organism: str) -> int:
+    def get_tax_ids(organism: str = None, directory: str = None) -> int:
         """Return the tax id for the organism.
 
         Args:
@@ -171,18 +177,33 @@ class Organisms:
         Returns:
             int: taxanomy id of the organism
         """
-        tax_ids = {
-            Organisms.human: 9606,
-            Organisms.mouse: 10090,
-            Organisms.rat: 10116,
-            Organisms.zebrafish: 7955,
-            Organisms.fly: 7227,
-            Organisms.worm: 6239,
-            Organisms.yeast: 4932,
-            Organisms.ecoli: 362663,
-            Organisms.arabidopsis: 3702,
-        }
-        return tax_ids.get(organism)
+        if organism:
+            tax_ids = {
+                Organisms.human: 9606,
+                Organisms.mouse: 10090,
+                Organisms.rat: 10116,
+                Organisms.zebrafish: 7955,
+                Organisms.fly: 7227,
+                Organisms.worm: 6239,
+                Organisms.yeast: 4932,
+                Organisms.ecoli: 362663,
+                Organisms.arabidopsis: 3702,
+            }
+            return tax_ids.get(organism)
+
+        if directory:
+            tax_ids = {
+                "string_human_ppi": 9606,
+                "string_mouse_ppi": 10090,
+                "string_rat_ppi": 10116,
+                "string_zebrafish_ppi": 7955,
+                "string_fly_ppi": 7227,
+                "string_worm_ppi": 6239,
+                "string_yeast_ppi": 4932,
+                "string_ecoli_ppi": 362663,
+                "string_arabidopsis_ppi": 3702,
+            }
+            return tax_ids.get(directory)
 
     @staticmethod
     def get_scientific_name(organism: str) -> str:
@@ -230,17 +251,33 @@ class Organisms:
         }
         return file_names.get(organism)
 
-    def get_organism_name(directory: str) -> str:
-        """Return the organism name from the directory name."""
-        organism_names = {
-            "string_human_ppi": Organisms.human,
-            "string_mouse_ppi": Organisms.mouse,
-            "string_yeast_ppi": Organisms.yeast,
-            "string_worm_ppi": Organisms.worm,
-            "string_fly_ppi": Organisms.fly,
-            "string_arabidopsis_ppi": Organisms.arabidopsis,
-            "string_zebrafish_ppi": Organisms.zebrafish,
-            "string_rat_ppi": Organisms.rat,
-            "string_ecoli_ppi": Organisms.ecoli,
-        }
-        return organism_names.get(directory)
+    def get_organism_name(directory: str = None, tax_id: int = None) -> str:
+        """Return the organism name from the directory name or the tax_id."""
+        if directory is None and tax_id is None:
+            raise ValueError("You must provide a directory or a tax id")
+        if directory:
+            organism_names = {
+                "string_human_ppi": Organisms.human,
+                "string_mouse_ppi": Organisms.mouse,
+                "string_yeast_ppi": Organisms.yeast,
+                "string_worm_ppi": Organisms.worm,
+                "string_fly_ppi": Organisms.fly,
+                "string_arabidopsis_ppi": Organisms.arabidopsis,
+                "string_zebrafish_ppi": Organisms.zebrafish,
+                "string_rat_ppi": Organisms.rat,
+                "string_ecoli_ppi": Organisms.ecoli,
+            }
+            return organism_names.get(directory)
+        if tax_id:
+            organism_names = {
+                9606: Organisms.human,
+                10090: Organisms.mouse,
+                4932: Organisms.yeast,
+                6239: Organisms.worm,
+                7227: Organisms.fly,
+                3702: Organisms.arabidopsis,
+                7955: Organisms.zebrafish,
+                10116: Organisms.rat,
+                362663: Organisms.ecoli,
+            }
+            return organism_names.get(tax_id)

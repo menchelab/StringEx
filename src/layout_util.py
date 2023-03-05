@@ -97,7 +97,11 @@ def visualize_layout(layout, colors):
     key_to_callback = {}
     key_to_callback[ord("K")] = change_background_to_black
     key_to_callback[ord("L")] = change_background_to_white
-    o3d.visualization.draw_geometries_with_key_callbacks([pcd], key_to_callback)
+    key_to_callback[ord("P")] = exit
+    try:
+        o3d.visualization.draw_geometries_with_key_callbacks([pcd], key_to_callback)
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":
