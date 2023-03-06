@@ -5,6 +5,7 @@ from src.classes import NodeTags as NT
 import src.settings as st
 from src.classes import Evidences, Organisms
 from src.classes import LinkTags as LiT
+from src.classes import StringTags as ST
 import time
 import networkx as nx
 from goatools import obo_parser
@@ -80,16 +81,20 @@ def write_node_layout(
         )
         layout_nodes[["r", "g", "b", "a"]] = cluster_colors[["r", "g", "b", "a"]]
         write_node_csv(_directory, organism, name, layout_nodes, overwrite)
-        cluster = pd.concat(layout_nodes["n"], cluster_colors["cluster"], axis=1)
-        write_cluster_information(_directory, organism, name, cluster, overwrite)
+        if "functional" in algo and category is not None:
+            cluster = pd.concat(
+                [layout_nodes[ST.stringdb_identifier], cluster_colors["cluster"]],
+                axis=1,
+            )
+            write_cluster_information(_directory, organism, name, cluster, overwrite)
 
 
 def write_cluster_information(_directory, organism, name, cluster, overwrite):
-    _directory = os.path.join(_directory, "clusters")
-    file_name = os.path.join(_directory, f"{name}_cluster.csv")
+    cluster_dir = os.path.join(_directory, "clusters")
+    file_name = os.path.join(cluster_dir, f"{name}_cluster.csv")
     tax_id = Organisms.get_tax_ids(organism=organism)
-    cluster = util.get_cluster_labels(cluster, tax_id)
-    os.makedirs(_directory, exist_ok=True)
+    cluster = util.get_cluster_labels(cluster, tax_id, cluster_dir, name)
+    os.makedirs(cluster_dir, exist_ok=True)
     # cluster = cluster.apply(lambda x: ",".join(x["n"]))
     if os.path.isfile(file_name) and not overwrite:
         st.log.info(f"Node layout for {name} for {organism} already exists. Skipping.")

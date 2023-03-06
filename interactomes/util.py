@@ -6,7 +6,9 @@ from interactomes import data_io
 from interactomes import check_feature_matrices
 from interactomes import functional_annotations as fa
 import seaborn as sns
-from src.classes import Organisms, NodeTags as NT
+from src.classes import Organisms
+from src.classes import NodeTags as NT
+from src.classes import StringTags as ST
 import os
 from src.layouter import visualize_layout
 from interactomes import retrieve_functional_enrichment as rfe
@@ -199,7 +201,7 @@ def extract_pos(layout):
     return pos
 
 
-def get_cluster_labels(cluster, tax_id):
+def get_cluster_labels(cluster, tax_id, cluster_dir, category):
     cluster["cluster"] = cluster["cluster"].fillna(-1)
     cluster = cluster.astype({"cluster": int})
     grouped = cluster.groupby("cluster")
@@ -209,7 +211,7 @@ def get_cluster_labels(cluster, tax_id):
     cluster["member"] = grouped.apply(lambda x: list(x.index)).values
     cluster["member"] = cluster["member"].apply(lambda x: ",".join(str(i) for i in x))
     for_request["member"] = grouped[ST.stringdb_identifier].apply(lambda x: ",".join(x))
-    cluster_names = rfe.main(for_request, tax_id)
+    cluster_names = rfe.main(for_request, tax_id, cluster_dir, category)
 
     cluster.index = [cluster_names.get(x, x) for x in cluster.index]
     return cluster

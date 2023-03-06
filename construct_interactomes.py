@@ -136,7 +136,7 @@ def workflow(parser):
                     variables,
                     parser.overwrite,
                     parser.overwrite_links,
-                    parser.threshold,
+                    parser.layout_threshold,
                     parser.epsilon,
                     parser.max_links,
                     parser.layout_name,
@@ -286,6 +286,8 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
         additional_arguments = []
         for k, v in variables["upload"].items():
             additional_arguments += [f"{k}", f"{v}"]
+        if parser.no_upload:
+            additional_arguments += ["-nu"]
         arguments = [
             (
                 ["-dcl"]

@@ -34,6 +34,8 @@ def get_annotations(
     Returns:
         dict[str, pd.DataFrame]: dictionary of functional annotations.
     """
+    if _dir and organism:
+        organism_dir = os.path.join(_dir, organism)
     if df is None:
 
         if _dir is None:
@@ -81,8 +83,9 @@ def get_annotations(
 
         functional_annotations[cat] = collection
     log.debug(f"Filtered {len(functional_annotations)}")
-    if _dir is not None:
-        data_io.write_functional_annotations(_dir, functional_annotations)
+    if organism_dir:
+        organism_dir
+        data_io.write_functional_annotations(organism_dir, functional_annotations)
     return functional_annotations
 
 

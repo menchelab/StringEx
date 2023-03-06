@@ -340,9 +340,9 @@ def construct_layouts(
     )
 
     st.log.info(f"Generated layouts. Used algorithms: {layout_algo}.")
-    data_io.write_link_layouts(organism, all_links, _dir, overwrite_links)
+    data_io.write_link_layouts(clean_name, all_links, _dir, overwrite_links)
     data_io.write_node_layout(
-        organism,
+        clean_name,
         nodes,
         layouts,
         _dir,

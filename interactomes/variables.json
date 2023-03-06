@@ -3,7 +3,7 @@
     "spring": {
       "-opd": 0.4,
       "-it": 200,
-      "-thr": 0.99,
+      "-lay_thr": 0.99,
       "-spth": 0.001,
       "-name": "spring"
     },
@@ -11,21 +11,21 @@
       "-md": 0.99,
       "-nn": 10,
       "-maxf": 10,
-      "-thr": 0.99,
+      "-lay_thr": 0.99,
       "-name": "",
       "-fthr": 0.05
     },
     "cg_global_umap": {
       "-md": 0.9,
       "-nn": 10,
-      "-thr": 0.99,
+      "-lay_thr": 0.99,
       "-name": "global"
     },
     "cg_local_umap": {
       "-nn": 10,
       "-spr": 1.0,
       "-md": 0.9,
-      "-thr": 0.99,
+      "-lay_thr": 0.99,
       "-name": "local"
     }
   },

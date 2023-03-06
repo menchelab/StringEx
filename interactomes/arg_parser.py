@@ -107,10 +107,10 @@ def parse_args(args=None):
         help="Turns on to overwrite <layout>_links.csv layout files.",
     )
     parser.add_argument(
-        "--threshold",
-        "-thr",
+        "--layout_threshold",
+        "-lay_thr",
         type=float,
-        help="Defines the score threshold for the interactome files.",
+        help="Defines the score a link must have to be included for link based layout calculations.",
         default=0.4,
     )
     parser.add_argument(
@@ -315,9 +315,9 @@ def parse_args(args=None):
     parser.add_argument(
         "--no_upload",
         "-nu",
-        action="store_false",
+        action="store_true",
         help="Wont upload the network again only change meta data.",
-        default=True,
+        default=False,
     )
     if args is None:
         return parser.parse_args()

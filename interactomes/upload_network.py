@@ -8,6 +8,7 @@ from interactomes import data_io
 from interactomes import functional_annotations as fa
 from src.classes import NodeTags as NT
 from src.classes import Organisms
+from src.classes import StringTags as ST
 
 
 def upload(
@@ -17,7 +18,7 @@ def upload(
     port: int = 5000,
     annotations_threshold: float = 0.1,
     max_num_features: int = 100,
-    reupload=True,
+    no_upload=False,
 ) -> None:
     """Uploads the network using the internal upload route of the VRNetzer.
 
@@ -56,7 +57,7 @@ def upload(
     data = {"namespace": "New", "new_name": directory}
 
     try:
-        if reupload:
+        if not no_upload:
             r = requests.post(f"http://{ip}:{port}/delpro?project={directory}")
             r = requests.post(f"http://{ip}:{port}/uploadfiles", data=data, files=files)
             st.log.info(
