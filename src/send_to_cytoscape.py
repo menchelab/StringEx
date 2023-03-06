@@ -232,7 +232,8 @@ def extract_node_data(
         nodes_data[col] = (
             nodes_data[col].swifter.progress_bar(False).apply(lambda x: int(x * 1000))
         )
-    nodes_data = nodes_data.drop(columns=["n"])
+    if "n" in nodes_data.columns:
+        nodes_data = nodes_data.drop(columns=["n"])
     nodes_data["shared name"] = nodes_data["name"].copy()
     nodes_data = nodes_data.astype({"id": str})
     return nodes_data
