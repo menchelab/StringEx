@@ -26,7 +26,7 @@ def main(clusters, tax_id, cluster_dir, category):
         if idx == -1:
             continue
         my_genes = cluster["member"].replace(",", "%0d")
-        description = api_call(my_genes, tax_id, cluster_dir, category)
+        description = api_call(my_genes, tax_id, cluster_dir, category, idx)
         if description is not None:
             cluster_names[idx] = description
     return cluster_names
@@ -45,7 +45,7 @@ def read_cluster_file(category):
     return clusters
 
 
-def api_call(my_genes, species, cluster_dir, category):
+def api_call(my_genes, species, cluster_dir, category, cluster):
     request_url = "/".join([string_api_url, output_format, method])
 
     ##
@@ -74,14 +74,25 @@ def api_call(my_genes, species, cluster_dir, category):
     path = os.path.join(
         cluster_dir,
         "enrichments",
-        f"{category}.pkl",
+        f"{category}",
+        f"{cluster}_{category}_enrichment.csv",
     )
     os.makedirs(os.path.dirname(path), exist_ok=True)
     categories = data["category"].unique()
     categories = [x for x in categories if x in category]
     data = data[data["category"].isin(categories)]
     data = data.sort_values(by="p_value")
-    data.to_pickle(path)
+    data = data[
+        [
+            "description",
+            "p_value",
+            "fdr",
+            "number_of_genes",
+            "number_of_genes_in_background",
+            "inputGenes",
+        ]
+    ].copy()
+    data.to_csv(path, index=False)
     return data["description"].values[0]
 
 
