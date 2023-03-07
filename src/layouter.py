@@ -390,15 +390,18 @@ class Layouter:
 
             nodes = nodes.swifter.progress_bar(False).apply(extract_cy, axis=1)
 
-        _2d_layout = np.hstack((layout[:, :2], np.zeros((len(layout), 1))))
+        pos = np.array(list((layout.values())))
+        _2d_layout = pos[:, :2]
+        z_zero = np.zeros((len(layout), 1))
+        _2d_layout = np.hstack((_2d_layout, z_zero))
+
         nodes[layout_name + "2d_pos"] = pd.Series(_2d_layout.tolist())
-        nodes[layout_name + "_pos"] = pd.Series(layout.tolist())
+        nodes[layout_name + "_pos"] = pd.Series(pos.tolist())
 
         if "cy_pos" and "cy_col" in nodes:
-            # nodes[layout_name+"_col"] = nodes["cy_col"]
             # Check if this works, as it now returns a np array
-            coords = np.array([np.array(x) for x in nodes["cy_pos"]])
-            pos = Layouter.normalize_pos(coords, dim=2)
+            coords = nodes["cy_pos"].to_dict()
+            pos = np.array(list(Layouter.normalize_pos(coords, dim=2).values()))
             pos = np.hstack((pos, np.zeros((len(pos), 1))))
             nodes["cy_pos"] = pd.Series(pos.tolist())
 

@@ -480,9 +480,6 @@ class Uploader:
         layouts = self.project.get_pfile_value(PT.layouts_rgb)
         l_lay = [ev.value for ev in EV]
 
-        self.project.links = {"links": []}
-        links = self.network.get(VRNE.links)
-
         # if update_link_textures:
         #     p = Process(
         #         target=self.update_link_textures,
@@ -503,17 +500,33 @@ class Uploader:
         for key in skip_attr:
             if key in nodes.columns:
                 filtered = filtered.drop(columns=[key])
+
+        print(nodes.columns[nodes.columns.duplicated()])
         self.project.nodes = {
-            "nodes": filtered.swifter.progress_bar(False)
-            .apply(lambda x: x.dropna().to_dict(), axis=1)
-            .tolist()
+            "nodes": [
+                {
+                    k: v
+                    for k, v in m.items()
+                    if pd.api.types.is_list_like(v) or pd.notnull(v)
+                }
+                for m in nodes.to_dict(orient="rows")
+            ]
         }
 
+        self.project.links = {"links": []}
+        links = self.network.get(VRNE.links)
+
         self.project.links = {
-            "links": links.swifter.progress_bar(False)
-            .apply(lambda x: x.dropna().to_dict(), axis=1)
-            .tolist()
+            "links": [
+                {
+                    k: v
+                    for k, v in m.items()
+                    if pd.api.types.is_list_like(v) or pd.notnull(v)
+                }
+                for m in links.to_dict(orient="rows")
+            ]
         }
+
         self.project.write_all_jsons()
 
         nodes = nodes.drop(

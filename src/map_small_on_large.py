@@ -219,14 +219,12 @@ def map_links(
         {c: c.replace("_y", "") for c in new_cols.columns}, axis=1
     )
     target_links.update(new_cols)
-
     # add = src_links[src_links["target_id"].isna()]
     # target_links = pd.concat([target_links, add])
     target_links = target_links.reset_index(drop=True)
     # target_links = Layouter.gen_evidence_layouts(
     #     target_links
     # )  # Transform stringdb scores to evidence values
-
     return target_links
 
 
