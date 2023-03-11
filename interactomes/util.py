@@ -24,7 +24,7 @@ def color_layout(
     pos=None,
     preview_layout: bool = False,
 ):
-    colors = pd.Series([[1, 1, 1] for _ in range(n)])
+    colors = pd.Series([[1, 1, 1, 1] for _ in range(n)])
     df = pd.DataFrame(index=range(n))
     df["cluster"] = None
 
@@ -58,15 +58,14 @@ def color_layout(
         st.log.debug("VISUALIZING LAYOUT")
         visualize_layout(
             pos,
-            colors,
+            colors[:, :3],
         )
     if normalize:
         return colors, cluster
 
     colors *= 255
     colors = colors.astype(int)
-    df[["r", "g", "b"]] = colors
-    df["a"] = 255 // 2
+    df[["r", "g", "b", "a"]] = colors
     return df[["r", "g", "b", "a", "cluster"]]
 
 
@@ -104,9 +103,10 @@ def clustering(to_color, fm, pos, eps=None, min_samples=None):
     labels = set(cluster_labels)
     st.log.debug(f"FOUND CLUSTERS: {len(labels)}")
     color_palette = sns.color_palette("bright", len(labels))
-    not_clustered = [0, 0, 0]
+    not_clustered = [0, 0, 0, 0.75]
     cluster_colors = [
-        color_palette[x] if x >= 0 else not_clustered for x in clusterer.labels_
+        color_palette[x] + (0.5,) if x >= 0 else not_clustered
+        for x in clusterer.labels_
     ]
     # fig, axs = plt.subplots(1, 3)
     # axs[0].scatter(pos.iloc[:, 0], pos.iloc[:, 1], c=cluster_colors, s=50)

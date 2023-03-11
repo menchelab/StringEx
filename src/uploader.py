@@ -501,7 +501,6 @@ class Uploader:
             if key in nodes.columns:
                 filtered = filtered.drop(columns=[key])
 
-        print(nodes.columns[nodes.columns.duplicated()])
         self.project.nodes = {
             "nodes": [
                 {
@@ -554,7 +553,7 @@ class Uploader:
             if len(np.unique(layout_bmp)) >= 1:
                 result = layout_bmp * selected
             else:
-                # MAKE SELECTED NODES RED
+                # Make selected nodes red
                 result[:, :, :3] = [255, 0, 0]
 
             non_zero = np.nonzero(selected)

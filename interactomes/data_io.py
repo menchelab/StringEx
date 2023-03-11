@@ -372,7 +372,6 @@ def read_links(directory, tax_id, MAX_NUM_LINKS):
 
         link_table = link_table.truncate(after=MAX_NUM_LINKS - 1)
         link_table.to_csv(filtered, compression="gzip", sep=" ", index=False)
-
     st.log.debug("Filtered and sorted...", flush=True)
 
     return link_table

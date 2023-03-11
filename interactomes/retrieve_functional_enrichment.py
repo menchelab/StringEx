@@ -93,6 +93,8 @@ def api_call(my_genes, species, cluster_dir, category, cluster):
         ]
     ].copy()
     data.to_csv(path, index=False)
+    if data.empty:
+        return None
     return data["description"].values[0]
 
 

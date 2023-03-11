@@ -42,6 +42,7 @@ def construct_graph(
         description_table,
         enrichment_table,
     ) = data_io.read_raw_data(networks_directory, tax_id, clean_name, MAX_NUM_LINKS)
+
     st.log.debug("Generating graph...", flush=True)
     G, links, annotations = gen_graph(
         link_table,
@@ -126,7 +127,7 @@ def gen_graph(
             no_uniprot[NT.uniprot] = no_uniprot[ST.stringdb_identifier].swifter.apply(
                 lambda x: None
                 if x not in src.index
-                else src.at[x, "alias"]
+                else [src.at[x, "alias"]]
                 if isinstance(src.at[x, "alias"], str)
                 else [uniprot for uniprot in src.at[x, "alias"]]
             )
