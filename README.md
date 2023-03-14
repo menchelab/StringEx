@@ -1,8 +1,8 @@
 # StringEx
 
-This extension enables the upload and analysis of STRING networks on the VRNetzer platform. In combination with the [StringApp](https://apps.cytoscape.org/apps/stringapp) and [VRNetzerApp](https://github.com/menchelab/STRING-VRNetzer/blob/main/cytoscapeApp/VRNetzerApp/target/VRNetzerApp-1.0.0.jar) created for the widely used software [Cytoscape](https://cytoscape.org/), this extension allows for easy access to STRING networks on the VRNetzer platform.
+This extension enables the upload and analysis of STRING networks within the VRNetzer platform. In combination with the [StringApp](https://apps.cytoscape.org/apps/stringapp) and [VRNetzerApp](https://github.com/menchelab/STRING-VRNetzer/blob/main/VRNetzerApp/target/VRNetzerApp-1.0.0.jar) created for the widely used software [Cytoscape](https://cytoscape.org/), this extension allows for easy access to STRING networks on the VRNetzer platform.
 
-Furthermore, in combination with the [VRNetzerApp](https://github.com/menchelab/STRING-VRNetzer/blob/main/cytoscapeApp/VRNetzerApp/target/VRNetzerApp-1.0.0.jar) it allows to upload any network prepared in Cytoscape.
+Furthermore, in combination with the [VRNetzerApp](https://github.com/menchelab/STRING-VRNetzer/blob/main/cytoscapeApp/VRNetzerApp/target/VRNetzerApp-1.0.0.jar) it allows to upload or send any network prepared in Cytoscape to the VRNetzer platform. Through the utilization of the [CyREST](https://apps.cytoscape.org/apps/cyrest) API, a sub-set of a large-scale VRNetzer project can be send to a running Cytoscape session.
 
 ## Installation
 
@@ -35,11 +35,11 @@ Furthermore, in combination with the [VRNetzerApp](https://github.com/menchelab/
 3. Navigate in your Browser to http://127.0.0.1:5000/upload (Windows/Linux) / http://127.0.0.1:3000/upload (mac)
 4. If the StringEx is correctly installed, you should now see two new tabs. The first is the VRNetz designated uploader
 
-   <img src="https://raw.githubusercontent.com/menchelab/STRING-VRNetzer/main/pictures/uploader_tabs_1.png?token=GHSAT0AAAAAABY6FADQ6JNPWKJBGDUBW6HEY356G5Q" alt="Picture that visualizes the location of the StringEx uploader tab">
+   <img src="./static/img/VRNetz_upload.png" alt=" Picture that visualizes the location of the StringEx uploader tab">
 
-5. On this tab, define a project name, select the VRNetz file of your exported network, and select the desired layout algorithm.
-6. You can also define the respective variables.
-7. You can provide a name for the generated node layout.
+5. On this tab, (a) define a project name, (b) select the VRNetz file of your exported network, and (c) select the desired layout algorithm.
+6. You can (d) also define the respective variables.
+7. You can (e) provide a name for the generated node layout.
 8. Click on the "Upload" button to upload the network to the VRNetzer platform.
 9. If the upload was successful, you'll be prompted with a success message and a link to preview the project in the designated WebGL previewer.
 
@@ -51,8 +51,8 @@ Do the first three steps as mentioned [above](#upload-string-network).
 
 4. The second tab is the STRING mapper.
 
-   <img src="https://raw.githubusercontent.com/menchelab/STRING-VRNetzer/main/pictures/uploader_tabs_2.png?token=GHSAT0AAAAAABY6FADQKPPPP5GEM3SLMK4YY356JTA" alt="Picture that visualizes the location of the StringEx map tab.">
+   <img src="./static/img/Map.png" alt="Picture that visualizes the location of the StringEx map tab.">
 
-5. On this tab, define a project name, select the VRNetz file of your exported String network, and select the organism from which your VRNetz originates of.
+5. On this tab, (a) define a project name, (b) select the VRNetz file of your exported String network, and (c) select the organism from which your VRNetz originates of.
 6. Click on the "Map" button to map the network with the preprocessed PPI.
 7. If the upload was successful, you'll be prompted with a success message and a link to preview the project in the designated WebGL previewer.
