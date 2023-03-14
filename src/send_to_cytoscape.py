@@ -14,14 +14,21 @@ from .classes import NodeTags as NT
 from project import Project
 
 
-def send_to_cytoscape(message, ip, user, return_dict, pfile, project) -> None:
+def send_to_cytoscape(
+    message: dict[str, str],
+    ip: str,
+    user: str,
+    return_dict: dict,
+    pfile: dict,
+    project: str,
+) -> None:
     """Send the selected nodes to Cytoscape.
 
     Args:
         message (dict): Message from the frontend.
-        ip (str): IP address of the client.
+        ip (str): Can be either the IP address of the client or the IP address of the server host.
         user (str): Username of the client.
-        return_dict (dict): Dictionary to store the return value.
+        return_dict (dict): Dictionary to store the return value. Is a multiprocessing dict to be able to return values from a subprocess.
 
     Returns:
         dict: Dictionary with the status of the process stored in the return_dict.

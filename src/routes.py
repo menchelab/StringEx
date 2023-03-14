@@ -17,6 +17,9 @@ from .classes import VRNetzElements as VRNE
 
 
 def upload_files():
+    """Use the submitted file to create a VRNetzer project.
+    Submitted file is a VRNetz file. The file is parsed and the project is created. Reports if VRNetz file is missing or if its wrongly formatted.
+    """
     form = flask.request.form.to_dict()
     vr_netz_files = flask.request.files.getlist("vrnetz")
     if len(vr_netz_files) == 0 or vr_netz_files[0].filename == "":
@@ -65,6 +68,7 @@ def upload_files():
 
 
 def map_files():
+    """Use the submitted file to map nodes from the source network to the target network. Source network is a VRNetz files provided by the user. The target network is one of the nine available interactomes."""
     form = flask.request.form.to_dict()
     f_src_network = flask.request.files.getlist("vrnetz")
     vr_netz_files = flask.request.files.getlist("vrnetz")
@@ -88,6 +92,8 @@ def map_files():
 
 
 def preview():
+    """Route to the StringEx preview. Extends the implemented previewer with additional buttons to easily switch between the different available evidence channels String networks come with."""
+
     def error_function():
         print("project Argument not provided - redirecting to menu page")
 
@@ -195,4 +201,13 @@ def preview():
 
 
 def receive_interactome(data, files):
+    """
+    Routes to the function that handles the upload of a prepared interactome.
+
+    Args:
+        data (dict): Dictionary containing the data of the form.
+        files (dict): Dictionary containing the files of the form.
+
+    Returns:
+        HTTP response."""
     return upload_interactomes.upload(data, files)

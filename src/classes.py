@@ -9,6 +9,10 @@ from enum import Enum
 
 # Tags
 class LayoutTags:
+    """
+    This class provides access to the tags which are used in the layout section of a VRNetz file.
+    """
+
     position = "p"
     color = "c"
     size = "s"
@@ -21,6 +25,10 @@ class LayoutTags:
 
 
 class NodeTags:
+    """
+    This class provides access to the tags which are used in the node section of a VRNetz file.
+    """
+
     layouts = "layouts"
     vrnetzer_pos = "vp"
     node_color = "c"
@@ -40,6 +48,10 @@ class NodeTags:
 
 
 class StringTags:
+    """
+    This class provides access to the tags which are used by stringdb networks in Cytoscape.
+    """
+
     stringdb_canoncial_name = "stringdb_canonical name"
     stringdb_sequence = "stringdb_sequence"
     stringdb_description = "stringdb_description"
@@ -50,22 +62,30 @@ class StringTags:
 
 
 class CytoscapeTags:
+    """
+    This class provides access to the tags which are used by Cytoscape.
+    """
+
     name = "name"
     shared_name = "shared name"
 
 
 class ProjectTag:
+    """
+    This class provides access to the layouts keys of a pfile.
+    """
+
     layouts = "layouts"
     layouts_rgb = "layoutsRGB"
     links = "links"
     links_rgb = "linksRGB"
 
 
-class AttrTags:
-    names = "names"
-
-
 class LinkTags:
+    """
+    This class provides access to the tags which are used in the link section of a VRNetz file.
+    """
+
     id = "id"
     start = "s"
     end = "e"
@@ -75,6 +95,10 @@ class LinkTags:
 
 
 class VRNetzElements:
+    """
+    This class provides access to the keys of a VRNetz file.
+    """
+
     nodes = "nodes"
     links = "links"
     node_layouts = "layouts"  # edge layout
@@ -83,6 +107,10 @@ class VRNetzElements:
 
 
 class LayoutAlgroithms:
+    """
+    This class provides access to all available layout algorithms.
+    """
+
     spring = "spring"
     kamada_kawai = "kamada_kawai"
     all_algos = [spring, kamada_kawai]
@@ -108,6 +136,10 @@ class LayoutAlgroithms:
 
 
 class Evidences(Enum):
+    """
+    This class provides access to all available evidence of a string network.
+    """
+
     any = "any"
     stringdb_textmining = "stringdb_textmining"
     stringdb_experiments = "stringdb_experiments"
@@ -120,15 +152,28 @@ class Evidences(Enum):
 
     @staticmethod
     def get_all_evidences() -> list[str]:
+        """
+        Return a list of all evidences.
+
+        Returns:
+            list[str]: List of all evidences.
+        """
         return [e.value for e in Evidences]
 
     @staticmethod
     def get_all_evidences_except_any() -> list[str]:
+        """
+        Return a list of all evidences except any.
+
+        Returns:
+            list[str]: List of all evidences except any.
+        """
         return [e.value for e in Evidences if e != Evidences.any]
 
     @staticmethod
     def get_default_scheme() -> dict:
-        """Return a dictionary with the color scheme for each evidence.
+        """
+        Return a dictionary with the color scheme for each evidence.
 
         Returns:
             dict[str,tuple[int,int,int,int]]: keys are the evidences and values are the RGBA.
@@ -154,6 +199,10 @@ class Evidences(Enum):
 
 
 class Organisms:
+    """
+    This class consolidated scientific names of organisms, their tax ids and their dictionaries used for the interactome creation.
+    """
+
     human = "H.sapiens"
     mouse = "M.musculus"
     yeast = "S.cerevisiae"
@@ -230,7 +279,7 @@ class Organisms:
 
     @staticmethod
     def get_file_name(organism: str) -> str:
-        """Return the project name for the desired organism.
+        """Return the project name for the desired organism. The Organism has to be given as the scientific name. For example: "Homo sapiens". Or use Organisms.human.
 
         Args:
             organism (str): organism for which the project name is needed
@@ -252,7 +301,18 @@ class Organisms:
         return file_names.get(organism)
 
     def get_organism_name(directory: str = None, tax_id: int = None) -> str:
-        """Return the organism name from the directory name or the tax_id."""
+        """Get the scientific name of the organism from the directory or the tax id.
+
+        Args:
+            directory (str, optional): directory name in which the organism data is stored. Defaults to None.
+            tax_id (int, optional): Tax id of the respective organism. Defaults to None.
+
+        Raises:
+            ValueError: If no directory or tax id is provided.
+
+        Returns:
+            str: Scientific name of the organism.
+        """
         if directory is None and tax_id is None:
             raise ValueError("You must provide a directory or a tax id")
         if directory:

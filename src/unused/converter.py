@@ -5,12 +5,12 @@ import os
 import numpy as np
 import pandas as pd
 
-from .classes import LayoutTags as LT
-from .classes import LinkTags as LiT
-from .classes import NodeTags as NT
-from .classes import VRNetzElements as VRNE
-from .layouter import Layouter
-from .settings import _NETWORKS_PATH, UNIPROT_MAP
+from ..classes import LayoutTags as LT
+from ..classes import LinkTags as LiT
+from ..classes import NodeTags as NT
+from ..classes import VRNetzElements as VRNE
+from ..layouter import Layouter
+from ..settings import _NETWORKS_PATH, UNIPROT_MAP
 
 
 class VRNetzConverter:

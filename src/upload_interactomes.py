@@ -9,14 +9,12 @@ from .classes import Evidences
 import os
 
 
-def upload(data: dict, files) -> None:
-    """Uploads the network using the internal upload route of the VRNetzer.
+def upload(data: dict, files: dict) -> None:
+    """Updated the interactome project which where just uploaded with additional annotations.
 
     Args:
-        directory (str): directory in which the layout files are located.
-        ip (str): IP of the VRNetzer.
-        port (int): Port of the VRNetzer.
-        src (str): path directory, where the csv files are located.
+        data (dict): dictionary with the project name and the host.
+        files (dict): dictionary with the files containing the nodes annotations, links annotations and cluster labels.
     """
     host = data["host"]
     project_name = data["project_name"]

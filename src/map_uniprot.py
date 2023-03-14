@@ -1,7 +1,7 @@
 """
 Small script to map identifiers on UniProt IDs.
 
-Implementation based on:
+Implementation adapted and based on the UniProt ID mapping API documentation:
 
 https://www.uniprot.org/help/id_mapping
 
@@ -29,6 +29,7 @@ session.mount("https://", HTTPAdapter(max_retries=retries))
 
 
 def check_response(response):
+    """Checks whether the request is successfully processed."""
     try:
         response.raise_for_status()
     except requests.HTTPError:
@@ -53,7 +54,6 @@ def submit_id_mapping(from_db: str, to_db: str, ids: list[str], taxId: str):
 
 
 def get_next_link(headers):
-
     re_next_link = re.compile(r'<(.+)>; rel="next"')
     if "Link" in headers:
         match = re_next_link.match(headers["Link"])
@@ -230,6 +230,7 @@ def construct_nodes(results, nodes, nodes_map, nodes_f, secondary=False):
 
 
 def main(taxId, nodes_f, source_db="Gene_Name", target_db="UniProtKB"):
+    """Will read nodes names from nodes file and try to query the respective uniprot id."""
     with open(nodes_f, "r") as f:
         nodes = json.load(f)
     nodes_map = {}

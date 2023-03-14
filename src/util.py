@@ -127,7 +127,7 @@ def clean_filename(name: str) -> str:
 
 
 def pepare_uploader() -> None:
-    """Adds extension speciefic dta to the GD.sessionData."""
+    """Adds extension specific data to GD.sessionData."""
     strinEx_config = {}
 
     strinEx_config["layoutAlgos"] = LayoutAlgroithms.all_algos
@@ -146,9 +146,3 @@ def move_on_boot() -> None:
         ):
             log.debug(f"Copying {_dir}")
             shutil.copytree(_dir, os.path.join(st._PROJECTS_PATH, dir_name))
-
-
-if __name__ == "__main__":
-    G = nx.Graph()
-    G.add_edge("O15552", "Q76EI6")
-    print(prepare_networkx_network(G))

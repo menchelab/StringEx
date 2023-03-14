@@ -16,18 +16,18 @@ SPHERE = os.path.join(_THIS_EXT_STATIC_PATH, "resources", "sphere.ply")
 
 def sample_sphere_pcd(
     SAMPLE_POINTS=100,
-    layout=[],
+    layout: list[list[float, float, float]] = [],
     debug=False,
 ) -> numpy.array:
     """Utility function to sample points from a sphere. Can be used for functional layouts for node with no annotations.
 
     Args:
-        SAMPLE_POINTS (int, optional): Number of required points. Defaults to 100.
+        SAMPLE_POINTS (int, optional): Number of points to sample. Defaults to 100.
         layout (list, optional): List of points if the calculated Layout. Is used to center the sphere around this layout. Defaults to [].
         debug (bool, optional): Switch to show visualization of the process. Defaults to False.
 
     Returns:
-        numpy.array: _description_
+        numpy.array: Array of sampled points with shape (SAMPLE_POINTS, 3)
     """
     if SAMPLE_POINTS == 0:
         return numpy.array([])
@@ -39,38 +39,6 @@ def sample_sphere_pcd(
     layout_pcd.paint_uniform_color([1, 0, 0])
     layout_center = layout_pcd.get_center()
     mesh.translate(layout_center, relative=False)
-
-    # # Get the axis-aligned bounding box of the mesh
-    # mesh_box = mesh.get_axis_aligned_bounding_box()
-
-    # # Get the center and extents of the mesh box
-    # mesh_extents = mesh_box.get_max_bound() - mesh_box.get_min_bound()
-
-    # # Compute the scaling factor based on the mesh and layout bounding boxes
-    # layout_extents = layout_pcd.get_max_bound() - layout_pcd.get_min_bound()
-    # scale_factor = np.min(mesh_extents / layout_extents)
-
-    # while True:
-    #     print("Still scaling...", scale_factor,end="\r")
-    #     scaled_layout_pcd = layout_pcd.scale(scale_factor, center=layout_center)
-    #     scaled_layout_box = scaled_layout_pcd.get_axis_aligned_bounding_box()
-    #     inner_min_bound = np.asarray(scaled_layout_box.min_bound)
-    #     inner_max_bound = np.asarray(scaled_layout_box.max_bound)
-    #     outer_min_bound = np.asarray(mesh_box.min_bound)
-    #     outer_max_bound = np.asarray(mesh_box.max_bound)
-
-    #     if (inner_min_bound >= outer_min_bound).all() and (inner_max_bound <= outer_max_bound).all():
-    #         # scaled layout box is contained within mesh box
-    #         print("scale factor:", scale_factor)
-    #         break
-    #     else:
-    #         scale_factor *= 0.95
-
-    # layout_pcd = scaled_layout_pcd
-
-    # if debug:
-    #     o3d.visualization.draw_geometries([mesh,layout_pcd])
-    # sample points from merged mesh
     pcd = mesh.sample_points_uniformly(number_of_points=SAMPLE_POINTS)
     pcd.paint_uniform_color([0, 1, 0])
     if debug:
@@ -78,8 +46,18 @@ def sample_sphere_pcd(
     return numpy.asarray(pcd.points)
 
 
-def visualize_layout(layout, colors):
-    """Utility function to visualize a layout in 3D."""
+def visualize_layout(
+    layout: list[list[float, float, float]], colors: list[list[float, float, float]]
+) -> None:
+    """Visualize a layout with colors in 3D using open3D.
+
+    Args:
+        layout (list[list[float, float, float]]): List of points with shape (n, 3)
+        colors (list[list[float, float, float]]): List of colors of the points with shape (n, 3)
+
+    Returns:
+        None: None
+    """
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(numpy.asarray(layout))
     pcd.colors = o3d.utility.Vector3dVector(numpy.asarray(colors))

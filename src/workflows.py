@@ -14,7 +14,7 @@ from .classes import Evidences
 from .classes import LinkTags as LiT
 from .classes import Organisms
 from .classes import VRNetzElements as VRNE
-from .converter import VRNetzConverter
+from .unused.converter import VRNetzConverter
 from .layouter import Layouter
 from .map_small_on_large import map_source_to_target
 from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, log
@@ -180,7 +180,17 @@ def VRNetzer_map_workflow(
     return html
 
 
-def VRNetzer_send_network_workflow(request: dict, blueprint):
+def VRNetzer_send_network_workflow(request: dict, blueprint: flask.Blueprint):
+    """
+    Accepts a Network from Cytoscape and creates a project for the VRNetzer based on the send network, the selected layout algorithm and its parameters.
+
+    Args:
+        request (dict): Request from Cytoscape containing the network, the layout algorithm and its parameters, the project name and the overwrite option.
+        blueprint (flask.Blueprint): Blueprint of the VRNetzer app.
+
+    Returns:
+        str: HTML page reporting the success of the project creation which contains a link to a page where the project report is shown and the network can directly be opened in the VRNetzer.
+    """
     network = {
         "nodes": request.pop("nodes"),
         "links": request.pop("links"),
@@ -231,14 +241,24 @@ def VRNetzer_send_network_workflow(request: dict, blueprint):
 
 
 def apply_layout_workflow(
-    network: str,
+    network: str or dict,
     gen_layout: bool = True,
     layout_algo: str = None,
-    cy_layout: bool = True,
     stringify: bool = True,
     algo_variables: dict = {},
     layout_name: str = None,
 ) -> Layouter:
+    """
+    Applies a layout algorithm to a network and returns a Layouter object.
+
+    Args:
+        network (str): Path to the network file or a dictionary containing the network.
+        gen_layout (bool, optional): If True, the layout algorithm is applied. Defaults to True.
+        layout_algo (str, optional): Name of the layout algorithm. Defaults to None.
+        stringify (bool, optional): Indicates whether the network is a STRING network. Defaults to True.
+        algo_variables (dict, optional): Dictionary containing the parameters of the layout algorithm. Defaults to {}.
+        layout_name (str, optional): Name of the layout. Defaults to None.
+    """
     layouter = Layouter()
     if type(network) is dict:
         network[VRNE.nodes] = pd.DataFrame(network[VRNE.nodes])
@@ -269,44 +289,3 @@ def apply_layout_workflow(
             links = links.drop(columns=[c])
     layouter.network[VRNE.links] = links
     return layouter
-
-
-def create_project_workflow(
-    network: dict,
-    project_name: str,
-    projects_path: str = _PROJECTS_PATH,
-    skip_exists: bool = False,
-    keep_tmp: bool = False,
-    cy_layout: bool = True,
-    stringifiy: bool = True,
-):
-    """Uses a layout to generate a new VRNetzer Project."""
-    uploader = Uploader(network, project_name, skip_exists, stringifiy, projects_path)
-    state = uploader.upload_files(network)
-    if keep_tmp:
-        outfile = f"{_NETWORKS_PATH}/{project_name}_with_3D_Coords.VRNetz"
-        print(f"OUTFILE:{outfile}")
-        with open(outfile, "w") as f:
-            json.dump(network, f)
-        log.info(f"Saved network as {outfile}")
-    log.info(f"Project created: {project_name}")
-    return state
-
-
-def map_workflow(small_net: str, large_net: str, destination: str) -> None:
-    """Maps a small network onto a large network."""
-    map_source_to_target(small_net, large_net, destination)
-
-
-def convert_workflow(
-    node_list: str, edge_list: str, uniprot_mapping=None, project=None
-) -> str:
-    """Converts a network from a edge and node list to a .VRNetz file."""
-    if uniprot_mapping is None:
-        uniprot_mapping = UNIPROT_MAP
-    if project is None:
-        project = "NA"
-    output = os.path.join(_NETWORKS_PATH, project)
-    converter = VRNetzConverter(node_list, edge_list, uniprot_mapping, project)
-    converter.convert()
-    return output

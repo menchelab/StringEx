@@ -12,11 +12,8 @@ from .settings import _WORKING_DIR
 
 sys.path.append(os.path.join(_WORKING_DIR, "..", ".."))
 
-try:
-    import GlobalData as GD
-    from project import DEFAULT_PFILE, Project
-except ModuleNotFoundError:
-    pass
+import GlobalData as GD
+from project import DEFAULT_PFILE, Project, NODE, COLOR
 from PIL import Image
 
 from .classes import Evidences as EV
@@ -74,7 +71,30 @@ class Uploader:
         log.debug(f"Successfully created directories in {rel_path}.", flush=True)
         log.debug(f"Full Path {self.project.location}.", flush=True)
 
-    def handle_link_layout(self, layout, all_colors, start, end, path, height):
+    def handle_link_layout(
+        self,
+        layout: str,
+        all_colors: pd.DataFrame,
+        start: pd.Series,
+        end: pd.Series,
+        path: str,
+        height: int,
+    ) -> dict:
+        """
+        Handle a respective link layout and generate the respective bitmaps.
+
+        Args:
+            layout (str): layout name.
+            all_colors (pd.DataFrame): contains all colors for the links.
+            start (pd.Series): contains all start positions for the links.
+            end (pd.Series): contains all end positions for the links.
+            path (str): path to the project folder.
+            height (int): height of the image.
+
+        Returns:
+            dict: contains the status message and the names of the generated files.
+
+        """
         colors = all_colors[: self.MAX_NUM_LINKS].copy()
         layout_name = layout.replace("_col", "")
         colors = colors.swifter.progress_bar(False).apply(
@@ -207,7 +227,19 @@ class Uploader:
 
     def handle_node_layout(
         self, layout: str, pos: pd.Series, color: pd.Series, path: str, hight: int
-    ):
+    ) -> dict:
+        """Handles the creation of a node layout.
+
+        Args:
+            layout (str): layout name.
+            pos (pd.Series): coordinates of the nodes.
+            color (pd.Series): color of the nodes.
+            path (str): path to the project folder.
+            hight (int): hight of the image.
+
+        Returns:
+            dict: status message to report the status of the execution.
+        """
         layout_name = layout.replace("_pos", "")
         xyz = None
         rgb = None
@@ -453,13 +485,6 @@ class Uploader:
 
         return state
 
-    def process_layouts(self, target_project, data, layout: str):
-        pathRGB = os_join(target_project, "layoutsRGB", f"{layout}.png")
-        img = Image.open(pathRGB)
-        img.putdata(data)
-
-        img.save(os_join(self.project.location, "layoutsRGB", f"{layout}.png"))
-
     def color_nodes(
         self,
         target_project: str,
@@ -531,7 +556,6 @@ class Uploader:
         nodes = nodes.drop(
             columns=[c for c in nodes.columns if c not in [NT.node_color, NT.size]]
         )
-        from project import NODE, COLOR
 
         def mask_nodes(project: Project, selected_nodes):
             # MASK WHICH HIGHLIGHTS NODES THAT ARE SELECTED

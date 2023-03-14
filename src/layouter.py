@@ -40,13 +40,6 @@ class Layouter:
         G.add_edges_from(
             [(start, end) for start, end in links[[LiT.start, LiT.end]].values.tolist()]
         )
-        # for node_data in nodes:
-        #     self.graph.add_node(node_data[NT.id], data=node_data)
-        #     # self.node_map[node_data["id"]] = node_data
-        # for link in links:
-        #     self.graph.add_edge(link[LiT.start], link[LiT.end], data=link)
-        #     # self.edge_map[(str(edge["s"]), str(edge["e"]))] = edge
-        # self.network = {VRNE.nodes: nodes, VRNE.links: links}
         return G
 
     def read_from_vrnetz(self, file: str) -> nx.Graph:
@@ -100,7 +93,7 @@ class Layouter:
         return self.graph
 
     def create_spring_layout(self, algo_variables: dict, random_lay: bool) -> dict:
-        """Generates a spring layout for the Graph.
+        """Generates a spring layout for the Graph using the networkx spring_layout algorithm. All nodes without a link will be placed on a sphere around the center of the graph.
 
         Args:
             algo_variables (dict): contains variables for the algorithm.
@@ -127,7 +120,8 @@ class Layouter:
         )
 
     def create_kamada_kawai_layout(self, algo_variables: dict, random_lay) -> dict:
-        """Generates a kamada kawai layout for the Graph.
+        """Generates a kamada kawai layout for the Graph using the networkx kamada_kawai_layout algorithm. All nodes without a link will be placed on a sphere around the center of the graph.
+
         Args:
             algo_variables (dict): contains variables for the algorithm. Does not do anything.
         Returns:
@@ -141,7 +135,8 @@ class Layouter:
         return nx.kamada_kawai_layout(self.graph, dim=3)
 
     def create_random_layout(self, graph=None, algo_variables: dict = {}) -> dict:
-        """Generates a random layout for the Graph.
+        """Generates a random layout for the Graph using the networkx random_layout algorithm.
+
         Args:
             algo_variables (dict): contains variables for the algorithm. Does not do anything.
         Returns:
@@ -159,11 +154,15 @@ class Layouter:
         max_num_features: int = None,
         random=False,
     ) -> dict:
-        """Will pick the correct cartoGRAPHs layout algorithm and apply it to the graph. If cartoGRAPH is not installed an ImportError is raised.
+        """Will pick the correct cartoGRAPHs layout algorithm and apply it to the graph. If cartoGRAPH is not installed an ImportError is raised. In link based algorithms all nodes without a link will be placed on a sphere around the center of the graph. In functional algorithms all nodes without a feature will be placed on a sphere around the center of the graph.
 
         Args:
             layout_algo (str): layout algorithm to choose. possible algorithms are listed in setting.LayoutAlgroithms.
             cg_variables (dict, optional): contains algorithm variables. Defaults to None.
+
+        Raises:
+            ImportError: If cartoGRAPHs is not installed.
+            NotImplementedError: If the chosen algorithm is not implemented yet ("topographic" and "geodesic")
 
         Returns:
             dict: node ids as keys and three dimensional positions as values.
@@ -172,7 +171,6 @@ class Layouter:
 
         dim = 3
         if "functional" in layout_algo:
-            nodes = list(self.graph.nodes())
             features = feature_matrix.any(axis=1)
             no_feature_index = feature_matrix[~features].copy().index
 
@@ -198,11 +196,7 @@ class Layouter:
                 function = cg.layout_importance_tsne
             elif "functional" in layout_algo:
                 if feature_matrix is None:
-                    feature_matrix = self.get_feature_matrix(
-                        self.graph, max_num_features
-                    )
-                if feature_matrix is None:
-                    return ValueError("Unable to construct feature matrix!")
+                    return ValueError("No feature matrix given.")
                 if random:
                     functional = self.create_random_layout(feature_graph)
                 else:
@@ -226,11 +220,7 @@ class Layouter:
                 function = cg.layout_importance_umap
             elif "functional" in layout_algo:
                 if feature_matrix is None:
-                    feature_matrix = self.get_feature_matrix(
-                        self.graph, max_num_features
-                    )
-                if feature_matrix is None:
-                    return ValueError("Unable to construct feature matrix!")
+                    return ValueError("No feature matrix given.")
                 if random:
                     functional = self.create_random_layout(feature_graph)
                 else:
@@ -269,8 +259,19 @@ class Layouter:
         return self.link_based_layout(function, algo_variables, random)
 
     def link_based_layout(
-        self, layout_algo, algo_variables: dict, random_lay: bool, G=None
-    ):
+        self, layout_algo, algo_variables: dict, random_lay: bool, G: nx.Graph = None
+    ) -> dict[str, list[float, float, float]]:
+        """Will apply a link based layout algorithm to the graph. All nodes with degree 0 will be placed on a sphere around the graph.
+
+        Args:
+            layout_algo (Callable): Layout function to apply.
+            algo_variables (dict): dict with algorithm variables.
+            random_lay (bool): If True, a random layout will be applied.
+            G (networkx, optional): . Defaults to None. If None, self.graph will be used.
+
+        Returns:
+            dict[str,list[float,float,float]]: node ids as keys and three dimensional positions as values.
+        """
         if G is None:
             G = self.graph
 
@@ -294,7 +295,7 @@ class Layouter:
         feature_matrices: list[pd.DataFrame] = None,
         max_num_features: int = None,
         random_lay=False,
-    ) -> dict[str, list[float]]:
+    ) -> dict[str, list[float, float, float]]:
         """Applies a layout algorithm and adds the node positions to nodes in the self.network[VRNE.nodes] list.
 
         Args:
@@ -302,7 +303,7 @@ class Layouter:
             algo_variables (dict, optional): Contains algorithm variables. Defaults to None.. Defaults to {}.
 
         Returns:
-            dict[str,list[float]]: with node ids as keys and three dimensional xnode positions as values.
+            dict[str,list[float,float,float]]: with node ids as keys and three dimensional node positions as values.
         """
         layouts = {}
         if isinstance(layout_algo, str):
@@ -341,24 +342,23 @@ class Layouter:
                 layout = lay_func[algo](
                     algo_variables, random_lay
                 )  # Will use the desired layout algorithm
-            # lay = np.array(list(layout.values()))
-            # x = lay[:, 0]
-            # y = lay[:, 1]
-            # z = lay[:, 2]
-
-            # def normalize_pos(x):
-            #     x += abs(min(x))
-            #     x /= max(x)
-            #     return x
-
-            # pos = pd.DataFrame([x, y, z]).T
-            # pos = pos.apply(normalize_pos, axis=0)
-            # layouts[idx] = pos
             layouts[idx] = self.normalize_pos(layout)
         return layouts
 
     @staticmethod
-    def normalize_pos(layout: dict[int, np.array], dim: int = 3):
+    def normalize_pos(
+        layout: dict[int, np.array], dim: int = 3
+    ) -> dict[str, list[float, float, float]]:
+        """
+        Normalizes the positions of the nodes in the layout to be between 0 and 1.
+
+        Args:
+            layout (dict[int, np.array]): Dictionary containing node ids as keys and a 3-tuple of coordinates as values.
+            dim (int, optional): Defines the dimension in which the coordinates are. Defaults to 3.
+
+        Returns:
+            dict[str,list[float,float,float]]: Dictionary containing node ids as keys and a 3-tuple of coordinates as values. Now normalized in the range of 0 to 1.
+        """
         layout = dict(sorted(layout.items(), key=lambda x: x[0]))
         pos = np.array(list(layout.values()))
         for i in range(0, dim):
@@ -370,12 +370,15 @@ class Layouter:
     @staticmethod
     def add_layout_to_vrnetz(
         nodes: pd.DataFrame, layout: dict, layout_name: str
-    ) -> None:
+    ) -> pd.DataFrame:
         """Adds the points of the generated layout to the underlying VRNetz
 
         Args:
             layout (dict): Dictionary containing node ids as keys and a 3-tuple of coordinates as values.
             layout_name (str): Name of the layout to be added to the VRNetz.
+
+        Returns:
+            pd.DataFrame: nodes data frame with added layout.
         """
         if NT.layouts in nodes:
 
@@ -475,7 +478,18 @@ class Layouter:
         return links
 
     @staticmethod
-    def handle_evidences(ev, color, links, stringify):
+    def handle_evidences(
+        ev: str, color: list[int, int, int], links: pd.DataFrame, stringify: bool
+    ):
+        """Set the link color for each STRING evidence type. Based on the score the link opacity is scaled.
+
+        Args:
+            ev (str): Name of the evidence type.
+            color (list[int, int, int]): color which belongs to the respective evidence type.
+            links (pd.DataFrame): Data frame containing all the links.
+            stringify (bool): Boolean which indicates whether the network is a STRING network or not, if not only the "any" evidence type is considered.
+        """
+
         def gen_color(x, color):
             x = color[:3] + (int(x * 255),)
             return x
@@ -489,108 +503,22 @@ class Layouter:
         this = with_score.swifter.progress_bar(False).apply(gen_color, args=(color,))
         return this
 
-    @staticmethod
-    def get_feature_matrix(
-        G: nx.Graph or pd.DataFrame,
-        max_num_features: int = None,
-    ) -> pd.DataFrame:
-        if max_num_features is None:
-            max_num_features = 100
-        if isinstance(G, nx.Graph):
-            nodes = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient="index")
-        elif isinstance(G, pd.DataFrame):
-            nodes = G
-        all_columns = list(nodes.columns)
-        new_cols = {}
-        n = nodes.size
-        feature_matrix = pd.DataFrame(index=range(n))
-        while len(all_columns) > 0:
-            column = all_columns.pop()
-            data = nodes[column]
-            if (
-                pd.api.types.is_string_dtype(data)
-                and not pd.api.types.is_bool_dtype(data)
-                and not pd.api.types.is_numeric_dtype(data)
-                and not pd.api.types.is_list_like(data)
-            ):
-                strings = data.unique()
-                if strings.size <= nodes.size * 0.05:
-                    nodes = nodes.drop(columns=[column])
-                    continue
-                log.debug(f"Handling column {column}...")
-                for string in strings:
-                    if string in feature_matrix.columns:
-                        continue
-                    series = (
-                        nodes[column].apply(lambda x: 1 if x == string else 0).copy()
-                    )
-                    series.name = string
-                    feature_matrix = pd.concat([feature_matrix, series], axis=1)
 
-            elif (
-                pd.api.types.is_numeric_dtype(data)
-                and not pd.api.types.is_bool_dtype(data)
-                and not pd.api.types.is_list_like(data)
-            ):
-                numbers = nodes[column].unique()
-                if numbers.size <= nodes.size * 0.05:
-                    nodes = nodes.drop(data)
-                    continue
-                log.debug(f"Handling column {column}...")
-                new_cols = {}
-                for number in numbers:
-                    if number in feature_matrix.columns:
-                        continue
-                    series = (
-                        nodes[column].apply(lambda x: 1 if x == number else 0).copy()
-                    )
-                    series.name = number
-                    feature_matrix = pd.concat([feature_matrix, series], axis=1)
-            elif pd.api.types.is_list_like(data):
-                log.debug(f"Handling column {column}...")
-                new_values = set()
-                for _, row in nodes.iterrows():
-                    if not pd.api.types.is_list_like(row[column]):
-                        continue
-                    for val in row[column]:
-                        new_values.add(val)
-                tmp = pd.DataFrame(data)
-                for val in new_values:
-                    if val in tmp.columns:
-                        continue
-                    series = pd.Series([0 for _ in range(n)], index=nodes.index)
-                    series.name = val
-                    tmp = pd.concat([feature_matrix, series], axis=1)
-
-                def gen_feature(x, column):
-                    if not pd.api.types.is_list_like(x[column]):
-                        return None
-                    for val in x[column]:
-                        x[val] = 1
-                    return x[[val for val in x[column]]]
-
-                tmp = nodes.swifter.apply(gen_feature, args=(column,), axis=1)
-                nodes = nodes.drop(columns=[column])
-                feature_matrix = pd.concat([feature_matrix, tmp], axis=1)
-
-        for col in feature_matrix.columns:
-            new_cols[col] = feature_matrix[col].notna().sum()
-        new_cols = sorted(new_cols.items(), key=lambda x: x[1], reverse=True)
-        new_cols = new_cols[:max_num_features]
-        columns = [col[0] for col in new_cols]
-        feature_matrix = feature_matrix.reindex(columns=columns, fill_value=0)
-        if len(feature_matrix.columns) == 0:
-            return None
-        log.debug(
-            f"The feature matrix consists of {len(feature_matrix.columns)} new features.",
-            flush=True,
-        )
-        return feature_matrix
+from . import layout_util
 
 
-def sample_sphere(G, layout, *args, **kwargs):
-    from . import layout_util
+def sample_sphere(
+    G: nx.Graph, layout: list[float, float, float], *args: tuple, **kwargs: dict
+) -> dict[str, list[float, float, float]]:
+    """Samples a sphere around the given layout for as many nodes as provided with the graph.
 
+    Args:
+        G (nx.Graph): Graph for which the points should be sampled.
+        layout (list[float, float, float]): Layout containing the remaining points. Is used as the center of the sphere.
+
+    Returns:
+        dict[str, list[float, float, float]]: Dictionary containing the node names as keys and the sampled points as values.
+    """
     n = len(G)
     pos = layout_util.sample_sphere_pcd(SAMPLE_POINTS=n, layout=layout, *args, **kwargs)
     layout = {}
@@ -599,19 +527,6 @@ def sample_sphere(G, layout, *args, **kwargs):
     return layout
 
 
-def visualize_layout(layout, *args, **kwargs):
-    from . import layout_util
-
+def visualize_layout(layout: list[float, float, float], *args, **kwargs):
+    """Visualizes the given layout."""
     layout_util.visualize_layout(layout, *args, **kwargs)
-
-
-if __name__ == "__main__":
-    import os
-
-    layouter = Layouter()
-    layouter.read_from_vrnetz(
-        os.path.abspath(
-            f"{__file__}/../../static/networks/STRING_network_-_Alzheimer's_disease.VRNetz"
-        )
-    )
-    layouter.apply_layout()

@@ -30,6 +30,7 @@ upload_tabs = ["string_upload_tab.html", "string_map_tab.html"]
 
 @blueprint.before_app_first_request
 def stringex_setup():
+    """Setup function to prepare the STRING Uploader and move the prepared STRING interactomes from the StringEx directory to the projects directory of the VRNetzer backend."""
     string_util.pepare_uploader()
     string_util.move_on_boot()
 
@@ -61,6 +62,7 @@ def string_ex_map_files():
 
 @blueprint.route("/receiveNetwork", methods=["POST"])
 def string_ex_receive_network_json():
+    """This route accepts a network in the form of a JSON object. The JSON object is then used downstream to create a VRNetzer project out of it. This route is mainly used to send a network to the VRNetzer from Cytoscape."""
     receiveNetwork = flask.request.get_json()
     wf.VRNetzer_send_network_workflow(receiveNetwork, blueprint)
     project = receiveNetwork["form"]["project"]
@@ -69,7 +71,7 @@ def string_ex_receive_network_json():
 
 @blueprint.route("/resultPage/<project>", methods=["GET"])
 def string_ex_result_page(project):
-    """Route to the results page project depended."""
+    """Is used to present that the sending of a network was successful and provides access to layout changing etc. Used in the to provide Cytoscape user with the result of the network upload process."""
     username = util.generate_username()
     layouts = ""
     flask.session["username"] = username
@@ -89,13 +91,13 @@ def string_ex_result_page(project):
 
 @blueprint.route("/")
 def string_ex_index():
-    """Route to the index page."""
+    """Redirect to the main index page as the StringEx extension does not have a dedicated index page."""
     return flask.redirect("/")
 
 
 @blueprint.route("/receiveInteractome", methods=["POST"])
 def string_ex_receive_interactome():
-    """Route to receive the interactome from prepared by a client using the the provided script"""
+    """Route to receive the interactome from prepared by a client using the the provided script. Can be used to upload an interactome prepared with the script provided with StringEx. It will update some annotations data and pfile information of the uploaded projects and trigger the annotation scraper if it is existing."""
     data = {"project_name": flask.request.args.get("project_name")}
     files = flask.request.files
     data["host"] = flask.request.host
@@ -107,7 +109,7 @@ def string_ex_receive_interactome():
 
 @blueprint.route("/status", methods=["GET"])
 def string_ex_status():
-    """Route to receive the status of the current job."""
+    """Route to check if the StringEx extension is installed and running."""
     return "StringEx is installed and running..."
 
 
@@ -115,7 +117,7 @@ def string_ex_status():
     "send_to_cytoscape",
 )
 def string_send_to_cytoscape(message):
-    """Send the selected nodes and links to Cytoscape."""
+    """Is triggered by a call of a client. Will take the current selected nodes and links to send them to a running instance of Cytoscape. This will always send the network the Cytoscape session of the requesting user, if not otherwise specified. If to host is selected, the network will be send to the Cytoscape session of the Server host."""
     return_dict = mp.Manager().dict()
     ip = flask.request.remote_addr
     user = message.get("user", util.generate_username())
@@ -132,16 +134,3 @@ def string_send_to_cytoscape(message):
             "status": "error",
         }
     blueprint.emit("status", return_dict["status"])
-
-
-@blueprint.on("reset_selection")
-def string_ex_reset_selection():
-    GD.sessionData["selected"] = []
-    print("Selection reset.")
-    blueprint.emit(
-        "reset",
-        {
-            "message": f"Selection reset.",
-            "status": "success",
-        },
-    )

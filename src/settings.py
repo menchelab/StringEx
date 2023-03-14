@@ -38,29 +38,9 @@ UNIPROT_MAP = os.path.join(_STATIC_PATH, "uniprot_mapping.csv")
 _MAPPING_ARBITARY_COLOR = [255, 255, 255]
 MAX_NUM_LINKS = 262144
 log = logger.get_logger(
-    level=_LOG_LEVEL, f_level=F_LOG_LEVEL, c_level=C_LOG_LEVEL, format=_LOG_FORMAT, c_format=_LOG_FORMAT
-)
-
-
-HELP_TEXT = (
-    "Usage:\n"
-    + "main.py query <query type=[protein/disease/compound/pubmed]> <query> <opt:cutoff> <opt:limit> <opt:species> <opt:taxonID>"
-    + "\n"
-    "or\n"
-    + "main.py export <network> <filename> <opt:KeepTmp> <opt:*> <opt:overwrite_file>"
-    + "\n"
-    + "or\n"
-    + "main.py project <network> <opt:layout_algo> <opt:keep_temp> <opt:skip_exists> <opt:project_name> <opt:gen_layout> <opt:cy_layout> <opt:stringify>"
-    + "\n"
-    + "or\n"
-    + "main.py names"
-    + "\n"
-    + "or\n"
-    + "main.py map <source_network> <target_network> <opt:output_name>"
-    + "\n"
-    + "or\n"
-    + "main.py convert <node_list> <edge_list> <opt:uniprot_mapping> <opt:project_name>"
-    + "\n"
-    + "possible algorithms:\n"
-    + ",".join(LayoutAlgroithms.all_algos)
+    level=_LOG_LEVEL,
+    f_level=F_LOG_LEVEL,
+    c_level=C_LOG_LEVEL,
+    format=_LOG_FORMAT,
+    c_format=_LOG_FORMAT,
 )

@@ -231,7 +231,7 @@ def map_links(
 def map_source_to_target(
     source: str or dict,
     target: str or dict,
-    target_project,
+    target_project: str,
     project_name: str = "PPI_out.VRNetz",
 ) -> None:
     """
@@ -239,8 +239,8 @@ def map_source_to_target(
 
     Args:
         source (str or dict): Small network that will be mapped on larger target network.
-        target (strordict): Large target network on which the smaller network will be mapped.
-        target_project (_type_): project name from which the target network ordinates from.
+        target (str o rdict): Large target network on which the smaller network will be mapped.
+        target_project (str): project name from which the target network ordinates from.
         project_name (str, optional): Project name of the mapping. Defaults to "PPI_out.VRNetz".
     """
     src_nodes = pd.DataFrame(source[VRNE.nodes])
@@ -259,12 +259,3 @@ def map_source_to_target(
     uploader.color_nodes(target_project)
     log.info(f"Saving project {project_name}")
     return f'<a style="color:green;" href="/StringEx/preview?project={project_name}" target="_blank">SUCCESS: Saved as project {project_name} </a>'
-
-
-if __name__ == "__main__":
-    string_network = "/Users/till/Desktop/2000_alzheimer.VRNetz"
-    PPI_VrNet = (
-        "/Users/till/Documents/Playground/STRING-VRNetzer/static/networks/PPI.VrNetz"
-    )
-    map_source_to_target(string_network, PPI_VrNet)
-    # /opt/homebrew/bin/python3 /Users/till/Documents/Playground/STRING-VRNetzer/src/main.py project '/Users/till/Documents/Playground/STRING-VRNetzer/static/networks/PPI_out.VrNetz' None None False 2000_alz_map_ppi_with_ev False False
