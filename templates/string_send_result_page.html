@@ -22,6 +22,9 @@
     <!-- StringEx Style -->
     <link href="{{ url_for('StringEx.static', filename='css/StringStyle.css') }}" rel="stylesheet" />
     <!-- StringEx scripts -->
+    <script>
+    var uid = makeid(10);
+    </script>
     <script src="{{ url_for('StringEx.static', filename='js/stringUI_Elements.js') }}"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
@@ -101,7 +104,7 @@
                 setTimeout(function() {
                     $('#stringexROBM').css('opacity', '0');
                 }, 2000);
-
+                console.log("ex", {id:"projects",opt:"{{ project }}",fn:"sel"})
                 socket.emit('ex', { id: "projects", opt: "{{ project }}", fn: "sel" });
             });
         </script>
