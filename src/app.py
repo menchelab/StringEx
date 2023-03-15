@@ -5,7 +5,7 @@ import os
 import flask
 import GlobalData as GD
 from io_blueprint import IOBlueprint
-
+from project import Project
 import util
 
 from . import routes
@@ -76,15 +76,13 @@ def string_ex_result_page(project):
     layouts = ""
     flask.session["username"] = username
     flask.session["room"] = 1
-    project_path = os.path.join(st._PROJECTS_PATH, project, "pfile.json")
-    with open(project_path, "r") as f:
-        pfile = json.load(f)
+    project = Project(project)
     return flask.render_template(
         "string_send_result_page.html",
-        project=project,
+        project=project.name,
         layouts=layouts,
-        pfile=pfile,
-        pdata=json.dumps(pfile),
+        pfile=project.pfile,
+        pdata=json.dumps(project.pfile),
         sessionData=json.dumps(GD.sessionData),
     )
 
