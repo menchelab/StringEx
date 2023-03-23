@@ -12,6 +12,9 @@ from src.classes import StringTags as ST
 import os
 from src.layouter import visualize_layout
 from interactomes import retrieve_functional_enrichment as rfe
+import networkx as nx
+from src.classes import LinkTags as LiT
+from src.classes import Evidences
 
 
 def color_layout(
@@ -20,30 +23,35 @@ def color_layout(
     category,
     feature_matrix: pd.DataFrame,
     eps: float = None,
+    min_cs: int = None,
+    max_cs: int = None,
+    min_samples: int = None,
     normalize: bool = False,
     pos=None,
     preview_layout: bool = False,
+    consider: None or pd.Series = None,
 ):
     colors = pd.Series([[1, 1, 1, 1] for _ in range(n)])
     df = pd.DataFrame(index=range(n))
     df["cluster"] = None
 
     if "functional" in algo and category is not None:
-        has_features = feature_matrix.any(axis=1)
-        st.log.debug(f"There are {has_features.sum()} nodes with at least one feature")
+        consider = feature_matrix.any(axis=1)
+        st.log.debug(f"There are {consider.sum()} nodes with at least one feature")
 
         st.log.debug("Adding colors to functional clusters..")
-        to_color = pd.Series(index=colors[has_features].index)
-        feature_matrix = feature_matrix[has_features]
-        feature_pos = pd.DataFrame(pos)[has_features]
+        feature_matrix = feature_matrix[consider]
 
-        to_color, cluster = clustering(to_color, feature_matrix, feature_pos)
-        cluster_information = pd.Series(cluster, index=to_color.index)
-        df["cluster"] = cluster_information
-        # to_color = feature_coloring(to_color, feature_matrix, category)
-        colors.update(to_color)
-    else:
-        st.log.debug(f"SKIPPING {algo} {category}")
+    to_color = pd.Series(index=colors[consider].index)
+    embedding = pd.DataFrame(pos)[consider]
+
+    to_color, cluster = clustering(
+        to_color, feature_matrix, embedding, eps, min_cs, max_cs, min_samples
+    )
+    cluster_information = pd.Series(cluster, index=to_color.index)
+    df["cluster"] = cluster_information
+    # to_color = feature_coloring(to_color, feature_matrix, category)
+    colors.update(to_color)
     colors = np.array(colors.tolist())
     # Invert colors and normalize between 0.1 and 1 to make them at least visible
     if not colors.max() == colors.min():
@@ -69,24 +77,19 @@ def color_layout(
     return df[["r", "g", "b", "a", "cluster"]]
 
 
-def clustering(to_color, fm, pos, eps=None, min_samples=None):
+def clustering(to_color, fm, pos, eps=None, min_cs=None, max_cs=None, min_samples=None):
     import umap
     from matplotlib import pyplot as plt
     from sklearn.decomposition import PCA
     import hdbscan
 
     # fm = fm[:5000]
-    if "annotations" in fm.columns:
-        fm = fm.drop(columns="annotations")
-    feature_count = fm.sum(axis=0)
-    min_cs = feature_count.min()
-    max_cs = feature_count.max()
-    min_cs = max(50, feature_count.min())
-    if min_cs > 100:
-        min_cs = 50
-    if eps is None:
+    if eps is None or eps < 0:
         eps = 0.007
-    if min_samples is None:
+    if min_cs > 100 or min_cs <= 1:
+        min_cs = 50
+
+    if min_samples is None or min_samples <= 1:
         min_samples = 20
     st.log.debug("MIN_CS = " + str(min_cs))
     # model_varaibles(fm, pos, min_cs, eps)
@@ -113,8 +116,8 @@ def clustering(to_color, fm, pos, eps=None, min_samples=None):
     # axs[1].scatter(pos.iloc[:, 1], pos.iloc[:, 2], c=cluster_colors, s=50)
     # axs[2].scatter(pos.iloc[:, 0], pos.iloc[:, 2], c=cluster_colors, s=50)
     # plt.show()
-    # exit()
     to_color = pd.Series(cluster_colors, index=to_color.index)
+
     return to_color, clusterer.labels_
 
 
@@ -201,7 +204,7 @@ def extract_pos(layout):
     return pos
 
 
-def get_cluster_labels(cluster, tax_id, cluster_dir, category):
+def get_cluster_labels(cluster, tax_id, cluster_dir, name, category):
     cluster["cluster"] = cluster["cluster"].fillna(-1)
     cluster = cluster.astype({"cluster": int})
     grouped = cluster.groupby("cluster")
@@ -211,14 +214,21 @@ def get_cluster_labels(cluster, tax_id, cluster_dir, category):
     cluster["member"] = grouped.apply(lambda x: list(x.index)).values
     cluster["member"] = cluster["member"].apply(lambda x: ",".join(str(i) for i in x))
     for_request["member"] = grouped[ST.stringdb_identifier].apply(lambda x: ",".join(x))
-    cluster_names = rfe.main(for_request, tax_id, cluster_dir, category)
+    cluster_names = rfe.main(for_request, tax_id, cluster_dir, name, category)
 
     cluster.index = [cluster_names.get(x, x) for x in cluster.index]
     return cluster
 
 
 def recolor(
-    _dir, clean_name, organism, tax_id, functional_threshold, eps, preview_layout
+    _dir,
+    clean_name,
+    organism,
+    tax_id,
+    functional_threshold,
+    eps,
+    preview_layout,
+    layout_threshold,
 ):
     organism_dir = os.path.join(_dir, clean_name)
     node_colors = data_io.read_node_layouts(_dir, clean_name)
@@ -237,17 +247,42 @@ def recolor(
         # print(layout)
         # print("=" * 50)
         # print(nodes)
-        if layout not in feature_matrices:
-            st.log.debug(f"Layout {layout} not in feature matrices.")
-            continue
-        if layout not in functional_annotations:
-            st.log.debug(f"Layout {layout} not in functional annotations.")
-            continue
-        feature_matrix = feature_matrices[layout]
-        category = functional_annotations[layout]
+        feature_matrix, category = None, None
+        min_cs, max_cs, min_samples, consider = None, None, None, None
+        if not any([name in layout for name in ["spring", "local", "global"]]):
+            if layout not in feature_matrices:
+                st.log.debug(f"Layout {layout} not in feature matrices.")
+                continue
+            if layout not in functional_annotations:
+                st.log.debug(f"Layout {layout} not in functional annotations.")
+                continue
+            feature_matrix = feature_matrices[layout]
+            category = functional_annotations[layout]
 
-        if feature_matrix is None:
-            continue
+            if feature_matrix is None:
+                continue
+            feature_matrix = feature_matrices[layout].copy()
+            fm = feature_matrix.copy()
+            if "annotations" in fm.columns:
+                fm = fm.drop(columns="annotations")
+            feature_count = fm.sum(axis=0)
+            min_cs = feature_count.min()
+            min_cs = max(50, feature_count.min())
+            max_cs = feature_count.max()
+        else:
+            all_links = data_io.read_links_pickle(_dir, clean_name)
+            G = nx.from_pandas_edgelist(
+                all_links[all_links[Evidences.any.value] > layout_threshold],
+                LiT.start,
+                LiT.end,
+                edge_attr=True,
+            )
+            nodes["degree"] = pd.Series({n: d for n, d in G.degree()})
+            consider = pd.Series(nodes["degree"] > 0)
+            min_cs = nodes[consider]["degree"].min()
+            max_cs = nodes[consider]["degree"].max()
+            min_samples = min_cs
+
         pos = extract_pos(nodes)
         nodes[["r", "g", "b", "a", "cluster"]] = color_layout(
             len(nodes),
@@ -256,9 +291,15 @@ def recolor(
             feature_matrix,
             pos=pos,
             eps=eps,
+            min_cs=min_cs,
+            max_cs=max_cs,
+            min_samples=min_samples,
             preview_layout=preview_layout,
+            consider=consider,
         )
         cluster = pd.concat([identifiers, nodes.cluster], axis=1)
         nodes = nodes.drop(columns=["cluster"]).copy()
         data_io.write_node_csv(organism_dir, organism, layout, nodes, True)
-        data_io.write_cluster_information(organism_dir, organism, layout, cluster, True)
+        data_io.write_cluster_information(
+            organism_dir, organism, cluster, layout, category, True
+        )

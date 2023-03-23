@@ -16,7 +16,7 @@ import pandas as pd
 from PIL import Image
 
 from . import settings as st
-from .classes import LayoutAlgroithms
+from .classes import LayoutAlgorithms
 from .classes import LayoutTags as LT
 from .classes import NodeTags as NT
 from .classes import Organisms
@@ -45,7 +45,7 @@ def get_algo_variables(algo: str, form: dict) -> dict:
             "spread": form.get("string_cg_spread", 1.0),
             "min_dist": form.get("string_cg_min_dist", 0.1),
         }
-    if algo == LayoutAlgroithms.spring:
+    if algo == LayoutAlgorithms.spring:
         opt_dist = form.get("string_spring_opt_dist", 0.0)
         if opt_dist == 0:
             opt_dist = None
@@ -130,8 +130,8 @@ def pepare_uploader() -> None:
     """Adds extension specific data to GD.sessionData."""
     strinEx_config = {}
 
-    strinEx_config["layoutAlgos"] = LayoutAlgroithms.all_algos
-    strinEx_config["actAlgo"] = LayoutAlgroithms.spring
+    strinEx_config["layoutAlgos"] = LayoutAlgorithms.all_algos
+    strinEx_config["actAlgo"] = LayoutAlgorithms.spring
     strinEx_config["organisms"] = Organisms.all_organisms
 
     GD.sessionData["stringex"] = strinEx_config

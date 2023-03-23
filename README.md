@@ -56,3 +56,21 @@ Do the first three steps as mentioned [above](#upload-string-network).
 5. On this tab, (a) define a project name, (b) select the VRNetz file of your exported String network, and (c) select the organism from which your VRNetz originates of.
 6. Click on the "Map" button to map the network with the preprocessed PPI.
 7. If the upload was successful, you'll be prompted with a success message and a link to preview the project in the designated WebGL previewer.
+
+# Reconstruct STRING interactomes
+
+To reconstruct the provided STRING interactomes from the source files the `construct_interactomes.py' script can be used:
+
+Tested with Python 3.9+.
+
+1. Install the package e.g. in a virtual environment:
+
+- create a virtual environment<br>
+  `python3 -m venv name_of_env`
+- activate it<br>
+  `source name_of_env/bin/activate`
+- install requirements packages<br>
+  `python3 -m pip install -r requirements.txt`
+
+2. Run the construct interactomes script in reproduce mode:<br>
+   `python3 construct_interactomes.py reproduce`

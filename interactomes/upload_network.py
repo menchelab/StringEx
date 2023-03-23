@@ -174,18 +174,22 @@ def upload(
             else:
                 st.log.error(f"Could not find {col} in uniprot keywords.")
         features = list(fm_dict.keys())
-        while True:
+
+        # Write clusters to pfile -> Only possible for the first clustering as VRNetzer can currently only show a single clustering
+        clusters, cluster_labels = None, None
+        while len(features):
             clusters = data_io.read_cluster_information(src_dir, features.pop())
             if clusters is not None:
                 break
-        cluster_labels = []
-        clusters["member"] = clusters["member"].apply(
-            lambda x: [int(x) for x in x.split(",")]
-        )
-        for idx, row in clusters.iterrows():
-            if str(idx) == "-1":
-                continue
-            cluster_labels.append({"name": idx, "nodes": list(row.values)})
+        if clusters is not None:
+            cluster_labels = []
+            clusters["member"] = clusters["member"].apply(
+                lambda x: [int(x) for x in x.split(",")]
+            )
+            for idx, row in clusters.iterrows():
+                if str(idx) == "-1":
+                    continue
+                cluster_labels.append({"name": idx, "nodes": list(row.values)})
 
         nodes = nodes.rename(columns=new_names)
         nodes.update(has_gene_name)
@@ -199,7 +203,8 @@ def upload(
         files.append(("nodes_data", nodes))
         files.append(("links_data", links))
 
-        files.append(("cluster_labels", json.dumps(cluster_labels)))
+        if cluster_labels:
+            files.append(("cluster_labels", json.dumps(cluster_labels)))
 
         r = requests.post(
             f"http://{ip}:{port}/StringEx/receiveInteractome?project_name={directory}",

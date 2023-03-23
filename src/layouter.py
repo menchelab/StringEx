@@ -10,7 +10,7 @@ import swifter
 
 from . import util
 from .classes import Evidences
-from .classes import LayoutAlgroithms as LA
+from .classes import LayoutAlgorithms as LA
 from .classes import LayoutTags as LT
 from .classes import LinkTags as LiT
 from .classes import NodeTags as NT
@@ -277,6 +277,14 @@ class Layouter:
 
         no_links = G.subgraph([n for n, d in G.degree() if d == 0])
         has_links = G.subgraph([n for n in G.nodes() if n not in no_links.nodes()])
+        log.debug(
+            f"#Nodes with links: {len(has_links.nodes)}, #Nodes without links: {len(no_links.nodes)}"
+        )
+        log.debug(f"Algo variables:{algo_variables}")
+
+        # # No Sphere
+        # has_links = G
+        # no_links = []
 
         if random_lay:
             layout = self.create_random_layout(has_links)

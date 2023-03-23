@@ -239,7 +239,7 @@ def map_source_to_target(
 
     Args:
         source (str or dict): Small network that will be mapped on larger target network.
-        target (str o rdict): Large target network on which the smaller network will be mapped.
+        target (str or dict): Large target network on which the smaller network will be mapped.
         target_project (str): project name from which the target network ordinates from.
         project_name (str, optional): Project name of the mapping. Defaults to "PPI_out.VRNetz".
     """
@@ -257,5 +257,6 @@ def map_source_to_target(
 
     uploader = Uploader(target, project_name)
     uploader.color_nodes(target_project)
+
     log.info(f"Saving project {project_name}")
     return f'<a style="color:green;" href="/StringEx/preview?project={project_name}" target="_blank">SUCCESS: Saved as project {project_name} </a>'

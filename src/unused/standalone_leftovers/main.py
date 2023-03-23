@@ -3,7 +3,7 @@ import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "StringEx", "src"))
-from settings import LayoutAlgroithms
+from settings import LayoutAlgorithms
 
 HELP_TEXT = (
     "Usage:\n"
@@ -25,7 +25,7 @@ HELP_TEXT = (
     + "main.py convert <node_list> <edge_list> <opt:uniprot_mapping> <opt:project_name>"
     + "\n"
     + "possible algorithms:\n"
-    + ",".join(LayoutAlgroithms.all_algos)
+    + ",".join(LayoutAlgorithms.all_algos)
 )
 from standalone import argumentparser as ap
 from standalone.cytoscape_parser import CytoscapeParser

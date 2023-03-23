@@ -27,10 +27,11 @@ def download(tax_id: int, dest: str, clean_name: str, string_db_ver: str = "11.5
         [links, info, ali, enrichment_terms],
         [organism_links, organism_info, organism_aliases, organism_enrichment_terms],
     ):
-        if not os.path.exists(os.path.join(directory, file)):
-            r = requests.get(url + data + file)
-            with open(os.path.join(directory, file), "wb+") as f:
-                f.write(r.content)
+        if os.path.exists(os.path.join(directory, file)):
+            continue
+        r = requests.get(url + data + file)
+        with open(os.path.join(directory, file), "wb+") as f:
+            f.write(r.content)
 
 
 def gene_ontology_download(organism: str, dest: str, clean_name: str):
@@ -56,24 +57,32 @@ def gene_ontology_download(organism: str, dest: str, clean_name: str):
     tax_id = Organisms.get_tax_ids(organism)
     file_name = f"{tax_id}.gaf.gz"
     directory = os.path.join(dest, clean_name)
-    if not os.path.exists(os.path.join(directory, file_name)):
-        r = requests.get(url)
-        with open(os.path.join(directory, file_name), "wb+") as f:
-            f.write(r.content)
+    if os.path.exists(os.path.join(directory, file_name)):
+        return
+
+    r = requests.get(url)
+    with open(os.path.join(directory, file_name), "wb+") as f:
+        f.write(r.content)
 
 
 def download_go_terms(dest: str):
+    file_path = os.path.join(dest, "go-basic.obo")
+    if os.path.exists(file_path):
+        return
+
     url = "http://purl.obolibrary.org/obo/go/go-basic.obo"
     r = requests.get(url)
-    file_path = os.path.join(dest, "go-basic.obo")
     with open(file_path, "wb+") as f:
         f.write(r.content)
 
 
 def download_uniprot_keywords(dest: str):
+    file_path = os.path.join(dest, "uniprot_keywords.tsv.gz")
+    if os.path.exists(file_path):
+        return
+
     url = "https://rest.uniprot.org/keywords/stream?compressed=true&download=true&fields=id%2Cname&format=tsv&query=*"
     r = requests.get(url)
-    file_path = os.path.join(dest, "uniprot_keywords.tsv.gz")
     with open(file_path, "wb+") as f:
         f.write(r.content)
 

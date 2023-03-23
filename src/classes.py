@@ -10,7 +10,8 @@ from enum import Enum
 # Tags
 class LayoutTags:
     """
-    This class provides access to the tags which are used in the layout section of a VRNetz file.
+    This class provides access to the tags which are used in the layout section
+    of a VRNetz file.
     """
 
     position = "p"
@@ -26,7 +27,8 @@ class LayoutTags:
 
 class NodeTags:
     """
-    This class provides access to the tags which are used in the node section of a VRNetz file.
+    This class provides access to the tags which are used in the node section of
+    a VRNetz file.
     """
 
     layouts = "layouts"
@@ -49,7 +51,8 @@ class NodeTags:
 
 class StringTags:
     """
-    This class provides access to the tags which are used by stringdb networks in Cytoscape.
+    This class provides access to the tags which are used by stringdb networks
+    in Cytoscape.
     """
 
     stringdb_canoncial_name = "stringdb_canonical name"
@@ -68,6 +71,7 @@ class CytoscapeTags:
 
     name = "name"
     shared_name = "shared name"
+    suid = "SUID"
 
 
 class ProjectTag:
@@ -83,7 +87,8 @@ class ProjectTag:
 
 class LinkTags:
     """
-    This class provides access to the tags which are used in the link section of a VRNetz file.
+    This class provides access to the tags which are used in the link section of
+    a VRNetz file.
     """
 
     id = "id"
@@ -106,7 +111,7 @@ class VRNetzElements:
     network = "network"
 
 
-class LayoutAlgroithms:
+class LayoutAlgorithms:
     """
     This class provides access to all available layout algorithms.
     """
@@ -158,6 +163,7 @@ class Evidences(Enum):
         Returns:
             list[str]: List of all evidences.
         """
+
         return [e.value for e in Evidences]
 
     @staticmethod
@@ -176,7 +182,8 @@ class Evidences(Enum):
         Return a dictionary with the color scheme for each evidence.
 
         Returns:
-            dict[str,tuple[int,int,int,int]]: keys are the evidences and values are the RGBA.
+            dict[str,tuple[int,int,int,int]]: keys are the evidences and values
+            are the RGBA.
         """
         ev = {
             Evidences.any.value: (
@@ -200,7 +207,8 @@ class Evidences(Enum):
 
 class Organisms:
     """
-    This class consolidated scientific names of organisms, their tax ids and their dictionaries used for the interactome creation.
+    This class consolidates scientific names of organisms, their tax ids and
+    their directories used for the interactome creation.
     """
 
     human = "H.sapiens"

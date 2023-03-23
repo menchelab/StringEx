@@ -1,6 +1,7 @@
 #!Python3
 import argparse
 import json
+import yaml
 import os
 import timeit
 from datetime import timedelta
@@ -14,7 +15,7 @@ from interactomes import util
 
 import src.logger as logger
 import src.settings as st
-from src.classes import Organisms
+from src.classes import Organisms, LayoutAlgorithms
 import multiprocessing as mp
 
 st.log = logger.get_logger(
@@ -47,6 +48,7 @@ def workflow(parser):
                 parser.functional_threshold,
                 parser.epsilon,
                 parser.preview_layout,
+                parser.layout_threshold,
             )
             return
 
@@ -127,6 +129,8 @@ def workflow(parser):
             }
 
             def layout():
+                if parser.layout_algo is None:
+                    parser.layout_algo = LayoutAlgorithms.spring
                 if isinstance(parser.layout_algo, str):
                     parser.layout_algo = [parser.layout_algo]
                 construct_network.construct_layouts(
@@ -195,10 +199,10 @@ def workflow(parser):
 def reproduce_networks(parser: argparse.Namespace) -> None:
     """This will reproduce all the interactomes StringEX from source with the same parameters as in th original paper."""
     variables_file = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "interactomes", "variables.json"
+        os.path.abspath(os.path.dirname(__file__)), "interactomes", "variables.yaml"
     )
     with open(variables_file) as f:
-        variables = json.load(f)
+        variables = yaml.safe_load(f)
     parser.organism.remove("reproduce")
     if parser.organism == "all" or len(parser.organism) == 0:
         parser.organism = Organisms.all_organisms
@@ -216,7 +220,7 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
     )
     # Download and construct graphs for all organisms
     for organism in parser.organism:
-        base = ["-lu", organism, "-b"]
+        base = ["-lu", organism]
         if flag:
             base += flag.split(" ")
         if not parser.download:
@@ -232,7 +236,7 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
         base += ["-pl"]
     base += ["-lay"]
 
-    algo_variables = variables["layout"]
+    algo_variables = variables["default_layout"]
     for organism in parser.organism:
         base[1] = organism
         disabled = "-"
@@ -252,9 +256,23 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
             pool = mp.Pool(m)
         else:
             parallelize = False
+
         arguments = []
+        algos = [key for key, v in algo_variables.items()]
+        if parser.layout_algo:
+            algos = parser.layout_algo
+
+        # Overwrite if for the respective organism as specific set of parameters is given
+        for key in variables:
+            if organism in key:
+                for algo in algo_variables:
+                    if algo in variables[key]:
+                        algo_variables[algo].update(variables[key][algo])
+                break
 
         for algo, var in algo_variables.items():
+            if algo not in algos:
+                continue
             st.log.info(f"Calculating layout for {organism} with {algo} algorithm")
             if "c" not in disabled:
                 disabled += "c"

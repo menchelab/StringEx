@@ -2,7 +2,7 @@ import argparse
 import os
 
 from src import settings as st
-from src.classes import LayoutAlgroithms, Organisms
+from src.classes import LayoutAlgorithms, Organisms
 
 _SOURCE_FILES = os.path.join(".", "string_interactomes")
 _OUTPUT_PATH = os.path.join(".", "csv", "string_interactomes")
@@ -89,8 +89,8 @@ def parse_args(args=None):
         type=str,
         help="Defines the layout algorithm which should be used.",
         nargs="*",
-        default=LayoutAlgroithms.spring,
-        choices=LayoutAlgroithms.all_algos,
+        default=None,
+        choices=LayoutAlgorithms.all_algos,
     )
     parser.add_argument(
         "--overwrite",

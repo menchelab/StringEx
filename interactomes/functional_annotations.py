@@ -13,6 +13,7 @@ FUNCTIONAL_CATEGORIES = [
     "Disease-gene associations (DISEASES)",
     "Tissue expression (TISSUES)",
     "Subcellular localization (COMPARTMENTS)",
+    "Reactome Pathways",
 ]
 
 
@@ -171,6 +172,7 @@ def construct_feature_matrices(
     feature_matrices = {}
     filtered_functional_annotations = {}
     for cat in functional_annotations:
+        print(cat)
         category = functional_annotations[cat].copy()
         if functional_categories is not None and cat not in functional_categories:
             log.debug(

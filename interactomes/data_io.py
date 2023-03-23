@@ -64,8 +64,21 @@ def write_node_layout(
         st.log.debug(f"Writing node layout for {name} for {organism}.")
 
         feature_matrix = None
+        min_cs, max_cs, min_samples, consider = None, None, None, None
         if feature_matrices and feature_matrices[name] is not None:
             feature_matrix = feature_matrices[name].copy()
+            fm = feature_matrix.copy()
+            if "annotations" in fm.columns:
+                fm = fm.drop(columns="annotations")
+            feature_count = fm.sum(axis=0)
+            min_cs = feature_count.min()
+            min_cs = max(50, feature_count.min())
+            max_cs = feature_count.max()
+        else:
+            consider = pd.Series(layout_nodes["degree"] > 0)
+            min_cs = layout_nodes[consider]["degree"].min()
+            max_cs = layout_nodes[consider]["degree"].max()
+            min_samples = min_cs
 
         if functional_annotations is not None:
             category = functional_annotations.get(category, None)
@@ -77,23 +90,30 @@ def write_node_layout(
             feature_matrix,
             eps=eps,
             pos=pos,
+            min_cs=min_cs,
+            max_cs=max_cs,
+            min_samples=min_samples,
             preview_layout=preview_layout,
+            consider=consider,
         )
         layout_nodes[["r", "g", "b", "a"]] = cluster_colors[["r", "g", "b", "a"]]
         write_node_csv(_directory, organism, name, layout_nodes, overwrite)
-        if "functional" in algo and category is not None:
-            cluster = pd.concat(
-                [layout_nodes[ST.stringdb_identifier], cluster_colors["cluster"]],
-                axis=1,
-            )
-            write_cluster_information(_directory, organism, name, cluster, overwrite)
+        cluster = pd.concat(
+            [layout_nodes[ST.stringdb_identifier], cluster_colors["cluster"]],
+            axis=1,
+        )
+        write_cluster_information(
+            _directory, organism, cluster, name, category, overwrite
+        )
 
 
-def write_cluster_information(_directory, organism, name, cluster, overwrite):
+def write_cluster_information(
+    _directory, organism, cluster, name, category=None, overwrite=False
+):
     cluster_dir = os.path.join(_directory, "clusters")
     file_name = os.path.join(cluster_dir, f"{name}_cluster.csv")
     tax_id = Organisms.get_tax_ids(organism=organism)
-    cluster = util.get_cluster_labels(cluster, tax_id, cluster_dir, name)
+    cluster = util.get_cluster_labels(cluster, tax_id, cluster_dir, name, category)
     os.makedirs(cluster_dir, exist_ok=True)
     # cluster = cluster.apply(lambda x: ",".join(x["n"]))
     if os.path.isfile(file_name) and not overwrite:

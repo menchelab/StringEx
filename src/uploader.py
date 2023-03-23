@@ -528,6 +528,15 @@ class Uploader:
             if key in nodes.columns:
                 filtered = filtered.drop(columns=[key])
 
+        nodes["From Cytoscape"] = None
+        mapped_nodes = nodes[~nodes[NT.size].isna()].copy()
+        not_mappend = nodes[nodes[NT.size].isna()].copy()
+        mapped_nodes["From Cytoscape"] = [True] * len(mapped_nodes)
+        not_mappend["From Cytoscape"] = [False] * len(not_mappend)
+
+        nodes.update(mapped_nodes)
+        nodes.update(not_mappend)
+
         self.project.nodes = {
             "nodes": [
                 {
@@ -553,44 +562,49 @@ class Uploader:
             ]
         }
 
-        self.project.write_all_jsons()
-
         nodes = nodes.drop(
             columns=[c for c in nodes.columns if c not in [NT.node_color, NT.size]]
         )
 
-        def mask_nodes(project: Project, selected_nodes):
+        def mask_nodes(project: Project, nodes: pd.DataFrame, selected_nodes: list):
             # MASK WHICH HIGHLIGHTS NODES THAT ARE SELECTED
             NODE_BITMAP_SIZE = 128
             nodes = pd.DataFrame(project.get_nodes()["nodes"])
             mask = np.zeros((NODE_BITMAP_SIZE, NODE_BITMAP_SIZE, 4))
             nodes = nodes[nodes["id"].isin(selected_nodes)].copy()
             x, y = nodes["id"] // NODE_BITMAP_SIZE, nodes["id"] % NODE_BITMAP_SIZE
+            x, y = x.astype(int), y.astype(int)
             mask[x, y, :] = 1
             return mask
 
-        mapped_nodes = nodes[~nodes[NT.size].isna()].copy()
-        mask = mask_nodes(self.project, mapped_nodes.index)
+        mask = mask_nodes(self.project, nodes, mapped_nodes.index)
         for lay in layouts:
             layout_bmp = self.project.load_bitmap(lay, NODE, COLOR, True)
             selected = np.zeros_like(layout_bmp)
             selected[layout_bmp > 0] = mask[layout_bmp > 0]
             # Multiply the two images element-wise
             if len(np.unique(layout_bmp)) >= 1:
+                # If not all colors are the same, use the color of the selected nodes.
                 result = layout_bmp * selected
             else:
-                # Make selected nodes red
+                # Else mask selected nodes red.
                 result[:, :, :3] = [255, 0, 0]
 
             non_zero = np.nonzero(selected)
+            NOT_SELECTED = (
+                255,
+                255,
+                255,
+                10,
+            )
             max_row = np.max(non_zero[0])
             non_zero = np.nonzero(selected[max_row])
             max_col = np.max(non_zero[0])
             not_selected = ~selected
-            not_selected[:max_row, :, :3] = [255, 255, 255]
-            not_selected[max_row, :max_col, :3] = [255, 255, 255]
-            not_selected[max_row, max_col:] = 0
-            not_selected[max_row + 1 :] = 0
+            not_selected[:max_row, :, :] = NOT_SELECTED
+            not_selected[max_row, :max_col, :] = NOT_SELECTED
+            not_selected[max_row, max_col:, :] = NOT_SELECTED
+            not_selected[max_row + 1 :, :, :] = NOT_SELECTED
 
             result = result + not_selected
             bmp = Image.fromarray(np.uint8(result))
@@ -601,7 +615,6 @@ class Uploader:
             lambda x: tuple(x[NT.node_color] + [int(255 * x[NT.size])]), axis=1
         )
 
-        not_mappend = nodes[nodes[NT.size].isna()].copy()
         not_mappend[NT.node_color] = (
             not_mappend[NT.node_color]
             .swifter.progress_bar(False)
@@ -613,7 +626,8 @@ class Uploader:
         layout_bmp.putdata(nodes[NT.node_color])
         self.project.write_bitmap(layout_bmp, "Mapped", NODE, COLOR)
         self.project.add_node_color("Mapped")
-        self.project.write_pfile()
+
+        self.project.write_all_jsons()
 
     def update_link_textures(self, links, l_lay, target_links, target_links_rgb):
         self.make_link_tex(links, l_lay)

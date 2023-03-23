@@ -88,7 +88,14 @@ def map_files():
     organism = form.get("string_organism")
     project_name = form.get("string_map_project_name")
     src_filename = f_src_network.filename
-    return wf.VRNetzer_map_workflow(src_network, src_filename, organism, project_name)
+    result = wf.VRNetzer_map_workflow(src_network, src_filename, organism, project_name)
+    if hasattr(GD, "annotationScraper"):
+        if "ppi" not in project_name.lower():
+            # Add ppi to project name to activate the right node panel
+            project_name = f"{project_name}_ppi"
+        st.log.debug("Updating annotations")
+        GD.annotationScraper.update_annotations(project_name)
+    return result
 
 
 def preview():

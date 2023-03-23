@@ -14,19 +14,20 @@ import requests  ## python -m pip install requests
 import json
 import os
 import pandas as pd
+import src.settings as st
 
 string_api_url = "https://version-11-5.string-db.org/api"
 output_format = "json"
 method = "enrichment"
 
 
-def main(clusters, tax_id, cluster_dir, category):
+def main(clusters, tax_id, cluster_dir, name, category):
     cluster_names = {}
     for idx, cluster in clusters.iterrows():
         if idx == -1:
             continue
         my_genes = cluster["member"].replace(",", "%0d")
-        description = api_call(my_genes, tax_id, cluster_dir, category, idx)
+        description = api_call(my_genes, tax_id, cluster_dir, category, name, idx)
         if description is not None:
             cluster_names[idx] = description
     return cluster_names
@@ -45,7 +46,7 @@ def read_cluster_file(category):
     return clusters
 
 
-def api_call(my_genes, species, cluster_dir, category, cluster):
+def api_call(my_genes, species, cluster_dir, category, name, cluster):
     request_url = "/".join([string_api_url, output_format, method])
 
     ##
@@ -70,18 +71,24 @@ def api_call(my_genes, species, cluster_dir, category, cluster):
 
     data = pd.read_json(response.text)
     if data.empty:
+        st.log.debug(f"No data found for {cluster}_{name}")
         return None
     path = os.path.join(
         cluster_dir,
         "enrichments",
-        f"{category}",
-        f"{cluster}_{category}_enrichment.csv",
+        f"{name}",
+        f"{cluster}_{name}_enrichment.csv",
     )
     os.makedirs(os.path.dirname(path), exist_ok=True)
     categories = data["category"].unique()
-    categories = [x for x in categories if x in category]
-    data = data[data["category"].isin(categories)]
+    if category is not None:
+        categories = [x for x in categories if x in name]
+        data = data[data["category"].isin(categories)]
+        if data.empty:
+            st.log.debug(f"No data with category: {category}")
+            return None
     data = data.sort_values(by="p_value")
+
     data = data[
         [
             "description",
@@ -89,12 +96,13 @@ def api_call(my_genes, species, cluster_dir, category, cluster):
             "fdr",
             "number_of_genes",
             "number_of_genes_in_background",
+            "category",
+            "term",
             "inputGenes",
         ]
     ].copy()
+
     data.to_csv(path, index=False)
-    if data.empty:
-        return None
     return data["description"].values[0]
 
 

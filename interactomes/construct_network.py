@@ -126,7 +126,7 @@ def gen_graph(
             src = sources.get_group(src)
             no_uniprot[NT.uniprot] = no_uniprot[ST.stringdb_identifier].swifter.apply(
                 lambda x: None
-                if x not in src.index
+                if x not in src.index or isinstance(src.at[x, "alias"], float)
                 else [src.at[x, "alias"]]
                 if isinstance(src.at[x, "alias"], str)
                 else [uniprot for uniprot in src.at[x, "alias"]]
@@ -136,7 +136,11 @@ def gen_graph(
             src = sources.get_group(src)
             st.log.debug(f"Extracting gene name..", flush=True)
             nodes[NT.gene_name] = nodes[ST.stringdb_identifier].swifter.apply(
-                lambda x: src.at[x, "alias"] if x in src.index else None
+                lambda x: None
+                if x not in src.index or isinstance(src.at[x, "alias"], float)
+                else src.at[x, "alias"]
+                if isinstance(src.at[x, "alias"], str)
+                else src.at[x, "alias"][0]
             )
 
     no_uniprot = nodes[nodes[NT.uniprot].isna() & nodes[NT.gene_name].notna()]
@@ -291,8 +295,10 @@ def construct_layouts(
     tmp_names = layout_name.copy()
     feature_matrices = {}
     categories = []
+
     filtered_functional_annotations = None
     identifiers = nodes[ST.stringdb_identifier].copy()
+    nodes["degree"] = pd.Series({n: d for n, d in layout_graph.degree()})
     for idx, layout in enumerate(tmp):
         name = tmp_names[idx]
         if "functional" in layout:
@@ -318,6 +324,7 @@ def construct_layouts(
         else:
             feature_matrices[name] = None
             categories.append(None)
+
     for idx, layout in enumerate(tmp):
         file_name = os.path.join(_dir, clean_name, "nodes", f"{layout_name[idx]}.csv")
         if os.path.isfile(file_name) and not overwrite:
