@@ -2,6 +2,7 @@ import os
 from logging import DEBUG
 
 from . import logger
+from .classes import LayoutAlgorithms
 
 _LOG_DEBUG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)s - %(funcName)s()] %(message)s"
 _LOG_DEFAULT_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

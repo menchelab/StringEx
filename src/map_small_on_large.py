@@ -22,6 +22,7 @@ from .settings import (
     log,
 )
 from .uploader import Uploader
+from project import Project
 
 
 def map_nodes(
