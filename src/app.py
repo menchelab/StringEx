@@ -6,6 +6,7 @@ import flask
 import GlobalData as GD
 from io_blueprint import IOBlueprint
 from project import Project
+
 import util
 
 from . import routes
@@ -27,14 +28,12 @@ blueprint = IOBlueprint(
 main_tabs = ["string_main_tab.html", "string_send_subset.html"]
 upload_tabs = ["string_upload_tab.html", "string_map_tab.html"]
 
+"""Setup function to prepare the STRING Uploader and move the prepared STRING interactomes from the StringEx directory to the projects directory of the VRNetzer backend."""
+string_util.pepare_uploader()
+string_util.move_on_boot()
+
 
 @blueprint.before_app_first_request
-def stringex_setup():
-    """Setup function to prepare the STRING Uploader and move the prepared STRING interactomes from the StringEx directory to the projects directory of the VRNetzer backend."""
-    string_util.pepare_uploader()
-    string_util.move_on_boot()
-
-
 @blueprint.route("/preview", methods=["GET"])
 def string_preview():
     """Route to STRING WEBGL Preview. If No project is selected, redirect to the project selection page of the StringEx WEBGL preview. this function is based on the preview function of base VRNetzer app.py."""
