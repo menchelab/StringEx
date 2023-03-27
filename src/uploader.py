@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 from multiprocessing import Manager, Pool, Process
 
 import numpy as np
@@ -13,8 +14,8 @@ from .settings import _WORKING_DIR
 sys.path.append(os.path.join(_WORKING_DIR, "..", ".."))
 
 import GlobalData as GD
-from project import DEFAULT_PFILE, Project, NODE, COLOR
 from PIL import Image
+from project import COLOR, DEFAULT_PFILE, NODE, Project
 
 from .classes import Evidences as EV
 from .classes import LayoutTags as LT
@@ -25,6 +26,8 @@ from .classes import StringTags as ST
 from .classes import VRNetzElements as VRNE
 from .settings import log
 from .util import clean_filename
+
+warnings.filterwarnings("ignore")
 
 
 def os_join(*args):
