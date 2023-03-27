@@ -538,3 +538,9 @@ def sample_sphere(
 def visualize_layout(layout: list[float, float, float], *args, **kwargs):
     """Visualizes the given layout."""
     layout_util.visualize_layout(layout, *args, **kwargs)
+
+
+def take_screenshot(
+    layout: list[float, float, float], color, *args, **kwargs
+) -> np.ndarray:
+    layout_util.visualize_layout(layout, color, screenshot=True, *args, **kwargs)

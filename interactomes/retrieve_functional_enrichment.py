@@ -10,10 +10,13 @@
 ## or terminal (mac/linux) to install the module
 ##############################################################
 
-import requests  ## python -m pip install requests
 import json
 import os
+import time
+
 import pandas as pd
+import requests  # # python -m pip install requests
+
 import src.settings as st
 
 string_api_url = "https://version-11-5.string-db.org/api"
@@ -30,6 +33,8 @@ def main(clusters, tax_id, cluster_dir, name, category):
         description = api_call(my_genes, tax_id, cluster_dir, category, name, idx)
         if description is not None:
             cluster_names[idx] = description
+        else:
+            cluster_names[idx] = idx
     return cluster_names
 
 
@@ -62,8 +67,11 @@ def api_call(my_genes, species, cluster_dir, category, name, cluster):
     ##
     ## Call STRING
     ##
-
-    response = requests.post(request_url, data=params)
+    try:
+        response = requests.post(request_url, data=params)
+    except requests.exceptions.ConnectionError:
+        time.sleep(5)
+        return api_call(my_genes, species, cluster_dir, category, name, cluster)
 
     ##
     ## Read and parse the results
@@ -81,12 +89,6 @@ def api_call(my_genes, species, cluster_dir, category, name, cluster):
     )
     os.makedirs(os.path.dirname(path), exist_ok=True)
     categories = data["category"].unique()
-    if category is not None:
-        categories = [x for x in categories if x in name]
-        data = data[data["category"].isin(categories)]
-        if data.empty:
-            st.log.debug(f"No data with category: {category}")
-            return None
     data = data.sort_values(by="p_value")
 
     data = data[
@@ -103,6 +105,17 @@ def api_call(my_genes, species, cluster_dir, category, name, cluster):
     ].copy()
 
     data.to_csv(path, index=False)
+
+    if category is not None:
+        if "Reactome Pathway" in name:
+            categories = [x for x in categories if "RCTM" in x]
+        else:
+            categories = [x for x in categories if x in name]
+        data = data[data["category"].isin(categories)]
+        if data.empty:
+            st.log.debug(f"No data with category: {name}")
+            return None
+
     return data["description"].values[0]
 
 

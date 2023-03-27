@@ -5,14 +5,15 @@ import networkx as nx
 import pandas as pd
 
 import src.settings as st
+from interactomes import data_io
 from interactomes import functional_annotations as fa
 from src import map_uniprot
 from src.classes import Evidences
 from src.classes import LinkTags as LiT
-from src.classes import NodeTags as NT, StringTags as ST
+from src.classes import NodeTags as NT
 from src.classes import Organisms
+from src.classes import StringTags as ST
 from src.layouter import Layouter
-from interactomes import data_io
 
 
 def construct_graph(
@@ -22,6 +23,7 @@ def construct_graph(
     tax_id: int,
     last_link: int or None = None,
     MAX_NUM_LINKS=st.MAX_NUM_LINKS,
+    overwrite=False,
 ) -> tuple[nx.Graph, dict]:
     """Extracts data from the STRING DB network files and constructs a nx.Graph afterwards.
 
@@ -53,6 +55,7 @@ def construct_graph(
         clean_name,
         networks_directory,
         last_link,
+        overwrite=overwrite,
     )
     return G, links, annotations
 
@@ -66,9 +69,7 @@ def gen_graph(
     clean_name: str,
     _dir: str,
     last_link: int or None = None,
-    threshold: float = 0,
-    feature_threshold: int = 0.05,
-    annotation_treshold: float = 0.01,
+    overwrite: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Extracts data from the STRING database files and constructs a graph representing the protein-protein interaction network.
 
@@ -108,12 +109,16 @@ def gen_graph(
     nodes[NT.name] = nodes[ST.stringdb_identifier].swifter.apply(
         lambda x: x.split(".")[1]
     )
+    reconstruct = False
+    if overwrite:
+        reconstruct = True
 
     functional_annotations = fa.get_annotations(
         _dir,
         clean_name,
         taxid,
         enrichment_table,
+        reconstruct=reconstruct,
     )
 
     sources = alias_table.groupby("source")
@@ -161,7 +166,6 @@ def gen_graph(
     has_gene_name = nodes[nodes[NT.gene_name].notna()].copy()
     has_gene_name[NT.name] = has_gene_name[NT.gene_name]
     nodes.update(has_gene_name)
-
     data_io.write_network(
         clean_name,
         nodes,
@@ -252,14 +256,14 @@ def construct_layouts(
     nodes, all_links, functional_annotations = data_io.read_network(
         _dir, clean_name, functional_lay
     )
-    # nodes = nodes.sample(n=5000, random_state=42)
 
-    if functional_lay:
-        functional_annotations = dict(
-            sorted(
-                functional_annotations.items(), key=lambda x: x[1].size, reverse=True
-            )[:max_num_features]
-        )
+    # #Deprecated Was used to find which functional layouts should be considered.
+    # if functional_lay:
+    #     functional_annotations = dict(
+    #         sorted(
+    #             functional_annotations.items(), key=lambda x: x[1].size, reverse=True
+    #         )[:max_num_features]
+    #     )
 
     all_links = all_links[:max_links]
 

@@ -1,20 +1,24 @@
-import pandas as pd
-import numpy as np
 import os
-from src.classes import NodeTags as NT
-import src.settings as st
-from src.classes import Evidences, Organisms
-from src.classes import LinkTags as LiT
-from src.classes import StringTags as ST
-import time
-import networkx as nx
-from goatools import obo_parser
-from interactomes import util
 import pickle
+import time
+
+import networkx as nx
+import numpy as np
+import pandas as pd
+from goatools import obo_parser
+
+import src.settings as st
+from interactomes import util
+from src.classes import Evidences
+from src.classes import LinkTags as LiT
+from src.classes import NodeTags as NT
+from src.classes import Organisms
+from src.classes import StringTags as ST
+from src.layouter import take_screenshot, visualize_layout
 
 
 def write_node_layout(
-    organism: str,
+    organism_dir: str,
     nodes: pd.DataFrame,
     layouts: dict,
     _dir: str,
@@ -28,14 +32,16 @@ def write_node_layout(
     preview_layout: bool = False,
 ) -> None:
     """Will write the node layout to a csv file with the following format:
-    x,y,r,g,b,a,name;uniprot_id;description. File name is: {organism}_node.csv located in projects folder.
+    x,y,r,g,b,a,name;uniprot_id;description. File name is: {layout}_node.csv located in projects folder.
 
     Args:
-        organism (str): organism from which the network originates from.
+        organism_dir (str): organism_dir from which the network originates from.
         G (nx.Graph): Graph of the network.
         layout (dict): calculated layout of the graph. With the node id as key and the position as value.
     """
-    _directory = os.path.join(_dir, organism)
+    _directory = os.path.join(_dir, organism_dir)
+    tax_id = Organisms.get_tax_ids(directory=organism_dir)
+    organism = Organisms.get_organism_name(directory=organism_dir)
     os.makedirs(_directory, exist_ok=True)
     nodes["a"] = 255 // 4
     nodes = nodes.sort_index()
@@ -74,6 +80,7 @@ def write_node_layout(
             min_cs = feature_count.min()
             min_cs = max(50, feature_count.min())
             max_cs = feature_count.max()
+            consider = pd.Series(fm.any(axis=1))
         else:
             consider = pd.Series(layout_nodes["degree"] > 0)
             min_cs = layout_nodes[consider]["degree"].min()
@@ -96,31 +103,95 @@ def write_node_layout(
             preview_layout=preview_layout,
             consider=consider,
         )
-        layout_nodes[["r", "g", "b", "a"]] = cluster_colors[["r", "g", "b", "a"]]
-        write_node_csv(_directory, organism, name, layout_nodes, overwrite)
+
         cluster = pd.concat(
             [layout_nodes[ST.stringdb_identifier], cluster_colors["cluster"]],
             axis=1,
         )
+        cluster_dir = os.path.join(_directory, "clusters")
+        cluster = util.get_cluster_labels(cluster, tax_id, cluster_dir, name, category)
+
+        # grouped = cluster.groupby(cluster.index).agg({"member": lambda x: ",".join(x)})
+
+        # grouped_labels = cluster_colors["cluster"].copy()
+        # for idx, cluster in grouped.iterrows():
+        #     if idx == -1:
+        #         continue
+        #     members = cluster["member"].split(",")
+        #     for member in members:
+        #         grouped_labels[int(member)] = idx
+        # grouped_labels = grouped_labels.fillna(-1)
+        # color = get_cluster_colors(grouped_labels, preview_layout, pos, consider)
+        layout_nodes[["r", "g", "b", "a"]] = cluster_colors[["r", "g", "b", "a"]]
+        write_node_csv(_directory, organism, name, layout_nodes, overwrite=overwrite)
+
         write_cluster_information(
-            _directory, organism, cluster, name, category, overwrite
+            cluster_dir, organism, cluster, name, overwrite=overwrite
         )
 
 
+def get_cluster_colors(labels, preview_layout, pos, consider, normalize=False):
+    import seaborn as sns
+
+    colors = pd.Series([[1, 1, 1, 1] for _ in range(len(pos))])
+    label_set = set(labels)
+    color_palette = dict(zip(label_set, sns.color_palette("bright", len(label_set))))
+    not_clustered = [0, 0, 0, 0.75]
+    cluster_colors = [
+        color_palette[x] + (0.5,) if x != -1 else not_clustered
+        for x in labels[consider]
+    ]
+    to_color = pd.Series(cluster_colors, index=consider[consider].index)
+    colors.update(to_color)
+    colors = np.array(colors.tolist())
+    # Invert colors and normalize between 0.1 and 1 to make them at least visible
+    if not colors.max() == colors.min():
+        colors = 0.5 - (colors - 0.5)
+        colors = 0.9 * (colors - colors.min()) / (colors.max() - colors.min()) + 0.1
+    else:
+        print("All colors are the same")
+        colors = np.ones_like(colors)
+    for i in range(3):
+        st.log.debug(f"{colors[:, i].min()}, {colors[:, i].max()}")
+    if preview_layout:
+        st.log.debug("VISUALIZING LAYOUT")
+        visualize_layout(
+            pos,
+            colors[:, :3],
+        )
+
+    if normalize:
+        return colors
+
+    colors *= 255
+    colors = colors.astype(int)
+
+    return colors
+
+
 def write_cluster_information(
-    _directory, organism, cluster, name, category=None, overwrite=False
+    cluster_dir, organism, cluster, name, grouped=None, overwrite=False
 ):
-    cluster_dir = os.path.join(_directory, "clusters")
     file_name = os.path.join(cluster_dir, f"{name}_cluster.csv")
-    tax_id = Organisms.get_tax_ids(organism=organism)
-    cluster = util.get_cluster_labels(cluster, tax_id, cluster_dir, name, category)
     os.makedirs(cluster_dir, exist_ok=True)
     # cluster = cluster.apply(lambda x: ",".join(x["n"]))
     if os.path.isfile(file_name) and not overwrite:
-        st.log.info(f"Node layout for {name} for {organism} already exists. Skipping.")
+        st.log.info(
+            f"Cluster information for {name} for {organism} already exists. Skipping."
+        )
         return
     cluster.to_csv(file_name, sep="\t", header=True, index=True)
-    st.log.info(f"Node layout for {organism} has been written to {file_name}.")
+    st.log.info(f"Cluster information for {organism} has been written to {file_name}.")
+    if grouped is None:
+        return
+    file_name = os.path.join(cluster_dir, f"{name}_grouped_cluster.csv")
+    if os.path.isfile(file_name) and not overwrite:
+        st.log.info(
+            f"Cluster information for {name} for {organism} already exists. Skipping."
+        )
+        return
+    grouped.to_csv(file_name, sep="\t", header=True, index=True)
+    st.log.info(f"Cluster information for {organism} has been written to {file_name}.")
 
 
 def read_cluster_information(_directory, name):
@@ -132,10 +203,10 @@ def read_cluster_information(_directory, name):
     return cluster
 
 
-def write_node_csv(_directory, organism, name, layout_nodes, overwrite):
-    _directory = os.path.join(_directory, "nodes")
-    file_name = os.path.join(_directory, f"{name}.csv")
-    os.makedirs(_directory, exist_ok=True)
+def write_node_csv(organism_dir, organism, name, layout_nodes, overwrite):
+    node_dir = os.path.join(organism_dir, "nodes")
+    file_name = os.path.join(node_dir, f"{name}.csv")
+    os.makedirs(node_dir, exist_ok=True)
     if os.path.isfile(file_name) and not overwrite:
         st.log.info(f"Node layout for {name} for {organism} already exists. Skipping.")
         return
@@ -410,7 +481,7 @@ def read_node_layouts(_dir: str, clean_name: str) -> dict[str, pd.DataFrame]:
         if not file.endswith(".csv"):
             continue
         file_path = os.path.join(_directory, file)
-        layout_name = file.strip(".csv")
+        layout_name = file.replace(".csv", "")
         data = pd.read_csv(
             file_path,
             sep=",",

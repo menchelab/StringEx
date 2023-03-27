@@ -1,8 +1,10 @@
-import pandas as pd
 import os
-from src.settings import log
+
+import pandas as pd
+
 from interactomes import data_io
 from src.classes import Organisms
+from src.settings import log
 
 FUNCTIONAL_CATEGORIES = [
     # "Protein Domains (Pfam)",
@@ -58,8 +60,9 @@ def get_annotations(
     functional_annotations = {}
 
     categories = df.groupby("category")
+    print(f"Processing {len(categories)} categories")
     for cat in categories.groups:
-        log.debug(f"Processing {cat}", flush=True)
+        log.debug(f"Processing {cat}")
         terms = categories.get_group(cat).groupby("term")
         collection = {}
         for term in terms.groups.keys():
@@ -102,12 +105,16 @@ def prepare_feature_matrices(
 ):
     new_algos = []
     new_names = []
+    min_threshold = 0.01
+    if functional_threshold < min_threshold:
+        min_threshold = functional_threshold
 
     fms, functional_annotations = construct_feature_matrices(
         name,
         functional_annotations,
         identifiers,
         functional_categories=functional_categories,
+        min_threshold=min_threshold,
     )
 
     data_io.write_feature_matrices(_dir, clean_name, fms)

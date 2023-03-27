@@ -1,9 +1,9 @@
 import os
 
-import numpy
-import open3d as o3d
 import networkx as nx
+import numpy
 import numpy as np
+import open3d as o3d
 
 _WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 _THIS_EXT = os.path.join(_WORKING_DIR, "..")
@@ -47,7 +47,10 @@ def sample_sphere_pcd(
 
 
 def visualize_layout(
-    layout: list[list[float, float, float]], colors: list[list[float, float, float]]
+    layout: list[list[float, float, float]],
+    colors: list[list[float, float, float]],
+    screenshot=False,
+    png_name="screenshot.png",
 ) -> None:
     """Visualize a layout with colors in 3D using open3D.
 
@@ -76,6 +79,7 @@ def visualize_layout(
     key_to_callback[ord("K")] = change_background_to_black
     key_to_callback[ord("L")] = change_background_to_white
     key_to_callback[ord("P")] = exit
+
     try:
         o3d.visualization.draw_geometries_with_key_callbacks([pcd], key_to_callback)
     except KeyboardInterrupt:

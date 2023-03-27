@@ -8,9 +8,9 @@
 default_layout:
   cg_functional_umap:
     -fthr: 0.05
-    -lay_thr: 0.9
+    -lay_thr: 0.4
     -maxf: 10
-    -md: 0.99
+    -md: 0.5
     -name: ''
     -nn: 10
   cg_local_umap:

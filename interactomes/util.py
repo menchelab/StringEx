@@ -1,20 +1,21 @@
-import numpy as np
-import src.settings as st
-import pandas as pd
-import time
-from interactomes import data_io
-from interactomes import check_feature_matrices
-from interactomes import functional_annotations as fa
-import seaborn as sns
-from src.classes import Organisms
-from src.classes import NodeTags as NT
-from src.classes import StringTags as ST
 import os
-from src.layouter import visualize_layout
-from interactomes import retrieve_functional_enrichment as rfe
+import time
+
 import networkx as nx
-from src.classes import LinkTags as LiT
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+import src.settings as st
+from interactomes import check_feature_matrices, data_io
+from interactomes import functional_annotations as fa
+from interactomes import retrieve_functional_enrichment as rfe
 from src.classes import Evidences
+from src.classes import LinkTags as LiT
+from src.classes import NodeTags as NT
+from src.classes import Organisms
+from src.classes import StringTags as ST
+from src.layouter import visualize_layout
 
 
 def color_layout(
@@ -78,10 +79,10 @@ def color_layout(
 
 
 def clustering(to_color, fm, pos, eps=None, min_cs=None, max_cs=None, min_samples=None):
+    import hdbscan
     import umap
     from matplotlib import pyplot as plt
     from sklearn.decomposition import PCA
-    import hdbscan
 
     # fm = fm[:5000]
     if eps is None or eps < 0:
@@ -122,8 +123,8 @@ def clustering(to_color, fm, pos, eps=None, min_cs=None, max_cs=None, min_sample
 
 
 def model_varaibles(fm, pos, min_cs, eps):
-    from matplotlib import pyplot as plt
     import hdbscan
+    from matplotlib import pyplot as plt
 
     clusters = []
     coverage = []
@@ -243,25 +244,25 @@ def recolor(
     #     print(feature_name)
     #     print("=" * 50)
     #     print(feature_matrix)
-    for layout, nodes in node_colors.items():
+    for layout_name, nodes in node_colors.items():
         # print(layout)
         # print("=" * 50)
         # print(nodes)
         feature_matrix, category = None, None
         min_cs, max_cs, min_samples, consider = None, None, None, None
-        if not any([name in layout for name in ["spring", "local", "global"]]):
-            if layout not in feature_matrices:
-                st.log.debug(f"Layout {layout} not in feature matrices.")
+        if not any([name in layout_name for name in ["spring", "local", "global"]]):
+            if layout_name not in feature_matrices:
+                st.log.debug(f"Layout {layout_name} not in feature matrices.")
                 continue
-            if layout not in functional_annotations:
-                st.log.debug(f"Layout {layout} not in functional annotations.")
+            if layout_name not in functional_annotations:
+                st.log.debug(f"Layout {layout_name} not in functional annotations.")
                 continue
-            feature_matrix = feature_matrices[layout]
-            category = functional_annotations[layout]
+            feature_matrix = feature_matrices[layout_name]
+            category = functional_annotations[layout_name]
 
             if feature_matrix is None:
                 continue
-            feature_matrix = feature_matrices[layout].copy()
+            feature_matrix = feature_matrices[layout_name].copy()
             fm = feature_matrix.copy()
             if "annotations" in fm.columns:
                 fm = fm.drop(columns="annotations")
@@ -269,6 +270,7 @@ def recolor(
             min_cs = feature_count.min()
             min_cs = max(50, feature_count.min())
             max_cs = feature_count.max()
+            consider = pd.Series(fm.any(axis=1))
         else:
             all_links = data_io.read_links_pickle(_dir, clean_name)
             G = nx.from_pandas_edgelist(
@@ -284,7 +286,7 @@ def recolor(
             min_samples = min_cs
 
         pos = extract_pos(nodes)
-        nodes[["r", "g", "b", "a", "cluster"]] = color_layout(
+        cluster_info = color_layout(
             len(nodes),
             "functional",
             category,
@@ -297,9 +299,31 @@ def recolor(
             preview_layout=preview_layout,
             consider=consider,
         )
-        cluster = pd.concat([identifiers, nodes.cluster], axis=1)
-        nodes = nodes.drop(columns=["cluster"]).copy()
-        data_io.write_node_csv(organism_dir, organism, layout, nodes, True)
+        cluster = pd.concat(
+            [identifiers, cluster_info["cluster"]],
+            axis=1,
+        )
+        cluster_dir = os.path.join(organism_dir, "clusters")
+        clusters = get_cluster_labels(
+            cluster, tax_id, cluster_dir, layout_name, category
+        )
+        # grouped = clusters.groupby(clusters.index).agg(
+        #     {"member": lambda x: ",".join(x)}
+        # )
+
+        # grouped_labels = cluster_info["cluster"].copy()
+        # for idx, cluster in grouped.iterrows():
+        #     if idx == -1:
+        #         continue
+        #     members = cluster["member"].split(",")
+        #     for member in members:
+        #         grouped_labels[int(member)] = idx
+        # grouped_labels = grouped_labels.fillna(-1)
+        # color = data_io.get_cluster_colors(
+        #     grouped_labels, preview_layout, pos, consider
+        # )
+        nodes[["r", "g", "b", "a"]] = cluster_info[["r", "g", "b", "a"]]
+        data_io.write_node_csv(organism_dir, organism, layout_name, nodes, True)
         data_io.write_cluster_information(
-            organism_dir, organism, cluster, layout, category, True
+            cluster_dir, organism, clusters, layout_name, overwrite=True
         )

@@ -1,22 +1,19 @@
 #!Python3
 import argparse
 import json
-import yaml
+import multiprocessing as mp
 import os
 import timeit
 from datetime import timedelta
 
-from interactomes import arg_parser
-from interactomes import load_files
-from interactomes import construct_network
-from interactomes import upload_network
-from interactomes import check_feature_matrices as feature_matrices
-from interactomes import util
+import yaml
 
 import src.logger as logger
 import src.settings as st
-from src.classes import Organisms, LayoutAlgorithms
-import multiprocessing as mp
+from interactomes import arg_parser
+from interactomes import check_feature_matrices as feature_matrices
+from interactomes import construct_network, load_files, upload_network, util
+from src.classes import LayoutAlgorithms, Organisms
 
 st.log = logger.get_logger(
     name="interactome_construction",
@@ -50,7 +47,7 @@ def workflow(parser):
                 parser.preview_layout,
                 parser.layout_threshold,
             )
-            return
+            continue
 
         if parser.feature_matrices or parser.plot_feature_matrices:
 
@@ -96,6 +93,7 @@ def workflow(parser):
                     tax_id,
                     parser.last_link,
                     parser.max_links,
+                    parser.overwrite,
                 )
 
             if parser.benchmark:
@@ -228,7 +226,8 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
         if not parser.construct:
             base[0] += "c"
         st.log.debug(base)
-        main(base)
+        if not "c" in base[0] or not "d" in base[0]:
+            main(base)
     # calculate all respective layouts for the organisms
     if parser.no_lay:
         base += ["-nl"]
@@ -237,61 +236,62 @@ def reproduce_networks(parser: argparse.Namespace) -> None:
     base += ["-lay"]
 
     algo_variables = variables["default_layout"]
-    for organism in parser.organism:
-        base[1] = organism
-        disabled = "-"
-        if not parser.download:
-            disabled += "d"
-        if not parser.construct:
-            disabled += "c"
-        if not parser.layout:
-            disabled += "l"
-        if "u" not in disabled:
-            disabled += "u"
-        m = len(algo_variables)
-        if m > 1 and parser.parallel:
-            parallelize = True
-            if m > np:
-                m = np
-            pool = mp.Pool(m)
-        else:
-            parallelize = False
-
-        arguments = []
-        algos = [key for key, v in algo_variables.items()]
-        if parser.layout_algo:
-            algos = parser.layout_algo
-
-        # Overwrite if for the respective organism as specific set of parameters is given
-        for key in variables:
-            if organism in key:
-                for algo in algo_variables:
-                    if algo in variables[key]:
-                        algo_variables[algo].update(variables[key][algo])
-                break
-
-        for algo, var in algo_variables.items():
-            if algo not in algos:
-                continue
-            st.log.info(f"Calculating layout for {organism} with {algo} algorithm")
-            if "c" not in disabled:
-                disabled += "c"
-            if "d" not in disabled:
+    if parser.layout:
+        for organism in parser.organism:
+            base[1] = organism
+            disabled = "-"
+            if not parser.download:
                 disabled += "d"
-            args = [disabled] + base[1:] + [algo]
-            for k, v in var.items():
-                if k not in args:
-                    args += [f"{k}", f"{v}"]
-            st.log.debug(args)
-            arguments.append(args)
+            if not parser.construct:
+                disabled += "c"
+            if not parser.layout:
+                disabled += "l"
+            if "u" not in disabled:
+                disabled += "u"
+            m = len(algo_variables)
+            if m > 1 and parser.parallel:
+                parallelize = True
+                if m > np:
+                    m = np
+                pool = mp.Pool(m)
+            else:
+                parallelize = False
 
-        if parallelize:
-            pool.map_async(main, arguments)
-            pool.close()
-            pool.join()
-        else:
-            for arg in arguments:
-                main(arg)
+            arguments = []
+            algos = [key for key, v in algo_variables.items()]
+            if parser.layout_algo:
+                algos = parser.layout_algo
+
+            # Overwrite if for the respective organism as specific set of parameters is given
+            for key in variables:
+                if organism in key:
+                    for algo in algo_variables:
+                        if algo in variables[key]:
+                            algo_variables[algo].update(variables[key][algo])
+                    break
+
+            for algo, var in algo_variables.items():
+                if algo not in algos:
+                    continue
+                st.log.info(f"Calculating layout for {organism} with {algo} algorithm")
+                if "c" not in disabled:
+                    disabled += "c"
+                if "d" not in disabled:
+                    disabled += "d"
+                args = [disabled] + base[1:] + [algo]
+                for k, v in var.items():
+                    if k not in args:
+                        args += [f"{k}", f"{v}"]
+                st.log.debug(args)
+                arguments.append(args)
+
+            if parallelize:
+                pool.map_async(main, arguments)
+                pool.close()
+                pool.join()
+            else:
+                for arg in arguments:
+                    main(arg)
 
     if parser.upload:
         if n > 1 and parser.parallel:
