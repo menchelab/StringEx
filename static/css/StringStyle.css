@@ -1,21 +1,22 @@
-input[type="checkbox"] {
-    width: 1em;
-    height: 1em;
-    background: rgb(75, 114, 2);
-    margin-top: 17px;
-    /*-moz-padding-start: calc(10px - 3px);*/
-    font-family: 'Future', sans-serif;
-    font-size: 20px;
-    font-weight: 10;
-    color: rgb(255, 255, 255);
-    cursor: pointer;
-    background: rgb(0, 0, 0);
-    border: 1px solid transparent;
-    padding: 10px;
-    border-image: url("/static/css/images/frame1.png") 10 stretch;
-    visibility: visible;
+
+/*++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Input Boxes
+++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+.stringInputBox {
+    border: 10px solid transparent;
+    padding: 5px;
+    border-image: url("images/frame1.png") 10 stretch;
+    background-color: rgba(20, 20, 20, 1);
+    min-height: 58px;
+    min-width: 100%;
+    max-width: 100%;
 }
 
+.stringInputBox:hover,
+.stringInputBox:focus,
+.stringInputBox:active {
+    background-color: #222222;
+}
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Buttons
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -25,66 +26,89 @@ font-family: 'Venus', sans-serif;*/
 
 .stringEvidenceButton{
     width: 100%;
-    height: 50px;
-    padding: 2px;
+    max-height: 7.5vh;
+    min-height: 6.5vh;
+    border-width: 0.8vh;
     border-radius: 20px;
+    border-style: solid;
+    border-color: rgba(2, 77, 114, 0.45);
     font-family: 'Michr', sans-serif;
-
-    font-size: 15px;
+    font-weight: bold;
+    font-size: 3.2vw;
     margin: 2px;
     font-style: normal;
     color: white;
     font-weight: lighter;
     text-align: center;
+    overflow: hidden;
+}
+.strex_updateMessage{
+    color:green;
+    min-width: 20px;
+    line-height: 2.5vh;
+    height: 12vh;
+    opacity: 0;
+    transition: opacity 2s;
+    transition-timing-function: cubic-bezier(0, 2, 1, 0.58);
+    overflow: hidden;
+    font-size:2vh;
+}
+
+@media (min-width: 1920px) {
+    .stringEvidenceButton{
+        font-size: 2vw;
+    }
+    .stringEvidenceButton[type="WebGL Button"] {
+        font-size: 15px;
+    }
+    .noTopMargin {
+        font-size: 15px;
+    }
+}
+@media (min-width: 1280px) {
+    .stringEvidenceButton[type="WebGL Button"] {
+        font-size: 10px;
+    }
+    .noTopMargin {
+        font-size: 10px;
+    }
+}
+@media (min-width: 800px) {
+    .stringEvidenceButton [type="WebGL Button"]{
+        font-size: 8px;
+    }
+    .noTopMargin {
+        font-size: 8px;
+    }
+}
+@media (min-width: 500px) {
+    .stringEvidenceButton{
+        font-size: 2.5vw;
+    }
+    .stringEvidenceButton [type="WebGL Button"]{
+        font-size: 8px;
+    }
+    .noTopMargin {
+        font-size: 8px;
+    }
 }
 
 .stringEvidenceButton[type="WebGL"] {
-    min-width: fit-content;
-    max-width: 100%;
-    padding: 2px;
+    width: 100%;
+    border-width: 0.8vh;
     border-radius: 20px;
+    border-color: rgba(2, 77, 114, 0.45);
     font-family: 'Michr', sans-serif;
-    font-size: 18px;
+
+    padding: 2px;
+    font-size: 2vh;
     margin:5px;
-
-}
-
-
-/*++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Scrollable Side Panel
-++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
-.sidenav {
-    height: 100%;
-    width: 15%;
-    position: absolute;
-    z-index: 2;
-    top: 0;
-    right: 0;
-    overflow-x: hidden;
-    transition: 0.5s;
-    padding-top: 10px;
-}
-
-.sidenav a {
-    padding: 8px 8px 8px 500px;
-    text-decoration: none;
-    font-size: 25px;
-    color: #818181;
-    display: block;
-    transition: 0.3s
-}
-
-.sidenav a:hover,
-.offcanvas a:focus {
-    color: #f1f1f1;
-}
-
-.sidenav .closebtn {
-    position: absolute;
-    top: 0;
-    right: 25px;
-    font-size: 36px;
-    margin-left: 50px;
+    font-style: normal;
+    color: white;
+    font-weight: lighter;
+    text-align: center;
+    overflow: hidden;
+    height: 4.5vh;
 }
 .todo{
     color:violet;
@@ -105,4 +129,12 @@ Scrollable Side Panel
     .sidenav a {
         font-size: 18px;
     }
+}
+.ui-tooltip {
+    background-color: rgba(42, 113, 148);
+    ;
+    color: rgb(59, 20, 20);
+    border: 1px solid #333;
+    min-width: fit-content;
+    box-shadow: none;
 }

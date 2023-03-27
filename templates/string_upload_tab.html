@@ -51,8 +51,8 @@
                                     CREATE NEW PROJECT
                               </h6>
                               <br />
-                              <input class="swagBox" id="string_new_namespace_name" name="string_new_name"
-                                    placeholder="New Project" type="text" />
+                              <input class="stringInputBox" id="string_new_namespace_name" placeholder="New Project"
+                                    name="string_new_namespace_name" type="text" />
                               <p id="string_submit_warnings" style="display:inline">
                               </p>
                         </div>
@@ -67,7 +67,6 @@
                               <h6>
                                     UPDATE PROJECT
                               </h6>
-                              <!--<h3 class="lineglowslow"><span>PROJECT</span></h3>-->
                               <br />
                               <div class="cornerBox">
                                     <select id="string_upload_namespaces" name="string_namespaces">
@@ -94,39 +93,31 @@
                         </div>
                   </div>
             </div>
-            <!--
-      <label>N O D E S</label><br>
-      <input type=file name=nodes multiple><br><br>
-      -->
-            <script>
-            </script>
-            <div class="twelve columns">
+            <div class="twelve columns frameBox">
                   <div class="six columns">
-                        <div class="frameBox">
-                              <div class="six columns">
-                                    <div class="two columns">
-                                          <input checked="" id="string_calc_lay" name="string_calc_lay" type="checkbox"
-                                                value="string_calc_lay">
-                                          </input>
-                                    </div>
-                                    <h4>
+                        <div class="frameBox twelve columns">
+                              <div class="twelve columns">
+                                    <input checked="" id="string_calc_lay" name="string_calc_lay" type="checkbox"
+                                          value="string_calc_lay" class="two columns">
+                                    </input>
+                                    <h4 class="ten columns">
                                           LAYOUT
                                           <br>
                                           ALGORITHM
                                           </br>
                                     </h4>
-                                    <br>
-                                    <div class="cornerBox" style="margin:20px">
+                              </div>
+                              <div class="ten columns" style="margin-left:5%">
+                                    <div class="cornerBox twelve column" style="margin-bottom:1vh">
                                           <select id="string_algo" name="string_algo">
                                                 {%include "string_algo_options.html"%}
                                           </select>
                                     </div>
-                                    </br>
+                                    <input class="stringInputBox twelve columns" id="string_layout_name"
+                                          placeholder="3d" name="string_layout_name" type="text" />
                               </div>
                         </div>
-                  </div>
-                  <div class="six columns">
-                        <div class="frameBox">
+                        <!-- <div class="frameBox">
                               <div class="two columns">
                                     <input checked="" name="stringify" type="checkbox" value="stringify">
                                     </input>
@@ -136,7 +127,6 @@
                                           STRING NETWORK
                                     </h6>
                               </label>
-                              <br>
                               <div class="two columns">
                                     <input name="string_write" type="checkbox" unchecked="" value="write">
                                     </input>
@@ -146,53 +136,82 @@
                                           SAVE NETWORK WITH COORDS
                                     </h6>
                               </label>
-                              <br />
-                              </br>
-                        </div>
+                        </div> -->
                   </div>
-            </div>
-            <div class="twelve columns">
-                  <div class="six columns">
-                        <div class="frameBox" id="string_cg_tsne" style="display:none">
-                              <h6>
-                                    prplxty
-                              </h6>
-                              <input class="swagBox" id="string_cg_prplxty" min="1" name="string_new_name" type="number"
-                                    value="50" />
-                              <h6>
-                                    DENSITY
-                              </h6>
-                              <input class="swagBox" id="string_cg_density" min="1" name="string_new_name" type="number"
-                                    value="12" />
-                              <h6>
-                                    l_rate
-                              </h6>
-                              <input class="swagBox" id="string_cg_l_rate" min="1" name="string_new_name" type="number"
-                                    value="200" />
-                              <h6>
-                                    STEPS
-                              </h6>
-                              <input class="swagBox" id="string_cg_steps" min="1" name="string_new_name" type="number"
-                                    value="250" />
+                  <style>
+                        .paramaterBox {
+                              display: none;
+                              min-height: 70vh;
+                              min-width: 100%;
+                        }
+                  </style>
+                  <div class="six columns" style="min-height: 70vh;">
+                        <div class="twelve columns">
+                              <div class="frameBox paramaterBox" id="string_cg_tsne">
+                                    <h6>
+                                          prplxty
+                                    </h6>
+                                    <input class="stringInputBox" id="string_cg_prplxty" min="1" type="number"
+                                          value="50" />
+                                    <h6>
+                                          DENSITY
+                                    </h6>
+                                    <input class="stringInputBox" id="string_cg_density" min="1" type="number"
+                                          value="12" />
+                                    <h6>
+                                          l_rate
+                                    </h6>
+                                    <input class="stringInputBox" id="string_cg_l_rate" min="1" type="number"
+                                          value="200" />
+                                    <h6>
+                                          STEPS
+                                    </h6>
+                                    <input class="stringInputBox" id="string_cg_steps" min="1" type="number"
+                                          value="250" />
+                              </div>
                         </div>
-                  </div>
-                  <div class="six columns">
-                        <div class="frameBox" id="string_cg_umap" style="display:none">
-                              <h6>
-                                    NUMBER OF NEIGHBORS
-                              </h6>
-                              <input class="swagBox" id="string_cg_n_neighbors" min="1" name="string_new_name"
-                                    type="number" value="10" />
-                              <h6>
-                                    SPREAD
-                              </h6>
-                              <input class="swagBox" id="string_cg_spread" name="string_new_name" step="0.1"
-                                    type="number" value="1" />
-                              <h6>
-                                    MINIMAL DISTANCE
-                              </h6>
-                              <input class="swagBox" id="string_cg_min_dist" max="1" min="0" name="string_new_name"
-                                    step="0.1" type="number" value="0.5" />
+                        <div class="twelve columns">
+                              <div class="frameBox paramaterBox" id="string_cg_umap">
+                                    <h6>
+                                          NUMBER OF NEIGHBORS
+                                    </h6>
+                                    <input class="stringInputBox" id="string_cg_n_neighbors" min="1" type="number"
+                                          value="10" />
+                                    <h6>
+                                          SPREAD
+                                    </h6>
+                                    <input class="stringInputBox" id="string_cg_spread" step="0.1" type="number"
+                                          value="1" />
+                                    <h6>
+                                          MINIMAL DISTANCE
+                                    </h6>
+                                    <input class="stringInputBox" id="string_cg_min_dist" max="1" min="0" step="0.1"
+                                          type="number" value="0.5" />
+                              </div>
+                        </div>
+                        <div class="twelve columns">
+                              <div class="frameBox paramaterBox" id="string_spring">
+                                    <h6>
+                                          OPTIMAL DISTANCE BETWEEN NODES
+                                    </h6>
+                                    <input class="stringInputBox" id="string_spring_opt_dist" min="0" max="1"
+                                          type="number" step="0.0001" value="0" />
+                                    <p>If 0, the default value 1/sqrt(n) is used.</p>
+                                    <h6>
+                                          ITERATIONS
+                                    </h6>
+                                    <input class="stringInputBox" id="string_spring_iterations" type="number" value="50"
+                                          min="1" />
+                                    <h6>
+                                          THRESHOLD
+                                    </h6>
+                                    <input class="stringInputBox" id="string_spring_threshold" min="0" step="0.0001"
+                                          type="number" value="0.0001" />
+                              </div>
+                        </div>
+                        <div class="twelve columns">
+                              <div class="frameBox paramaterBox" id="string_kamada_kawai" style="display: none;">
+                              </div>
                         </div>
                   </div>
             </div>
@@ -204,19 +223,19 @@
       <label>L A B E L S (optional) </label><br>
       <input type=file name=labels multiple><br><br>
       -->
-            <div class="frameBox">
+            <div class="frameBox twelve columns" style="height: 19vh;overflow: hidden;">
                   <div class="twelve columns">
-                        <div class="two columns">
-                              <input class="swagSubmit" id="string_upload_button" type="submit" value="Upload">
-                              </input>
+                        <div class="two columns" style="margin-top: 3vh;">
+                              <input class="swagSubmit twelve columns ui-button ui-corner-all ui-widget"
+                                    id="string_upload_button" type="submit" value="Upload" role="button">
+
                         </div>
                         <div class="six columns">
-                              <img id="string_upload_processing"
-                                    src="{{ url_for('static', filename='img/processing.gif') }}"
-                                    style="display:none;" />
-                              <div id="string_upload_message">
+                              <div class="twelve columns">
+                                    <img id="string_upload_processing" src="/static/img/processing.gif"
+                                          style="display: none;">
+                                    <div id="string_upload_message" style="margin-top: 5vh;"></div>
                               </div>
-                              <br />
                         </div>
                   </div>
             </div>

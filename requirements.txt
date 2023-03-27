@@ -1,4 +1,11 @@
-networkx==2.8.8
-pandas==1.5.0
-numpy==1.23.3
-beautifulsoup4
+networkx>=2.8.8
+pandas>=1.5.0
+numpy>=1.23.3
+scipy
+requests
+Pillow
+flask
+py4cytoscape
+swifter
+goatools
+trimesh

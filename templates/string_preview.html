@@ -18,99 +18,107 @@
             color:black;" type="WebGL" id="evidence-all">
             All</button>
         <script>
-            selectEvidenceWebGL("evidence-all", "anyRGB");
+            selectEvidenceWebGL("evidence-all", "any");
         </script>
     </div>
-    <div class="frameBox" style="display:inline-block;">
-        <h6 style="margin-left: 10px;"> Known<br>interactions</h6>
+    <style>
+        .noPadding {
+            padding: 0px;
+            display: inline-block;
+        }
+
+        .noTopMargin {
+            margin-left: 10px;
+            margin-top: 0px;
+        }
+    </style>
+    <div class="frameBox noPadding">
+        <h6 class="noTopMargin"> Known<br>interactions</h6>
 
 
-        <button class="stringEvidenceButton" style="background-color:#ff00ff;" id="evidence-experiments"
-            type="WebGL">
+        <button class="stringEvidenceButton" style="background-color:#ff00ff;" id="evidence-experiments" type="WebGL">
             Experiments</button>
         <script>
-            selectEvidenceWebGL("evidence-experiments", "stringdb_experimentsRGB");
+            selectEvidenceWebGL("evidence-experiments", "stringdb_experiments");
         </script>
 
         <button class="stringEvidenceButton" style="background-color:#00ffff;color:black;" id="evidence-database"
             type="WebGL"> Database</button>
         <script>
-            selectEvidenceWebGL("evidence-database", "stringdb_databasesRGB");
+            selectEvidenceWebGL("evidence-database", "stringdb_databases");
         </script>
 
     </div>
-    <div class="frameBox" style="display:inline-block;">
-        <h6 style="margin-left: 10px;"> Predicted interactions</h6>
+    <div class="frameBox noPadding">
+        <h6 class="noTopMargin"> Genomic Context</h6>
 
 
         <button class="stringEvidenceButton" style="background-color:#00ff00;
             color:black;" id="evidence-neighborhood" type="WebGL">
             Neighborhood</button>
         <script>
-            selectEvidenceWebGL("evidence-neighborhood", "stringdb_neighborhoodRGB");
+            selectEvidenceWebGL("evidence-neighborhood", "stringdb_neighborhood");
         </script>
 
         <button class="stringEvidenceButton" style="background-color:#ff0000;" id="evidence-fusion" type="WebGL">
             Fusion</button>
         <script>
-            selectEvidenceWebGL("evidence-fusion", "stringdb_fusionRGB");
+            selectEvidenceWebGL("evidence-fusion", "stringdb_fusion");
         </script>
 
-        <button class="stringEvidenceButton" style="background-color:#0000ff;" id="evidence-cooccurrence"
-            type="WebGL">
+        <button class="stringEvidenceButton" style="background-color:#0000ff;" id="evidence-cooccurrence" type="WebGL">
             Cooccurrence</button>
         <script>
-            selectEvidenceWebGL("evidence-cooccurrence", "stringdb_cooccurrenceRGB");
+            selectEvidenceWebGL("evidence-cooccurrence", "stringdb_cooccurrence");
         </script>
     </div>
-    <div class="frameBox" style="display:inline-block;">
-        <h6 style="margin-left: 10px;"> Other Evidences</h6>
+    <div class="frameBox noPadding" style="display:inline-block;">
+        <h6 class="noTopMargin"> Other Evidences</h6>
 
 
         <button class="stringEvidenceButton" style="background-color:#c6ea46;color:black;" id="evidence-textmining"
             type="WebGL">
             Textmining</button>
         <script>
-            selectEvidenceWebGL("evidence-textmining", "stringdb_textminingRGB");
+            selectEvidenceWebGL("evidence-textmining", "stringdb_textmining");
         </script>
 
 
-        <button class="stringEvidenceButton" style="background-color:#323232;" id="evidence-coexpression"
-            type="WebGL">
+        <button class="stringEvidenceButton" style="background-color:#323232;" id="evidence-coexpression" type="WebGL">
             Coexpression</button>
         <script>
-            selectEvidenceWebGL("evidence-coexpression", "stringdb_coexpressionRGB");
+            selectEvidenceWebGL("evidence-coexpression", "stringdb_coexpression");
         </script>
 
 
         <button class="stringEvidenceButton" style="background-color:#9d9df8;
         color:black;" id="evidence-homology" type="WebGL">
-            Homology</button>
+            Similarity</button>
         <script>
-            selectEvidenceWebGL("evidence-homology", "stringdb_similarityRGB");
+            selectEvidenceWebGL("evidence-homology", "stringdb_similarity");
         </script>
     </div>
 
 </div>
 <script>
-    if (!(pdata["network"]=="string")){
+    if (!(pdata["network"] == "string")) {
         document.getElementById("mySidenav").remove();
     }
 </script>
 <script>
-    // Make left panel also scrollable
-    document.write('<div id="leftSideav" class="sidenav" style="left:0"><\div>');
-    var child = document.getElementById("prname");
-    var parent = child.parentNode
-    var left = document.getElementById("leftSideav");
-    left.appendChild(parent)
-    
+    // // Make left panel also scrollable
+    // document.write('<div id="leftSideav" class="sidenav" style="left:0"><\div>');
+    // var child = document.getElementById("prname");
+    // var parent = child.parentNode
+    // var left = document.getElementById("leftSideav");
+    // left.appendChild(parent)
+
     // Change href of the link to the projects page
     var forms = document.getElementsByTagName("form")
-    for(var i=0;i<forms.length; i++){
+    for (var i = 0; i < forms.length; i++) {
         console.log(window.location.href)
         console.log(forms[i].action)
-        if(forms[i].action.includes("/preview")){
+        if (forms[i].action.includes("/preview")) {
             forms[i].action = "/StringEx/preview";
         };
         console.log(forms[i].action)

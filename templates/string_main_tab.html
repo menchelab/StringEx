@@ -18,18 +18,19 @@
 
 <!-- Tab containing STRING evidence buttons -->
 <div id="tab_to_add" class="container" style="display:none;">
+
     <div id="string_ev_tab">
-        <div class="twelve columns">
-            <h2 class="lineglowslow" style="margin-bottom:30px;margin-top:30px">STRING EX</h2>
+        <div class="twelve columns" style="min-height: fit-content;">
+            <h2 class="lineglowslow" style="line-height: 50px;margin-top: 2px;">STRING EX</h2>
+            <h5 style="text-align:end"> Evidence filter</h5>
         </div>
-        <br> <br><br><br><br>
+
         <div id="evidence-section" class="twelve columns">
-            <div class="frameBox" style="display:inline-block; margin-top:8px; margin-bottom:8px;">
-                <h5 style="text-align:end"> Evidence filter</h6>
+            <div class="frameBox" style="display:inline-block; margin-top:8px; margin-bottom:8px;padding-top: 0px;">
+                <div class="twelve columns">
                     <div class="six columns">
                         <h4> <br>Reset</h4>
-                        <div class="frameBox"
-                            style="display:inline-block; margin-bottom:8px;padding-top:40px;padding-bottom:28px;min-height: 143px;">
+                        <div class="frameBox" style="display:inline-block;">
 
                             <button class="stringEvidenceButton" style="background-color:#c8c8c8;
                                         color:black;" id="evidence-all" type="VRNetzer">
@@ -39,9 +40,9 @@
                             </script>
                         </div>
                     </div>
-                    <div class="six columns">
-                        <h4> Known<br>interactions</h4>
-                        <div class="frameBox" style="display:inline-block; margin-bottom:8px;">
+                    <div id="stringex_know_interactions_framebox" class="six columns">
+                        <h4> Known<br>Interactions</h4>
+                        <div class="frameBox" style="display:inline-block;">
                             <button class="stringEvidenceButton" style="background-color:#ff00ff;"
                                 id="evidence-experiments" type="VRNetzer">
                                 Experiments</button>
@@ -57,9 +58,21 @@
 
                         </div>
                     </div>
+                    <script>
+                        const elem = document.querySelector("#stringex_know_interactions_framebox");
 
+                        if (elem) {
+
+                            const rect = elem.getBoundingClientRect();
+
+                            console.log(`height: ${rect.height}`);
+
+                        }
+                    </script>
+                </div>
+                <div class="twelve columns">
                     <div class="six columns">
-                        <h4> Predicted<br>interactions</h4>
+                        <h4> Genomic<br>Context</h4>
 
                         <div class="frameBox" style="display:inline-block;margin-top:8px;  margin-bottom:8px;">
                             <button class="stringEvidenceButton" style="background-color:#0ab10a;
@@ -102,14 +115,15 @@
                                 selectEvidenceVRNetzer("evidence-coexpression", "stringdb_coexpression");
                             </script>
 
-                            <button class="stringEvidenceButton" style="background-color:#9d9df8;
+                            <button class="stringEvidenceButton" style="background-color:#7c7cf0;
                                             color:black;" id="evidence-homology" type="VRNetzer">
-                                Homology</button>
+                                Similarity</button>
                             <script>
                                 selectEvidenceVRNetzer("evidence-homology", "stringdb_similarity");
                             </script>
                         </div>
                     </div>
+                </div>
             </div>
             <div class="twelve columns">
                 <h3> Information</h3>
@@ -131,16 +145,9 @@
     if (pdata["network"] == "string") {
         console.log("network is a string network", pdata)
         document.getElementById("chbLrgb").checked = false; // turn off link layout change
-        "display:block";
+        document.getElementById("chbLXYZ").checked = false; // turn off link layout change
     } else {
-        var divs = document.getElementsByTagName("div")
-        for (var i = 0; i < divs.length; i++) {
-            if (divs[i].id.includes("tabs-")) {
-                if (divs[i].children[0].id == "string_ev_tab") {
-                    divs[i].remove();
-                };
-            };
-        };
+        var div = document.getElementById("string_ev_tab");
+        div.parentNode.remove();
     }
-    deactivateTabs("mainTabs");
 </script>

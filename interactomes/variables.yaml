@@ -1,0 +1,29 @@
+# H.sapiens M.musculus R.norvegicus D.rerio C.elegans:
+#   cg_local_umap:
+#     -lay_thr: 0.9
+#   cg_global_umap:
+#     -lay_thr: 0.9
+#   spring:
+#     -lay_thr: 0.9
+default_layout:
+  cg_functional_umap:
+    -fthr: 0.05
+    -lay_thr: 0.4
+    -maxf: 10
+    -md: 0.5
+    -name: ''
+    -nn: 10
+  cg_local_umap:
+    -lay_thr: 0.9
+    -md: 0.001
+    -name: local
+    -nn: 5
+  cg_global_umap:
+    -lay_thr: 0.9
+    -md: 0.001
+    -name: global
+  spring:
+    -lay_thr: 0.9
+    -opd: 0.04
+upload:
+  -athr: 0.01

@@ -1,0 +1,97 @@
+<link rel="stylesheet" href="{{ url_for('StringEx.static', filename='css/StringStyle.css') }}">
+</link>
+<script src="{{ url_for('StringEx.static', filename='js/stringex_cytoscape_send.js') }}"></script>
+
+<style>
+      input.loadingButton[type="button"] {
+            background-image: url("{{url_for('static', filename='/img/processing.gif')}}");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-clip: content-box;
+            background-size: cover;
+            overflow: hidden;
+      }
+</style>
+
+<!-- Tab containing STRING evidence buttons -->
+<div id="tab_to_add" class="container" style="display:none;">
+      <div id="string_send_cytoscape_tab">
+            <div id="stringex_client_ip" value="{{ request.remote_addr }}"></div>
+            <div class="twelve columns" style="min-height: fit-content;">
+                  <h2 class="lineglowslow" style="line-height: 50px;margin-top: 2px;">STRING EX</h2>
+            </div>
+            <div>
+                  <h4> Send to Cytoscape</h4>
+                  <div class="frameBox twelve columns">
+                        <div class="twelve columns" style="display:flex;align-items:center;">
+                              <div class="three columns">
+                                    <h4>Node Layout</h4>
+                              </div>
+                              <div class="one columns">
+                                    <p></p>
+                              </div>
+                              <div class="eight columns">
+                                    <select id="stringex_send_layout_select">
+                                    </select>
+                                    <script>
+                                          initDropdown('stringex_send_layout_select', pdata["layouts"], pdata["layouts"][0]);
+                                    </script>
+                              </div>
+                        </div>
+                        <div class="twelve columns" style="display:flex;align-items:center;">
+                              <div class="three columns">
+                                    <h4>Node Colors</h4>
+                              </div>
+                              <div class="one columns">
+                                    <p></p>
+                              </div>
+                              <div class="eight columns">
+                                    <select id="stringex_send_color_select">
+                                    </select>
+                                    <script>
+                                          initDropdown('stringex_send_color_select', pdata["layoutsRGB"], pdata["layoutsRGB"][0]);
+                                    </script>
+                              </div>
+                        </div>
+                        <div class="twelve columns" style="display:flex;align-items:center;">
+                              <div class="three columns">
+                                    <label for="stringex_to_host">
+                                          <h4>To Host</h4>
+                                    </label>
+                              </div>
+                              <div class="one columns">
+                                    <p></p>
+                              </div>
+                              <div class="eight columns">
+                                    <input type="checkbox" value="false" id="stringex_to_host" name="stringex_to_host"
+                                          style="margin-top: 15px;margin-bottom: 10px;margin-left: 10px;"
+                                          class="vr_checkbox">
+                                    </checkbox>
+                              </div>
+                        </div>
+                        <div class="twelve columns">
+                              <div class="twelve columns">
+                                    <input style="margin-left:-3px;" id="stringex_send_network_to_cy_button"
+                                          type="button" value="Send"></input>
+                              </div>
+                              <!-- <div class="six columns">
+                                    <input type="button" style="margin-left:-3px;" id="stringex_reset_selection"
+                                          value="Reset"></input>
+                              </div> -->
+                        </div>
+                        <div class="twelve columns">
+                              <div class="one columns">
+                                    <p></p>
+                              </div>
+                              <div class="ten columns strex_updateMessage" id="stringex_SM">
+                              </div>
+                        </div>
+
+                  </div>
+
+
+            </div>
+
+      </div>
+</div>
+<img id="tab_img" src="{{ url_for('StringEx.static', filename='img/Cytoscape_logo.png') }}" style="display: none;">
