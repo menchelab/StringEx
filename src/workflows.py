@@ -7,19 +7,21 @@ import time
 import traceback
 
 import flask
+import GlobalData as GD
 import pandas as pd
+import socket_handlers as sh
+from project import Project
 
 from . import util as string_util
 from .classes import Evidences
 from .classes import LinkTags as LiT
 from .classes import Organisms
 from .classes import VRNetzElements as VRNE
-from .unused.converter import VRNetzConverter
 from .layouter import Layouter
 from .map_small_on_large import map_source_to_target
 from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, log
+from .unused.converter import VRNetzConverter
 from .uploader import Uploader
-from project import Project
 
 
 def VRNetzer_upload_workflow(
@@ -230,13 +232,18 @@ def VRNetzer_send_network_workflow(request: dict, blueprint: flask.Blueprint):
         overwrite_project=overwrite_project,
     )
     if to_running:
-        for i in range(2):
-            blueprint.emit(
-                "ex",
-                {"id": "projects", "opt": project_name, "fn": "sel"},
-                namespace="/chat",
-                room=flask.session.get("room"),
-            )
+        GD.plist = GD.listProjects()
+        val = GD.plist.index(project_name)
+        message = {
+            "usr": "Server",
+            "id": "projDD",
+            "msg": project_name,
+            "fn": "dropdown",
+            "val":val,
+        }
+        response = sh.v2_project_change(message)
+        blueprint.emit("ex", response, namespace="/main", room=1)
+        # {'usr': '2nmmy7P0IG', 'msg': 'string_arabidopsis_ppi', 'id': 'projDD', 'val': '2', 'fn': 'dropdown'}
     return output[1:]
 
 

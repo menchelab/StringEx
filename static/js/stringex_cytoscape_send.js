@@ -1,7 +1,4 @@
 $(document).ready(function () {
-  stringExSocket = io.connect(
-    "http://" + location.hostname + ":" + location.port + "/StringEx"
-  );
   stringExSocket.on("status", function (data) {
     console.log(data["message"]);
     button = document.getElementById("stringex_send_network_to_cy_button");
@@ -20,8 +17,9 @@ $(document).ready(function () {
     }, 5000);
   });
 
-  var ip = document.getElementById("stringex_client_ip").getAttribute("value");
-  console.log("IP is:", ip);
+  //TODO: Uncomment this as soon as this DOM is present
+  // var ip = document.getElementById("stringex_client_ip").getAttribute("value");
+  // console.log("IP is:", ip);
 
   initButton("stringex_send_network_to_cy_button");
   $("#stringex_send_network_to_cy_button").on("click", function () {

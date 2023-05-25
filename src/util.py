@@ -134,7 +134,7 @@ def pepare_uploader() -> None:
     strinEx_config["actAlgo"] = LayoutAlgorithms.spring
     strinEx_config["organisms"] = Organisms.all_organisms
 
-    GD.sessionData["stringex"] = strinEx_config
+    # GD.sessionData["stringex"] = strinEx_config
 
 
 def move_on_boot() -> None:

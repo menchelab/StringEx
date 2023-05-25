@@ -25,7 +25,7 @@ blueprint = IOBlueprint(
     static_folder=st._THIS_EXT_STATIC_PATH,
 )
 
-main_tabs = ["string_main_tab.html", "string_send_subset.html"]
+column_2 = ["string_main_tab.html", "string_send_subset.html"]
 upload_tabs = ["string_upload_tab.html", "string_map_tab.html"]
 
 """Setup function to prepare the STRING Uploader and move the prepared STRING interactomes from the StringEx directory to the projects directory of the VRNetzer backend."""
@@ -82,7 +82,7 @@ def string_ex_result_page(project):
         layouts=layouts,
         pfile=project.pfile,
         pdata=json.dumps(project.pfile),
-        sessionData=json.dumps(GD.sessionData),
+        # sessionData=json.dumps(GD.sessionData),
     )
 
 

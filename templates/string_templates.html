@@ -1,0 +1,83 @@
+<template id="stringExButton-style">
+    <style>
+        button {
+            min-width: 150px;
+            height: 30px;
+            font-family: 'Future', sans-serif;
+            overflow: hidden;
+            white-space: nowrap;
+            cursor: pointer;
+            box-sizing: border-box;
+            padding: 0px 6px;
+            text-align: left;
+            border-radius: 7px;
+
+            border-bottom-left-radius: 0px;
+            font-size: 24px;
+
+            color: rgb(255, 255, 255);
+            cursor: pointer;
+            background: rgba(66, 66, 66, 0);
+            border: 2px solid transparent;
+        }
+
+        button:hover {
+            border: 2px solid rgb(124, 124, 124);
+            background: rgb(0, 0, 0) !important;
+            color: white !important;
+        }
+    </style>
+    <div id="container" style="width: auto; height: 30p0x; display: inline-block; padding: 4px 2px">
+        <button id="name"></button>
+    </div>
+
+</template>
+
+<script>
+    class stringExEvButton extends HTMLElement {
+        constructor() {
+            super();
+        }
+        connectedCallback() {
+            let template = document.querySelector('#stringExButton-style').content;
+            this.attachShadow({ mode: 'open' }).appendChild(template.cloneNode(true));
+            let name_button = this.shadowRoot.querySelector("#name");
+            name_button.textContent = this.getAttribute('name');
+            name_button.style.width = this.getAttribute('w') + "px";
+            name_button.style.background = this.getAttribute('color');
+            name_button.style.color = this.getAttribute('fcolor');
+            for (var i = 0; i < pfile["linksRGB"]; i++) {
+                console.log(pfile["linksRGB"][i]);
+
+            }
+            var fn = "dropdown"
+            var parent = "linksRGBDD"
+            var layout = this.getAttribute('layout');
+            console.log("message: " + layout)
+            var message = {
+                usr: uid,
+                id: parent,
+                fn: fn,
+                val: 0,
+                msg: layout,
+            }
+
+            name_button.addEventListener('click', () => {
+                console.log(pfile.linksRGB)
+                for (var i = 0; i < pfile.linksRGB.length; i++) {
+                    if (pfile.linksRGB[i].includes(layout)) {
+                        message.msg = pfile.linksRGB[i];
+                        message.val = i;
+                        console.log(message);
+                        socket.emit('ex', message);
+                        break;
+                    }
+                }
+            });
+
+
+        }
+
+    }
+    customElements.define('stringexev-button', stringExEvButton);
+</script>

@@ -104,8 +104,9 @@ def preview():
     def error_function():
         print("project Argument not provided - redirecting to menu page")
 
-        data = {"projects": uploader.listProjects()}
-        return flask.render_template("threeJS_VIEWER_Menu.html", data=json.dumps(data))
+        data = {"projects": GD.listProjects()}
+        #TODO: Redirect to standard menu page
+        return flask.redirect("/preview")
 
     project = flask.request.args.get("project")
     if project is None:

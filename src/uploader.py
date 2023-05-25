@@ -392,7 +392,7 @@ class Uploader:
         project = clean_filename(self.project.name)
 
         # Set up project directories
-        prolist = main_uploader.listProjects()
+        prolist = GD.listProjects()
 
         if self.overwrite_project:
             self.makeProjectFolders()
@@ -484,8 +484,9 @@ class Uploader:
             self.stringify_project()
 
         try:
-            GD.sessionData["proj"] = main_uploader.listProjects()
-        except NameError:
+            GD.loadGD()
+        except Exception as e:
+            log.error(e)
             pass
 
         return state

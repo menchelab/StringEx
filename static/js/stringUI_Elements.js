@@ -1,11 +1,11 @@
 function selectEvidenceWebGL(id, layout) {
-  if (!pdata["linksRGB"].includes(layout + "RGB")) {
+  if (!pfile["linksRGB"].includes(layout + "RGB")) {
     var button = document.getElementById(id);
     button.style.display = "none";
   }
   $("#" + id).on("click", function () {
     var links = document.getElementById("linksRGB");
-    console.log(pdata);
+    console.log(pfile);
     for (let i = 0; i < links.length; i++) {
       if (String(links[i].text).includes(layout)) {
         console.log("selected layout:" + links[i].text);
@@ -15,7 +15,7 @@ function selectEvidenceWebGL(id, layout) {
         url.searchParams.set("lcol", $("#linksRGB option:selected").index());
         url.searchParams.set("layout", $("#layouts option:selected").index());
         url.searchParams.set("ncol", $("#layoutsRGB option:selected").index());
-        url.searchParams.set("project", pdata["name"]);
+        url.searchParams.set("project", pfile["name"]);
         window.location.href = url;
         break;
       }
@@ -23,7 +23,7 @@ function selectEvidenceWebGL(id, layout) {
   });
 }
 function selectEvidenceVRNetzer(id, layout) {
-  if (!pdata["linksRGB"].includes(layout + "RGB")) {
+  if (!pfile["linksRGB"].includes(layout + "RGB")) {
     var button = document.getElementById(id);
     button.style.display = "none";
   }
@@ -70,5 +70,11 @@ $(document).ready(function () {
       at: "left bottom",
       collision: "flipfit",
     },
+  });
+  if (pfile != undefined) {
+    pfile = new VariableListener({ linksRGB: [] });
+  }
+  pfile.linksRGBRegisterListener(function (val) {
+    console.log("linksRGB updated:\n" + val);
   });
 });

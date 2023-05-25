@@ -1,5 +1,6 @@
+<html>
 <link rel="stylesheet" href="{{ url_for('StringEx.static', filename='css/StringStyle.css') }}">
-</link>
+<script src="{{ url_for('StringEx.static', filename='js/string_socket.js') }}"></script>
 
 <script src="{{ url_for('StringEx.static', filename='js/stringUI_Elements.js') }}"></script>
 
@@ -17,7 +18,7 @@
 </script>
 
 <!-- Tab containing STRING evidence buttons -->
-<div id="tab_to_add" class="container" style="display:none;">
+<!-- <div id="tab_to_add" class="container" style="display:none;">
 
     <div id="string_ev_tab">
         <div class="twelve columns" style="min-height: fit-content;">
@@ -137,12 +138,12 @@
 
         </div>
     </div>
-</div>
+</div> -->
 <img id="tab_img" src="{{ url_for('StringEx.static', filename='img/string_logo_2015_340_340.png') }}"
     style="display: none;">
 <!-- Change Image of Tab on which STRING Evidence tab is located-->
-<script>
-    if (pdata["network"] == "string") {
+<!-- <script>
+    if (pfile["network"] == "string") {
         console.log("network is a string network", pdata)
         document.getElementById("chbLrgb").checked = false; // turn off link layout change
         document.getElementById("chbLXYZ").checked = false; // turn off link layout change
@@ -150,4 +151,75 @@
         var div = document.getElementById("string_ev_tab");
         div.parentNode.remove();
     }
-</script>
+</script> -->
+
+{% include 'string_templates.html' %}
+
+<div id="StringExEvidence" class="gradientBox">
+    <div class='swagBox' style="width:420px; background-color: rgba(0, 10, 20, 0.3);">
+        <h5 style="  float:left; font-size: 25px;  color: rgb(102, 102, 102); margin-top:5px; margin-bottom:15px;">
+            String Ex</h5>
+        <div class="gradient" style="margin-top:35px">
+        </div>
+        <br>
+        <div>
+
+            <h5 style="font-size:20px;">
+                Reset evidence selection:
+            </h5>
+
+            <stringExEv-Button id="StringExEvidenceAll" name="All" color="gray" layout="any">
+            </stringExEv-Button>
+
+
+            <h5 style="font-size:20px;">
+                Known interactions:
+            </h5>
+
+            <stringExEv-Button id="StringExEvidenceExperiments" name="Experiments" color="
+                #ff00ff" layout="stringdb_experiments">
+            </stringExEv-Button>
+            <stringExEv-Button id="StringExEvidenceDatabase" name="Database" color="#00ffff" fcolor="black"
+                layout="stringdb_database">
+                +</stringExEv-Button>
+
+
+
+            <h5 style="font-size:20px;">
+                Genomic context:
+            </h5>
+
+            <stringExEv-Button id="StringExEvidenceNeighborhood" name="Neighborhood" color="#0ab10a" fcolor="black"
+                layout="stringdb_neighborhood">
+            </stringExEv-Button>
+
+            <stringExEv-Button id="StringExEvidenceFusion" name="Fusion" color="#ff0000" layout="stringdb_fusion">
+            </stringExEv-Button>
+
+            <stringExEv-Button id="StringExEvidenceCooccurrence" name="Cooccurrence" color="#0000ff"
+                layout="stringdb_coocurrence">
+            </stringExEv-Button>
+
+
+
+            <h5 style="font-size:20px;">
+                Other:
+            </h5>
+
+            <stringExEv-Button id="StringExEvidenceTextmining" name="Textmining" color="#c6ea46" fcolor="black"
+                layout="stringdb_textmining">
+            </stringExEv-Button>
+
+            <stringExEv-Button id="StringExEvidenceCoexpression" name="Coexpression" color="#323232"
+                layout="stringdb_coexpression">
+            </stringExEv-Button>
+
+            <stringExEv-Button id="StringExEvidenceSimilarity" name="Similarity" color="#7c7cf0" fcolor="black"
+                layout="stringdb_similarity">
+            </stringExEv-Button>
+
+        </div>
+    </div>
+</div>
+
+</html>
