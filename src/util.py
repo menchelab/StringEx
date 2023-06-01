@@ -147,5 +147,14 @@ def move_on_boot() -> None:
 
 def set_project(bp, project_name):
     GD.plist = GD.listProjects()
-    sh.v2_project_change(project_name)
+    print("PROJECT CHANGE")
+    GD.data["actPro"] = project_name
+    GD.saveGD()
+    GD.loadGD()
+    GD.loadPFile()
+    GD.loadPD()
+    GD.loadColor()
+    GD.loadLinks()
+    GD.load_annotations()
+    print("changed Project to " + project_name)
     bp.emit("update", {}, namespace="/main", room=flask.session.get("room"))
