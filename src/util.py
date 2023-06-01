@@ -3,17 +3,14 @@ import json
 import os
 import shutil
 
-import swifter
-
 try:
     import GlobalData as GD
 except ModuleNotFoundError:
     pass
-import random
 
+import flask
 import networkx as nx
-import pandas as pd
-from PIL import Image
+import socket_handlers as sh
 
 from . import settings as st
 from .classes import LayoutAlgorithms
@@ -146,3 +143,9 @@ def move_on_boot() -> None:
         ):
             log.debug(f"Copying {_dir}")
             shutil.copytree(_dir, os.path.join(st._PROJECTS_PATH, dir_name))
+
+
+def set_project(bp, project_name):
+    GD.plist = GD.listProjects()
+    sh.v2_project_change(project_name)
+    bp.emit("update", {}, namespace="/main", room=flask.session.get("room"))

@@ -6,21 +6,20 @@ import GlobalData as GD
 import pandas as pd
 import py4cytoscape as p4c
 import requests
+import swifter
 from PIL import Image
+from project import Project
 
 from . import settings as st
 from . import util as string_util
 from .classes import NodeTags as NT
-from project import Project
 
 
 def send_to_cytoscape(
-    message: dict[str, str],
     ip: str,
-    user: str,
     return_dict: dict,
+    pdata: dict,
     pfile: dict,
-    project: str,
 ) -> None:
     """Send the selected nodes to Cytoscape.
 
@@ -37,21 +36,29 @@ def send_to_cytoscape(
         "message": f"No node or link is selected.",
         "status": "error",
     }
-    sate_data = pfile.get("stateData")
-    if sate_data is None:
+
+    selected_nodes = [node["id"] for node in pdata["cbnode"]]
+    project = pfile["name"]
+    selected_links = None  # TODO: Linkselection from the utility extension
+    if selected_nodes is None:
         return
-    selected = sate_data.get("selected")
-    selected_links = sate_data.get("selectedLinks")
-    if selected is None:
-        selected = []
-    if selected_links is None:
+
+    if not isinstance(selected_nodes, list):
+        selected_nodes = []
+    if selected_links and not isinstance(selected_links, list):
         selected_links = []
-    if len(selected) == 0 and len(selected_links) == 0:
+
+    if len(selected_nodes) == 0 and len(selected_links) == 0:
         return
 
     port = 1234
-    layout = message.get("layout", "")
-    color = message.get("color", "")
+    layout_id, color_id = pdata.get("layoutsDD"), pdata.get("layoutsRGBDD")
+    if layout_id is None:
+        layout_id = 0
+    if color_id is None:
+        color_id = 0
+    layout = pfile["layouts"][int(layout_id)]
+    color = pfile["layoutsRGB"][int(color_id)]
     title = f"{layout} & {color}"
     base_url = "http://" + str(ip) + f":{port}/v1"
 
@@ -63,13 +70,17 @@ def send_to_cytoscape(
             "status": "error",
         }
         return
-    if len(selected) == 0:
+    if len(selected_nodes) == 0:
         st.log.debug("No nodes selected.")
-        links, selected = extract_link_data(selected, selected_links, project)
-        nodes = extract_node_data(selected, selected_links, project, layout, color)
+        links, selected_nodes = extract_link_data(
+            selected_nodes, selected_links, project
+        )
+        nodes = extract_node_data(
+            selected_nodes, selected_links, project, layout, color
+        )
     else:
-        nodes = extract_node_data(selected, project, layout, color)
-        links, _ = extract_link_data(selected, selected_links, project)
+        nodes = extract_node_data(selected_nodes, project, layout, color)
+        links, _ = extract_link_data(selected_nodes, selected_links, project)
 
     st.log.debug("Extracted node and link data", flush=True)
     # Create network

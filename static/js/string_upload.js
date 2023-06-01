@@ -1,4 +1,8 @@
 $(document).ready(function () {
+  // Initialize of the selectmenus
+  // Algorithms
+  initSelectmenu("algorithms", "string_algo");
+
   document.getElementById("string_spring").style.display = "block";
   document.getElementById("string_new_namespace_name").readOnly = true;
   $(function () {
@@ -119,8 +123,7 @@ $(document).ready(function () {
       console.log("102: Result_value:" + formData.get(result.value));
       result = it.next();
     }
-    console.log("107: dbprefix:", dbprefix);
-    var base_url = "http://" + window.location.href.split("/")[2]; // Not sure why no todo it like this. Maybe if the server runs on a different ip than the uploader?
+    var base_url = "http://" + location.host; // Not sure why no todo it like this. Maybe if the server runs on a different ip than the uploader?
     var url = base_url + "/StringEx/uploadfiles";
     console.log(window.location.href);
     console.log("107: URL:", url);

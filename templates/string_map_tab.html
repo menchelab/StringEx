@@ -1,7 +1,7 @@
 <!-- String Style -->
 <link href="{{ url_for('StringEx.static', filename='css/StringStyle.css') }}" rel="stylesheet" />
 <!-- StringEx scripts -->
-<script src="{{ url_for('StringEx.static', filename='js/stringUI_Elements.js') }}">
+<script src="{{ url_for('StringEx.static', filename='js/string_util.js') }}" type="text/javascript">
 </script>
 <script src="{{ url_for('StringEx.static', filename='js/string_map.js') }}" type="text/javascript">
 </script>
@@ -62,9 +62,8 @@
             <div class="twelve columns">
                 <div class="cornerBox">
                     <select id="string_organism" name="string_organism">
-                        {% include "string_organism_options.html" %}
+
                     </select>
-                    <br />
                 </div>
             </div>
         </div>
@@ -73,11 +72,10 @@
             <div class="twelve columns">
                 <div class="two columns">
                     <input class="swagSubmit" id="string_map_button" type="submit" value="Map">
-                    </input>
                 </div>
                 <div class="nine columns" id="string_map_message">
                 </div>
-                <img id="string_map_processing" src="{{ url_for('static', filename='img/processing.gif') }}"
+                <img id="string_map_processing" src="{{ url_for('StringEx.static', filename='img/processing.gif') }}"
                     style="display:none;" />
                 <div id="string_upload_message">
                 </div>

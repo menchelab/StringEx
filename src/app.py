@@ -4,6 +4,7 @@ import os
 
 import flask
 import GlobalData as GD
+import socket_handlers as sh
 from io_blueprint import IOBlueprint
 from project import Project
 
@@ -13,6 +14,7 @@ from . import routes
 from . import settings as st
 from . import util as string_util
 from . import workflows as wf
+from .classes import LayoutAlgorithms, Organisms
 from .send_to_cytoscape import send_to_cytoscape
 
 url_prefix = "/StringEx"
@@ -117,10 +119,9 @@ def string_send_to_cytoscape(message):
     """Is triggered by a call of a client. Will take the current selected nodes and links to send them to a running instance of Cytoscape. This will always send the network the Cytoscape session of the requesting user, if not otherwise specified. If to host is selected, the network will be send to the Cytoscape session of the Server host."""
     return_dict = mp.Manager().dict()
     ip = flask.request.remote_addr
-    user = message.get("user", util.generate_username())
     p = mp.Process(
         target=send_to_cytoscape,
-        args=(message, ip, user, return_dict, GD.pfile, GD.sessionData["actPro"]),
+        args=(ip, return_dict, GD.pdata, GD.pfile),
     )
     p.start()
     p.join(timeout=300)
@@ -131,3 +132,24 @@ def string_send_to_cytoscape(message):
             "status": "error",
         }
     blueprint.emit("status", return_dict["status"])
+
+
+@blueprint.on("sel")
+def string_ex_sel(message):
+    id = message["id"]
+    if id == "project":
+        string_util.set_project(blueprint, message["opt"])
+
+
+@blueprint.on("algorithms")
+def string_ex_algorithms(message):
+    """Route to receive the algorithms from the VRNetzer backend. Will be used to update the algorithms in the StringEx extension."""
+    message["data"] = LayoutAlgorithms.all_algos
+    blueprint.emit("algorithms", message)
+
+
+@blueprint.on("organisms")
+def string_ex_organisms(message):
+    """Route to receive the organisms from the VRNetzer backend. Will be used to update the organisms in the StringEx extension."""
+    message["data"] = Organisms.all_organisms
+    blueprint.emit("organisms", message)

@@ -105,14 +105,14 @@ def preview():
         print("project Argument not provided - redirecting to menu page")
 
         data = {"projects": GD.listProjects()}
-        #TODO: Redirect to standard menu page
+        # TODO: Redirect to standard menu page
         return flask.redirect("/preview")
 
     project = flask.request.args.get("project")
     if project is None:
         return error_function()
 
-    GD.sessionData["actPro"] = project
+    GD.data["actPro"] = project
     project = Project(project, read=False)
 
     if not project.exists():
@@ -200,12 +200,7 @@ def preview():
         newLink["c"] = pixel_valueslc[x]
         testNetwork["links"].append(newLink)
 
-    return flask.render_template(
-        "string_preview.html",
-        data=json.dumps(testNetwork),
-        pfile=json.dumps(project.pfile),
-        sessionData=json.dumps(GD.sessionData),
-    )
+    return flask.redirect("/preview")
 
 
 def receive_interactome(data, files):

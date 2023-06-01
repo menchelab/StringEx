@@ -4,14 +4,17 @@ import swifter
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+import GlobalData as GD
 import pandas as pd
 from PIL import Image
+from project import Project
 
+from .classes import CytoscapeTags as CT
 from .classes import Evidences as EV
 from .classes import LayoutTags as LT
 from .classes import LinkTags as LiT
 from .classes import NodeTags as NT
-from .classes import StringTags as ST, CytoscapeTags as CT
+from .classes import StringTags as ST
 from .classes import VRNetzElements as VRNE
 from .layouter import Layouter
 from .settings import (
@@ -22,7 +25,6 @@ from .settings import (
     log,
 )
 from .uploader import Uploader
-from project import Project
 
 
 def map_nodes(
@@ -38,7 +40,6 @@ def map_nodes(
     """
     # Split identifier into taxid and gene name
     if ST.stringdb_identifier in src_nodes:
-
         src_nodes["short"] = (
             src_nodes["stringdb_database identifier"]
             .swifter.progress_bar(False)
@@ -258,6 +259,10 @@ def map_source_to_target(
 
     uploader = Uploader(target, project_name)
     uploader.color_nodes(target_project)
-
+    try:
+        GD.loadGD()
+    except Exception as e:
+        log.error(e)
+        pass
     log.info(f"Saving project {project_name}")
     return f'<a style="color:green;" href="/StringEx/preview?project={project_name}" target="_blank">SUCCESS: Saved as project {project_name} </a>'

@@ -1,0 +1,123 @@
+<template id="otCheckbox-style">
+    <style>
+        input[type=checkbox] {
+            margin-top: 25px;
+            min-width: 30px;
+            height: 30px;
+            font-family: 'Future', sans-serif;
+            overflow: hidden;
+            white-space: nowrap;
+            cursor: pointer;
+            box-sizing: border-box;
+            padding: 0px 6px;
+            text-align: left;
+            border-radius: 7px;
+            border-bottom-left-radius: 0px;
+            font-size: 24px;
+
+            color: rgb(255, 255, 255);
+            cursor: pointer;
+            background: rgba(66, 66, 66, 0);
+            border: 2px solid transparent;
+        }
+
+        input[type=checkbox]:hover {
+            border: 2px solid rgb(124, 124, 124);
+            background: rgb(0, 0, 0) !important;
+            color: white !important;
+        }
+
+        label.ot-checkbox-label {
+            color: white;
+            height: 30px;
+            padding: 10px 15px;
+            text-align: center;
+            display: inline-block;
+            font-size: 20px;
+            margin: 15px;
+            cursor: pointer;
+        }
+
+        .ot-checkbox-container {
+            display: flex;
+            border: 1px solid #666;
+            width: 215px;
+            margin-top: 20px;
+            border-radius: 7px;
+            border-bottom-left-radius: 0px;
+            padding-left: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            min-width: 225px;
+            height: 30px;
+            font-family: 'Future', sans-serif;
+            overflow: hidden;
+            white-space: nowrap;
+            cursor: pointer;
+            box-sizing: border-box;
+            padding: 0px 6px;
+            text-align: left;
+            border-radius: 7px;
+            border-bottom-left-radius: 0px;
+            font-size: 24px;
+            border: 2px solid rgb(124, 124, 124);
+            color: rgb(255, 255, 255);
+            cursor: pointer;
+            background: rgba(66, 66, 66, 0);
+            margin-top: -20px;
+        }
+
+        button:hover {
+            border: 2px solid rgb(124, 124, 124);
+            background: rgb(0, 0, 0) !important;
+            color: white !important;
+        }
+    </style>
+    <div id="container" class="ot-checkbox-container" style="display:flex">
+        <input type="checkbox" id="checkbox">
+        <label for="name" id="label" class="ot-checkbox-label"></label>
+        </label>
+    </div>
+    <button id="button"></button>
+
+</template>
+
+<script>
+    class cyExSendElement extends HTMLElement {
+        constructor() {
+            super();
+        }
+        connectedCallback() {
+            let template = document.querySelector('#otCheckbox-style').content;
+            this.attachShadow({ mode: 'open' }).appendChild(template.cloneNode(true));
+            let container = this.shadowRoot.querySelector("#container");
+            let checkbox = this.shadowRoot.querySelector("#checkbox");
+            if (this.getAttribute('checked') == "true") {
+                checkbox.checked = true;
+            }
+            checkbox.style.width = this.getAttribute('w') + "px";
+            checkbox.style.height = this.getAttribute('h') + "px";
+
+            let label = this.shadowRoot.querySelector("#label");
+            label.innerHTML = this.getAttribute('name');
+            label.style.background = this.getAttribute('color');
+            label.style.color = this.getAttribute('fcolor');
+
+            let button = this.shadowRoot.querySelector("#button");
+            button.textContent = this.getAttribute('buttonText');
+            button.style.background = this.getAttribute('color');
+            button.style.color = this.getAttribute('fcolor');
+            button.addEventListener('click', function() {
+                console.log("cytoscape send button clicked");
+                let message = {
+                    "toHost": checkbox.checked
+                };
+                cyExSocket.emit("send_to_cytoscape", message);
+            });
+        }
+
+    }
+    customElements.define('cy-ex-send-element', cyExSendElement);
+</script>
