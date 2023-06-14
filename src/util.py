@@ -10,7 +10,6 @@ except ModuleNotFoundError:
 
 import flask
 import networkx as nx
-import socket_handlers as sh
 
 from . import settings as st
 from .classes import LayoutAlgorithms
