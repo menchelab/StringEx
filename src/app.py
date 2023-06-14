@@ -4,7 +4,6 @@ import os
 
 import flask
 import GlobalData as GD
-import socket_handlers as sh
 from io_blueprint import IOBlueprint
 from project import Project
 
