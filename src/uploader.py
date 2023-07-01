@@ -13,8 +13,9 @@ from .settings import _WORKING_DIR
 
 sys.path.append(os.path.join(_WORKING_DIR, "..", ".."))
 
-import GlobalData as GD
 from PIL import Image
+
+import GlobalData as GD
 from project import COLOR, DEFAULT_PFILE, NODE, Project
 
 from .classes import Evidences as EV
@@ -473,6 +474,11 @@ class Uploader:
 
         nodes = nodes[[c for c in nodes.columns if not c.endswith(("_pos", "_col"))]]
         links = links[[c for c in links.columns if not c.endswith(("_col",))]]
+        if "stringdb_sequence" in nodes.columns:
+            nodes = nodes.rename(columns={"stringdb_sequence": "sequence"})
+        if "stringdb_description" in nodes.columns:
+            nodes = nodes.rename(columns={"stringdb_description": "description"})
+        nodes = nodes.rename(columns={"string": "name"})
         self.project.nodes = {
             "nodes": [v.dropna().to_dict() for k, v in nodes.iterrows()]
         }
