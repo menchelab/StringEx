@@ -9,17 +9,18 @@ import traceback
 import flask
 import pandas as pd
 
+from project import Project
+
 from . import util as string_util
 from .classes import Evidences
 from .classes import LinkTags as LiT
 from .classes import Organisms
 from .classes import VRNetzElements as VRNE
-from .unused.converter import VRNetzConverter
 from .layouter import Layouter
 from .map_small_on_large import map_source_to_target
 from .settings import _NETWORKS_PATH, _PROJECTS_PATH, UNIPROT_MAP, log
+from .unused.converter import VRNetzConverter
 from .uploader import Uploader
-from project import Project
 
 
 def VRNetzer_upload_workflow(

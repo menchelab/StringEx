@@ -1,17 +1,19 @@
 import json
 import os
 import random
+import traceback
 
-import GlobalData as GD
 import pandas as pd
 import py4cytoscape as p4c
 import requests
 from PIL import Image
 
+import GlobalData as GD
+from project import Project
+
 from . import settings as st
 from . import util as string_util
 from .classes import NodeTags as NT
-from project import Project
 
 
 def send_to_cytoscape(
@@ -66,10 +68,10 @@ def send_to_cytoscape(
     if len(selected) == 0:
         st.log.debug("No nodes selected.")
         links, selected = extract_link_data(selected, selected_links, project)
-        nodes = extract_node_data(selected, selected_links, project, layout, color)
+        nodes = extract_node_data(selected, project, layout, color)
     else:
         nodes = extract_node_data(selected, project, layout, color)
-        links, _ = extract_link_data(selected, selected_links, project)
+        links, _ = extract_link_data(nodes.id.values, selected_links, project)
 
     st.log.debug("Extracted node and link data", flush=True)
     # Create network
@@ -145,6 +147,16 @@ def send_to_cytoscape(
                 "message": f"Could not connect to Cytoscape at {base_url}. Please check if Cytoscape is running and if the url is correct. Is cyREST installed?",
                 "status": "error",
             }
+        else:
+            st.log.debug(
+                f"Could not send project to Cytoscape. {traceback.format_exc(e)}",
+                flush=True,
+            )
+            return_dict["status"] = {
+                "message": f"Error while creating network in Cytoscape. {e}",
+                "status": "error",
+            }
+    return return_dict
 
 
 def extract_node_data(
@@ -213,12 +225,11 @@ def extract_node_data(
     def rgb_to_hex(r, g, b):
         return "#{:02x}{:02x}{:02x}".format(r, g, b)
 
-    st.log.debug(f"{len(nodes_data)}, {len(node_colors)}")
     nodes_data["color"] = node_colors
     nodes_data["size"] = (
         nodes_data["color"].swifter.progress_bar(False).apply(lambda x: x[-1])
     )
-    nodes_data["size"].astype("int64")
+    nodes_data["size"] = nodes_data["size"].astype("int64")
     nodes_data["color"] = (
         nodes_data["color"]
         .swifter.progress_bar(False)
@@ -242,7 +253,14 @@ def extract_node_data(
     if "n" in nodes_data.columns:
         nodes_data = nodes_data.drop(columns=["n"])
     nodes_data["shared name"] = nodes_data["name"].copy()
-    nodes_data = nodes_data.astype({"id": str})
+    nodes_data["id"] = nodes_data["id"].astype("int64")
+    nodes_data["id"] = nodes_data["id"].astype("str")
+    for col in nodes_data.columns:
+        col_val = [
+            ",".join(str(val)) if isinstance(val, list) else val
+            for val in nodes_data[col]
+        ]
+        nodes_data[col] = col_val
     return nodes_data
 
 
@@ -258,20 +276,26 @@ def extract_link_data(
     Returns:
         pd.DataFrame: Extracted link data.
     """
-    project_path = os.path.join(st._PROJECTS_PATH, project)
-    with open(os.path.join(project_path, "links.json"), "r") as f:
-        links_data = json.load(f)["links"]
-    links_data = pd.DataFrame(links_data)
+    project = Project(project)
+    project.read_links()
+    project.read_names()
+    links_data = pd.DataFrame(project.links["links"])
     if selected_links:
         links_data = links_data[links_data.index.isin(selected_links)]
-    if nodes:
+    links_data["s"] = links_data["s"].astype(str)
+    links_data["e"] = links_data["e"].astype(str)
+    if nodes is not None and len(nodes) > 0:
         links_data = links_data[
             links_data["s"].isin(nodes) & links_data["e"].isin(nodes)
-        ]
+        ].copy()
     else:
-        all_links = pd.concat(links_data["s"], links_data["e"])
-        nodes = all_links.unique()
+        all_links = pd.concat([links_data["s"], links_data["e"]])
+        nodes = [int(node) for node in all_links.unique()]
     links_data = links_data.rename(columns={"s": "source", "e": "target"})
     links_data["interaction"] = ["interacts" for _ in range(len(links_data))]
-    links_data = links_data.astype({"source": str, "target": str})
+    for col in links_data.columns:
+        col_val = [
+            ",".join(val) if isinstance(val, list) else val for val in links_data[col]
+        ]
+        links_data[col] = col_val
     return links_data, nodes

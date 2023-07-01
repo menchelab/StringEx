@@ -3,11 +3,11 @@ import multiprocessing as mp
 import os
 
 import flask
+
 import GlobalData as GD
+import util
 from io_blueprint import IOBlueprint
 from project import Project
-
-import util
 
 from . import routes
 from . import settings as st

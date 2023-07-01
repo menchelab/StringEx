@@ -1,5 +1,8 @@
 function selectEvidenceWebGL(id, layout) {
-  if (!pdata["linksRGB"].includes(layout + "RGB")) {
+  if (pdata == undefined) {
+    var button = document.getElementById(id);
+    button.style.display = "none";
+  } else if (!pdata["linksRGB"].includes(layout + "RGB")) {
     var button = document.getElementById(id);
     button.style.display = "none";
   }
