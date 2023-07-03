@@ -116,7 +116,7 @@ def string_ex_status():
 def string_send_to_cytoscape(message):
     """Is triggered by a call of a client. Will take the current selected nodes and links to send them to a running instance of Cytoscape. This will always send the network the Cytoscape session of the requesting user, if not otherwise specified. If to host is selected, the network will be send to the Cytoscape session of the Server host."""
     return_dict = mp.Manager().dict()
-    ip = flask.request.remote_addr
+    ip = message.get("ip", "localhost")
     user = message.get("user", util.generate_username())
     p = mp.Process(
         target=send_to_cytoscape,
